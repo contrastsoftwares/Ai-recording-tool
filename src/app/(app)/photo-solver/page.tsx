@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { SolutionSteps } from "@/components/photo-solver/solution-steps";
-import { mockPhotoSolverExamples } from "@/lib/mock-data";
-import type { PhotoSolverExample } from "@/lib/mock-data";
+import { mockPhotoSolverSolutions } from "@/lib/mock-data";
+import type { PhotoSolverSolution } from "@/lib/mock-data";
 import {
   Camera,
   Upload,
@@ -44,8 +44,8 @@ export default function PhotoSolverPage() {
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const currentExample: PhotoSolverExample | undefined =
-    mockPhotoSolverExamples.find((e) => e.id === selectedExample);
+  const currentExample: PhotoSolverSolution | undefined =
+    mockPhotoSolverSolutions.find((e) => e.id === selectedExample);
 
   function handleExampleClick(exampleId: string) {
     setSelectedExample(exampleId);
@@ -66,7 +66,7 @@ export default function PhotoSolverPage() {
     if (!file) return;
 
     setUploadedFileName(file.name);
-    setSelectedExample("calculus"); // default to calculus for demo
+    setSelectedExample("photo-solve-1"); // default to calculus for demo
     setShowSolution(false);
     setIsLoading(true);
     setFollowUpMessages([]);
@@ -185,7 +185,7 @@ export default function PhotoSolverPage() {
                 <p className="text-sm font-medium text-foreground">
                   {uploadedFileName
                     ? uploadedFileName
-                    : `Example: ${currentExample?.label}`}
+                    : `Example: ${currentExample?.problem?.slice(0, 40)}...`}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Problem image uploaded
@@ -200,7 +200,7 @@ export default function PhotoSolverPage() {
               Or try an example
             </p>
             <div className="flex flex-wrap gap-2">
-              {mockPhotoSolverExamples.map((example) => (
+              {mockPhotoSolverSolutions.map((example, i) => (
                 <button
                   key={example.id}
                   onClick={() => handleExampleClick(example.id)}
@@ -211,12 +211,12 @@ export default function PhotoSolverPage() {
                       "border-primary bg-primary/5 ring-1 ring-primary/20"
                   )}
                 >
-                  {example.id === "calculus" ? (
+                  {i === 0 ? (
                     <BookOpen className="h-4 w-4 text-primary" />
                   ) : (
                     <Zap className="h-4 w-4 text-warning" />
                   )}
-                  {example.label}
+                  {example.problem.slice(0, 30)}...
                 </button>
               ))}
             </div>
@@ -244,9 +244,9 @@ export default function PhotoSolverPage() {
               <div className="space-y-4">
                 {/* Subject badge */}
                 <div className="flex items-center gap-2">
-                  <Badge variant="default">{currentExample.subject}</Badge>
+                  <Badge variant="default">Mathematics</Badge>
                   <Badge variant="secondary">
-                    {currentExample.subjectDetail}
+                    {currentExample.imageDescription}
                   </Badge>
                   <Sparkles className="h-4 w-4 text-primary ml-1" />
                 </div>

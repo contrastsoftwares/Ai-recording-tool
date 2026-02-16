@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown, CheckCircle2 } from "lucide-react";
-import type { PhotoSolverStep } from "@/lib/mock-data";
+import type { SolutionStep } from "@/lib/mock-data";
 
 interface SolutionStepsProps {
-  steps: PhotoSolverStep[];
+  steps: SolutionStep[];
   finalAnswer: string;
 }
 

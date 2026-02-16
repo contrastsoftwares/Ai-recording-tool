@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { RecordingType, RecordingStatus } from "@/types/recording";
+import type { Recording, RecordingType, RecordingStatus } from "@/types/recording";
 
 interface ActiveRecording {
   type: RecordingType;
@@ -10,6 +10,7 @@ interface ActiveRecording {
 }
 
 interface RecordingState {
+  recordings: Recording[];
   activeRecording: ActiveRecording | null;
   startRecording: (type: RecordingType) => void;
   pauseRecording: () => void;
@@ -19,6 +20,7 @@ interface RecordingState {
 }
 
 export const useRecordingStore = create<RecordingState>((set) => ({
+  recordings: [],
   activeRecording: null,
   startRecording: (type) =>
     set({ activeRecording: { type, status: "recording", duration: 0 } }),
