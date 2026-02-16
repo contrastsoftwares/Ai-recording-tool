@@ -28,6 +28,9 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { NoteViewer } from "@/components/notes/note-viewer";
 import { TranscriptPanel } from "@/components/notes/transcript-panel";
+import { ChatInterface } from "@/components/chat/chat-interface";
+import { FlashcardDeck } from "@/components/flashcards/flashcard-deck";
+import { TestView } from "@/components/test-generator/test-view";
 import { mockNotes, mockTranscriptSegments, mockConversations } from "@/lib/mock-data";
 import type { UploadType } from "@/types/note";
 
@@ -185,48 +188,19 @@ export default function NoteWorkspacePage() {
             )}
 
             {activeTab === "chat" && (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-20 px-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted mb-4">
-                  <MessageSquare className="h-7 w-7 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-1">
-                  Chat Interface
-                </h3>
-                <p className="text-sm text-muted-foreground text-center max-w-md">
-                  Ask questions about your notes, get explanations, and explore
-                  topics with AI. This feature will be built separately.
-                </p>
+              <div className="rounded-xl border border-border bg-card overflow-hidden h-[calc(100vh-16rem)]">
+                <ChatInterface noteId={noteId} />
               </div>
             )}
 
             {activeTab === "flashcards" && (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-20 px-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted mb-4">
-                  <Layers className="h-7 w-7 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-1">
-                  Flashcards
-                </h3>
-                <p className="text-sm text-muted-foreground text-center max-w-md">
-                  AI-generated flashcards for active recall practice. Review and
-                  master the key concepts from your notes. This feature will be built separately.
-                </p>
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
+                <FlashcardDeck noteId={noteId} />
               </div>
             )}
 
             {activeTab === "test" && (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-20 px-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted mb-4">
-                  <ClipboardCheck className="h-7 w-7 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-1">
-                  Practice Test
-                </h3>
-                <p className="text-sm text-muted-foreground text-center max-w-md">
-                  Auto-generated practice tests to evaluate your understanding.
-                  Multiple choice, true/false, and short answer questions. This feature will be built separately.
-                </p>
-              </div>
+              <TestView noteId={noteId} />
             )}
           </div>
         </div>
