@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Mic, CheckCircle, Download, FileText } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Mic, CheckCircle, Download, FileText, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,6 +36,12 @@ function WaveformBar({ index, isRecording }: { index: number; isRecording: boole
 export function AudioRecorder() {
   const [status, setStatus] = useState<RecordingStatus>("idle");
   const [duration, setDuration] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -51,27 +57,124 @@ export function AudioRecorder() {
     };
   }, [status]);
 
-  const handleStart = useCallback(() => {
+  // Clean up stream and object URL on unmount
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+  }, [audioUrl]);
+
+  const handleStart = useCallback(async () => {
+    setError(null);
     setDuration(0);
-    setStatus("recording");
-  }, []);
+    chunksRef.current = [];
+
+    // Revoke previous URL if any
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+      setAudioUrl(null);
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+
+        // Stop all tracks
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
+      };
+
+      mediaRecorder.start(100); // Collect data every 100ms
+      setStatus("recording");
+    } catch (err) {
+      if (err instanceof DOMException) {
+        if (err.name === "NotAllowedError") {
+          setError(
+            "Microphone access was denied. Please allow microphone permission in your browser settings."
+          );
+        } else if (err.name === "NotFoundError") {
+          setError(
+            "No microphone found. Please connect a microphone and try again."
+          );
+        } else {
+          setError(`Microphone error: ${err.message}`);
+        }
+      } else {
+        setError("An unexpected error occurred while accessing the microphone.");
+      }
+    }
+  }, [audioUrl]);
 
   const handlePause = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      mediaRecorderRef.current.pause();
+    }
     setStatus("paused");
   }, []);
 
   const handleResume = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "paused") {
+      mediaRecorderRef.current.resume();
+    }
     setStatus("recording");
   }, []);
 
   const handleStop = useCallback(() => {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
+      mediaRecorderRef.current.stop();
+    }
     setStatus("stopped");
   }, []);
 
   const handleReset = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+      setAudioUrl(null);
+    }
+    mediaRecorderRef.current = null;
+    chunksRef.current = [];
     setStatus("idle");
     setDuration(0);
-  }, []);
+    setError(null);
+  }, [audioUrl]);
+
+  const handleDownload = useCallback(() => {
+    if (!audioUrl) return;
+    const a = document.createElement("a");
+    a.href = audioUrl;
+    a.download = `recording-${Date.now()}.webm`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, [audioUrl]);
 
   return (
     <div className="flex flex-col items-center gap-6">
@@ -93,6 +196,12 @@ export function AudioRecorder() {
                     Your audio recording has been saved successfully.
                   </p>
                 </div>
+
+                {/* Audio playback */}
+                {audioUrl && (
+                  <audio controls src={audioUrl} className="w-full max-w-sm" />
+                )}
+
                 <div className="flex flex-wrap items-center justify-center gap-3">
                   <Button asChild className="gap-2">
                     <Link href="/dashboard">
@@ -100,7 +209,11 @@ export function AudioRecorder() {
                       Generate Notes
                     </Link>
                   </Button>
-                  <Button variant="outline" className="gap-2" onClick={handleReset}>
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={handleDownload}
+                  >
                     <Download className="h-4 w-4" />
                     Download Recording
                   </Button>
@@ -122,8 +235,16 @@ export function AudioRecorder() {
         </CardContent>
       </Card>
 
+      {/* Error message */}
+      {error && (
+        <div className="flex w-full items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3">
+          <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
+          <p className="text-sm text-destructive">{error}</p>
+        </div>
+      )}
+
       {/* Microphone status indicator */}
-      {status !== "stopped" && (
+      {status !== "stopped" && !error && (
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2">
             <span className="inline-flex h-2 w-2 rounded-full bg-success" />

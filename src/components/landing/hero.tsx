@@ -1,26 +1,85 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Play, FileText, MessageSquare, Sparkles, Layers, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const sidebarItems = [
+  { icon: FileText, label: "My Notes" },
+  { icon: MessageSquare, label: "AI Chat" },
+  { icon: Layers, label: "Flashcards" },
+  { icon: Mic, label: "Recorder" },
+];
+
+const tabContent = [
+  {
+    // My Notes
+    cards: [
+      { title: "Biology Lecture 12", tag: "Notes", color: "bg-primary/10 text-primary" },
+      { title: "Calculus Review", tag: "Flashcards", color: "bg-violet/10 text-violet" },
+      { title: "History Midterm", tag: "Practice Test", color: "bg-success/10 text-success" },
+      { title: "Physics Lab Report", tag: "Notes", color: "bg-warning/10 text-warning" },
+    ],
+  },
+  {
+    // AI Chat
+    cards: [
+      { title: "Explain mitosis phases", tag: "Biology", color: "bg-primary/10 text-primary" },
+      { title: "Solve integral problem", tag: "Calculus", color: "bg-violet/10 text-violet" },
+      { title: "Summarize chapter 5", tag: "History", color: "bg-success/10 text-success" },
+      { title: "Define Newton's laws", tag: "Physics", color: "bg-warning/10 text-warning" },
+    ],
+  },
+  {
+    // Flashcards
+    cards: [
+      { title: "Cell Biology Deck", tag: "42 cards", color: "bg-primary/10 text-primary" },
+      { title: "Derivatives", tag: "28 cards", color: "bg-violet/10 text-violet" },
+      { title: "World War II", tag: "35 cards", color: "bg-success/10 text-success" },
+      { title: "Thermodynamics", tag: "19 cards", color: "bg-warning/10 text-warning" },
+    ],
+  },
+  {
+    // Recorder
+    cards: [
+      { title: "Bio Lecture — Feb 18", tag: "1:24:30", color: "bg-primary/10 text-primary" },
+      { title: "Math Section — Feb 17", tag: "52:15", color: "bg-violet/10 text-violet" },
+      { title: "History Seminar", tag: "48:00", color: "bg-success/10 text-success" },
+      { title: "Physics Lab", tag: "1:10:45", color: "bg-warning/10 text-warning" },
+    ],
+  },
+];
+
 export function Hero() {
+  const [activeTab, setActiveTab] = useState(0);
+
+  // Auto-cycle tabs every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveTab((prev) => (prev + 1) % sidebarItems.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const currentContent = tabContent[activeTab];
+
   return (
     <section className="relative overflow-hidden pt-32 pb-20 md:pt-40 md:pb-28">
       {/* Background gradient */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/5 via-primary/[0.02] to-transparent" />
-      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-[600px] w-[900px] rounded-full bg-primary/[0.07] blur-3xl" />
+      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-[600px] w-[900px] rounded-full bg-gradient-to-r from-primary/[0.07] via-violet/[0.07] to-primary/[0.07] blur-3xl animate-gradient-shift" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center text-center">
           {/* Badge */}
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary opacity-0 animate-fade-in-up">
             <Sparkles className="h-3.5 w-3.5" />
             AI-Powered Note Taking
           </div>
 
           {/* Heading */}
-          <h1 className="max-w-4xl text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+          <h1 className="max-w-4xl text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl opacity-0 animate-fade-in-up animation-delay-100">
             Turn Any Lecture Into{" "}
             <span className="bg-gradient-to-r from-primary via-violet to-violet bg-clip-text text-transparent">
               Smart Notes
@@ -28,14 +87,14 @@ export function Hero() {
           </h1>
 
           {/* Subheading */}
-          <p className="mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl">
+          <p className="mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl opacity-0 animate-fade-in-up animation-delay-200">
             Record, upload, and transform your lectures and meetings into
             AI-powered notes, flashcards, and study materials — all in one
             place.
           </p>
 
           {/* CTA Buttons */}
-          <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+          <div className="mt-10 flex flex-col gap-4 sm:flex-row opacity-0 animate-fade-in-up animation-delay-300">
             <Link
               href="/dashboard"
               className={cn(
@@ -55,7 +114,7 @@ export function Hero() {
           </div>
 
           {/* App Preview Mockup */}
-          <div className="relative mt-16 w-full max-w-5xl sm:mt-20">
+          <div className="relative mt-16 w-full max-w-5xl sm:mt-20 opacity-0 animate-fade-in-up animation-delay-400">
             {/* Gradient border effect */}
             <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-primary via-violet to-primary opacity-20 blur-sm" />
             <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
@@ -80,24 +139,20 @@ export function Hero() {
                     <span className="font-semibold text-foreground">Contrast AI</span>
                   </div>
                   <div className="space-y-2">
-                    {[
-                      { icon: FileText, label: "My Notes", active: true },
-                      { icon: MessageSquare, label: "AI Chat", active: false },
-                      { icon: Layers, label: "Flashcards", active: false },
-                      { icon: Mic, label: "Recorder", active: false },
-                    ].map((item, i) => (
-                      <div
+                    {sidebarItems.map((item, i) => (
+                      <button
                         key={i}
+                        onClick={() => setActiveTab(i)}
                         className={cn(
-                          "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm",
-                          item.active
+                          "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-all duration-300",
+                          activeTab === i
                             ? "bg-primary/10 text-primary font-medium"
-                            : "text-muted-foreground"
+                            : "text-muted-foreground hover:bg-accent"
                         )}
                       >
                         <item.icon className="h-4 w-4" />
                         {item.label}
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -112,17 +167,13 @@ export function Hero() {
                     <div className="h-8 w-24 rounded-md bg-primary/10" />
                   </div>
 
-                  {/* Fake note cards */}
+                  {/* Fake note cards with transition */}
                   <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {[
-                      { title: "Biology Lecture 12", tag: "Notes", color: "bg-primary/10 text-primary" },
-                      { title: "Calculus Review", tag: "Flashcards", color: "bg-violet/10 text-violet" },
-                      { title: "History Midterm", tag: "Practice Test", color: "bg-success/10 text-success" },
-                      { title: "Physics Lab Report", tag: "Notes", color: "bg-warning/10 text-warning" },
-                    ].map((card, i) => (
+                    {currentContent.cards.map((card, i) => (
                       <div
-                        key={i}
-                        className="rounded-lg border border-border bg-background p-4"
+                        key={`${activeTab}-${i}`}
+                        className="rounded-lg border border-border bg-background p-4 animate-fade-in"
+                        style={{ animationDelay: `${i * 50}ms` }}
                       >
                         <div className="flex items-start justify-between">
                           <div className="h-4 w-32 rounded bg-foreground/10" />

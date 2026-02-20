@@ -9,6 +9,7 @@ const navLinks = [
   { href: "#features", label: "Features" },
   { href: "#how-it-works", label: "How It Works" },
   { href: "#pricing", label: "Pricing" },
+  { href: "#faq", label: "FAQ" },
 ];
 
 export function Navbar() {
@@ -21,6 +22,17 @@ export function Navbar() {
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Close mobile menu on resize to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setMobileOpen(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   return (
@@ -86,16 +98,25 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile dropdown */}
-      {mobileOpen && (
-        <div className="border-b border-border bg-background/95 backdrop-blur-lg md:hidden">
+      {/* Mobile dropdown with slide-in animation */}
+      <div
+        className={cn(
+          "overflow-hidden transition-all duration-300 ease-out md:hidden",
+          mobileOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+        )}
+      >
+        <div className="border-b border-border bg-background/95 backdrop-blur-lg">
           <div className="space-y-1 px-4 py-4">
-            {navLinks.map((link) => (
+            {navLinks.map((link, i) => (
               <a
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
-                className="block rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className={cn(
+                  "block rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-accent hover:text-foreground",
+                  mobileOpen && "animate-fade-in-up",
+                )}
+                style={mobileOpen ? { animationDelay: `${i * 50}ms` } : undefined}
               >
                 {link.label}
               </a>
@@ -117,7 +138,7 @@ export function Navbar() {
             </Link>
           </div>
         </div>
-      )}
+      </div>
     </nav>
   );
 }

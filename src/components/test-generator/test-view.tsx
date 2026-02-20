@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -34,6 +34,26 @@ export function TestView({ noteId }: TestViewProps) {
     total: number;
     percentage: number;
   } | null>(null);
+  const questionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // Restore answers from sessionStorage
+  useEffect(() => {
+    if (!test) return;
+    const saved = sessionStorage.getItem(`test-answers-${test.id}`);
+    if (saved) {
+      try {
+        setAnswers(JSON.parse(saved));
+      } catch {
+        // ignore invalid JSON
+      }
+    }
+  }, [test]);
+
+  // Auto-save answers to sessionStorage
+  useEffect(() => {
+    if (!test) return;
+    sessionStorage.setItem(`test-answers-${test.id}`, JSON.stringify(answers));
+  }, [answers, test]);
 
   // Timer
   useEffect(() => {
@@ -50,6 +70,11 @@ export function TestView({ noteId }: TestViewProps) {
     setAnswers((prev) => ({ ...prev, [questionId]: answer }));
   }, []);
 
+  const scrollToQuestion = useCallback((questionId: string) => {
+    const el = questionRefs.current.get(questionId);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
+
   function handleSubmit() {
     if (!test) return;
 
@@ -59,9 +84,8 @@ export function TestView({ noteId }: TestViewProps) {
       const correctAnswer = question.correctAnswer.trim().toLowerCase();
 
       if (question.type === "short-answer") {
-        // For short answer, give credit (simplified check)
         if (userAnswer.length > 0) {
-          correct += 0; // Manual grading needed
+          correct += 0;
         }
       } else {
         if (userAnswer === correctAnswer) {
@@ -70,7 +94,6 @@ export function TestView({ noteId }: TestViewProps) {
       }
     }
 
-    // Count non-short-answer questions for percentage
     const gradableQuestions = test.questions.filter(
       (q) => q.type !== "short-answer"
     );
@@ -79,6 +102,8 @@ export function TestView({ noteId }: TestViewProps) {
 
     setScore({ correct, total, percentage });
     setTestState("results");
+    // Clear saved answers
+    sessionStorage.removeItem(`test-answers-${test.id}`);
   }
 
   function handleRetake() {
@@ -92,7 +117,6 @@ export function TestView({ noteId }: TestViewProps) {
     setTestState("review");
   }
 
-  // No test found state
   if (!test) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-6">
@@ -140,6 +164,22 @@ export function TestView({ noteId }: TestViewProps) {
       </div>
     );
   }
+
+  // Get question state for navigation pill
+  const getQuestionState = (questionId: string) => {
+    const question = test.questions.find((q) => q.id === questionId);
+    if (!question) return "unanswered";
+    const userAnswer = answers[questionId]?.trim() ?? "";
+
+    if (testState === "review") {
+      if (!userAnswer) return "unanswered";
+      const isCorrect = userAnswer.toLowerCase() === question.correctAnswer.trim().toLowerCase();
+      if (question.type === "short-answer") return "answered";
+      return isCorrect ? "correct" : "incorrect";
+    }
+
+    return userAnswer ? "answered" : "unanswered";
+  };
 
   // Taking / Review state
   return (
@@ -195,6 +235,31 @@ export function TestView({ noteId }: TestViewProps) {
           )}
         </div>
 
+        {/* Question navigation strip */}
+        <div className="flex flex-wrap gap-1.5 mt-3">
+          {test.questions.map((question, index) => {
+            const state = getQuestionState(question.id);
+            return (
+              <button
+                key={question.id}
+                type="button"
+                onClick={() => scrollToQuestion(question.id)}
+                className={cn(
+                  "h-7 w-7 rounded-md text-xs font-medium transition-all",
+                  "flex items-center justify-center",
+                  state === "unanswered" && "bg-muted text-muted-foreground hover:bg-muted/80",
+                  state === "answered" && "bg-primary text-primary-foreground",
+                  state === "correct" && "bg-success text-success-foreground",
+                  state === "incorrect" && "bg-destructive text-destructive-foreground"
+                )}
+                title={`Question ${index + 1}`}
+              >
+                {index + 1}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Progress bar */}
         {testState === "taking" && (
           <div className="mt-3">
@@ -210,16 +275,22 @@ export function TestView({ noteId }: TestViewProps) {
       {/* Questions list */}
       <div className="space-y-4">
         {test.questions.map((question, index) => (
-          <QuestionCard
+          <div
             key={question.id}
-            question={{
-              ...question,
-              userAnswer: answers[question.id],
+            ref={(el) => {
+              if (el) questionRefs.current.set(question.id, el);
             }}
-            index={index}
-            onAnswer={handleAnswer}
-            showResult={testState === "review"}
-          />
+          >
+            <QuestionCard
+              question={{
+                ...question,
+                userAnswer: answers[question.id],
+              }}
+              index={index}
+              onAnswer={handleAnswer}
+              showResult={testState === "review"}
+            />
+          </div>
         ))}
       </div>
 

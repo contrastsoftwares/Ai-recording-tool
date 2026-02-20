@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Monitor, CheckCircle, Download, FileText } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Monitor, CheckCircle, Download, FileText, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +15,13 @@ export function ScreenRecorder() {
   const [duration, setDuration] = useState(0);
   const [includeAudio, setIncludeAudio] = useState(true);
   const [quality, setQuality] = useState<"720p" | "1080p">("1080p");
+  const [error, setError] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const videoPreviewRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -30,27 +37,189 @@ export function ScreenRecorder() {
     };
   }, [status]);
 
-  const handleStart = useCallback(() => {
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (videoUrl) {
+        URL.revokeObjectURL(videoUrl);
+      }
+    };
+  }, [videoUrl]);
+
+  const handleStart = useCallback(async () => {
+    setError(null);
     setDuration(0);
-    setStatus("recording");
-  }, []);
+    chunksRef.current = [];
+
+    // Revoke previous URL if any
+    if (videoUrl) {
+      URL.revokeObjectURL(videoUrl);
+      setVideoUrl(null);
+    }
+
+    try {
+      const displayMediaOptions: DisplayMediaStreamOptions = {
+        video: {
+          width: quality === "1080p" ? { ideal: 1920 } : { ideal: 1280 },
+          height: quality === "1080p" ? { ideal: 1080 } : { ideal: 720 },
+        },
+        audio: includeAudio,
+      };
+
+      const displayStream =
+        await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
+
+      // If user wants audio, also get microphone audio and merge streams
+      let combinedStream = displayStream;
+      if (includeAudio) {
+        try {
+          const audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+          });
+          const tracks = [
+            ...displayStream.getVideoTracks(),
+            ...audioStream.getAudioTracks(),
+          ];
+          combinedStream = new MediaStream(tracks);
+        } catch {
+          // Microphone access failed; proceed with screen-only
+          combinedStream = displayStream;
+        }
+      }
+
+      streamRef.current = combinedStream;
+
+      // Show live preview
+      if (videoPreviewRef.current) {
+        videoPreviewRef.current.srcObject = displayStream;
+        videoPreviewRef.current.play().catch(() => {
+          // Autoplay may fail silently; preview is not critical
+        });
+      }
+
+      const mediaRecorder = new MediaRecorder(combinedStream, {
+        mimeType: MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+          ? "video/webm;codecs=vp9"
+          : "video/webm",
+      });
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        setVideoUrl(url);
+
+        // Stop all tracks
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
+
+        // Clear preview
+        if (videoPreviewRef.current) {
+          videoPreviewRef.current.srcObject = null;
+        }
+      };
+
+      // Handle user clicking "Stop Sharing" in the browser's native UI
+      displayStream.getVideoTracks().forEach((track) => {
+        track.onended = () => {
+          if (
+            mediaRecorderRef.current &&
+            mediaRecorderRef.current.state !== "inactive"
+          ) {
+            mediaRecorderRef.current.stop();
+          }
+          setStatus("stopped");
+        };
+      });
+
+      mediaRecorder.start(100); // Collect data every 100ms
+      setStatus("recording");
+    } catch (err) {
+      if (err instanceof DOMException) {
+        if (err.name === "NotAllowedError") {
+          setError(
+            "Screen sharing was cancelled or denied. Please allow screen sharing to record."
+          );
+        } else {
+          setError(`Screen recording error: ${err.message}`);
+        }
+      } else {
+        setError(
+          "An unexpected error occurred while starting screen recording."
+        );
+      }
+    }
+  }, [videoUrl, includeAudio, quality]);
 
   const handlePause = useCallback(() => {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state === "recording"
+    ) {
+      mediaRecorderRef.current.pause();
+    }
     setStatus("paused");
   }, []);
 
   const handleResume = useCallback(() => {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state === "paused"
+    ) {
+      mediaRecorderRef.current.resume();
+    }
     setStatus("recording");
   }, []);
 
   const handleStop = useCallback(() => {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
+      mediaRecorderRef.current.stop();
+    }
     setStatus("stopped");
   }, []);
 
   const handleReset = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoPreviewRef.current) {
+      videoPreviewRef.current.srcObject = null;
+    }
+    if (videoUrl) {
+      URL.revokeObjectURL(videoUrl);
+      setVideoUrl(null);
+    }
+    mediaRecorderRef.current = null;
+    chunksRef.current = [];
     setStatus("idle");
     setDuration(0);
-  }, []);
+    setError(null);
+  }, [videoUrl]);
+
+  const handleDownload = useCallback(() => {
+    if (!videoUrl) return;
+    const a = document.createElement("a");
+    a.href = videoUrl;
+    a.download = `screen-recording-${Date.now()}.webm`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, [videoUrl]);
 
   return (
     <div className="flex flex-col items-center gap-6">
@@ -77,6 +246,16 @@ export function ScreenRecorder() {
                     Your screen recording has been saved successfully.
                   </p>
                 </div>
+
+                {/* Video playback */}
+                {videoUrl && (
+                  <video
+                    controls
+                    src={videoUrl}
+                    className="w-full max-w-lg rounded-lg"
+                  />
+                )}
+
                 <div className="flex flex-wrap items-center justify-center gap-3">
                   <Button asChild className="gap-2">
                     <Link href="/dashboard">
@@ -84,39 +263,68 @@ export function ScreenRecorder() {
                       Generate Notes
                     </Link>
                   </Button>
-                  <Button variant="outline" className="gap-2" onClick={handleReset}>
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={handleDownload}
+                  >
                     <Download className="h-4 w-4" />
                     Download Recording
                   </Button>
                 </div>
               </div>
             ) : (
-              /* Preview placeholder */
-              <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                <Monitor
+              <>
+                {/* Live preview video element */}
+                <video
+                  ref={videoPreviewRef}
+                  muted
+                  playsInline
                   className={cn(
-                    "h-12 w-12",
-                    status === "recording" && "text-red-500"
+                    "absolute inset-0 h-full w-full object-contain",
+                    status !== "recording" && status !== "paused" && "hidden"
                   )}
                 />
-                <p className="text-sm font-medium">
-                  {status === "recording"
-                    ? "Recording your screen..."
-                    : status === "paused"
-                      ? "Recording paused"
-                      : "Your screen will appear here"}
-                </p>
+
+                {/* Preview placeholder (shown when idle) */}
+                {status === "idle" && (
+                  <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                    <Monitor className="h-12 w-12" />
+                    <p className="text-sm font-medium">
+                      Your screen will appear here
+                    </p>
+                  </div>
+                )}
+
+                {/* Paused overlay */}
+                {status === "paused" && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <p className="rounded-lg bg-background/90 px-4 py-2 text-sm font-medium text-foreground">
+                      Recording paused
+                    </p>
+                  </div>
+                )}
+
+                {/* REC indicator */}
                 {status === "recording" && (
                   <div className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full bg-red-500 px-2.5 py-1 text-xs font-medium text-white">
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
                     REC
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
         </CardContent>
       </Card>
+
+      {/* Error message */}
+      {error && (
+        <div className="flex w-full items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3">
+          <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
+          <p className="text-sm text-destructive">{error}</p>
+        </div>
+      )}
 
       {/* Recording controls */}
       {status !== "stopped" && (

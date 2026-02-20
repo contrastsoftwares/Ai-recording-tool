@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { mockConversations } from "@/lib/mock-data";
 import { ChatMessage } from "@/components/chat/chat-message";
 import { ChatInput } from "@/components/chat/chat-input";
+import { aiService } from "@/lib/ai-service";
 import type { Message } from "@/types/chat";
 
 interface ChatInterfaceProps {
@@ -33,7 +34,7 @@ export function ChatInterface({ noteId }: ChatInterfaceProps) {
   }, [messages]);
 
   const handleSend = useCallback(
-    (content: string) => {
+    async (content: string) => {
       const userMessage: Message = {
         id: `msg-${Date.now()}`,
         role: "user",
@@ -43,22 +44,33 @@ export function ChatInterface({ noteId }: ChatInterfaceProps) {
 
       setMessages((prev) => [...prev, userMessage]);
 
-      // Simulate AI response after delay
-      setTimeout(() => {
+      try {
+        // Use the AI service to generate a response
+        const allMessages = [...messages, userMessage];
+        const noteContent = conversation
+          ? mockConversations.find((c) => c.id === conversation.id)?.noteId ?? ""
+          : "";
+        const response = await aiService.chat(noteContent, allMessages);
+
         const aiMessage: Message = {
           id: `msg-${Date.now()}-ai`,
           role: "assistant",
-          content:
-            "I'd be happy to help you with that! Based on your notes, here are the key insights I found:\n\n" +
-            "The material covers several important concepts that are worth reviewing. " +
-            "I recommend focusing on the core definitions and their relationships to build a strong understanding.\n\n" +
-            "Would you like me to go deeper into any specific area, or shall I generate flashcards to help you study?",
+          content: response,
           timestamp: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, aiMessage]);
-      }, 1500);
+      } catch {
+        const errorMessage: Message = {
+          id: `msg-${Date.now()}-err`,
+          role: "assistant",
+          content:
+            "I apologize, but I encountered an error processing your request. Please try again.",
+          timestamp: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      }
     },
-    []
+    [messages, conversation]
   );
 
   const handleSuggestedQuestion = (question: string) => {

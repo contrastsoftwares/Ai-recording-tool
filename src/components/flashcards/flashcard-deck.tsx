@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight, RotateCcw, Layers } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, Layers, Play, Trophy, Keyboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { mockFlashcardDecks } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
@@ -12,35 +12,86 @@ interface FlashcardDeckProps {
   noteId: string;
 }
 
+type StudyMode = "browse" | "session" | "complete";
+
+interface SessionStats {
+  reviewed: number;
+  easy: number;
+  medium: number;
+  hard: number;
+  startTime: number;
+}
+
 export function FlashcardDeck({ noteId }: FlashcardDeckProps) {
   const deck = mockFlashcardDecks.find((d) => d.noteId === noteId);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [studyMode, setStudyMode] = useState<StudyMode>("browse");
+  const [sessionStats, setSessionStats] = useState<SessionStats>({
+    reviewed: 0,
+    easy: 0,
+    medium: 0,
+    hard: 0,
+    startTime: Date.now(),
+  });
 
   const totalCards = deck?.cards.length ?? 0;
 
+  // Filter cards for study session (not mastered)
+  const sessionCards = deck?.cards.filter(
+    (c) => c.timesReviewed < 3
+  ) ?? [];
+
+  const activeCards = studyMode === "session" ? sessionCards : deck?.cards ?? [];
+  const activeTotal = activeCards.length;
+
   const goToNext = useCallback(() => {
-    if (!deck) return;
     setIsFlipped(false);
-    setCurrentIndex((prev) => (prev + 1) % deck.cards.length);
-  }, [deck]);
+    if (studyMode === "session") {
+      if (sessionStats.reviewed + 1 >= activeTotal) {
+        setStudyMode("complete");
+        return;
+      }
+    }
+    setCurrentIndex((prev) => (prev + 1) % activeTotal);
+  }, [activeTotal, studyMode, sessionStats.reviewed]);
 
   const goToPrev = useCallback(() => {
-    if (!deck) return;
     setIsFlipped(false);
-    setCurrentIndex(
-      (prev) => (prev - 1 + deck.cards.length) % deck.cards.length
-    );
-  }, [deck]);
+    setCurrentIndex((prev) => (prev - 1 + activeTotal) % activeTotal);
+  }, [activeTotal]);
 
   const toggleFlip = useCallback(() => {
     setIsFlipped((prev) => !prev);
   }, []);
 
-  const handleDifficulty = useCallback(() => {
-    // Mark difficulty and advance to next card
+  const handleDifficulty = useCallback((difficulty: "easy" | "medium" | "hard") => {
+    setSessionStats((prev) => ({
+      ...prev,
+      reviewed: prev.reviewed + 1,
+      [difficulty]: prev[difficulty] + 1,
+    }));
     goToNext();
   }, [goToNext]);
+
+  const startStudySession = useCallback(() => {
+    setStudyMode("session");
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    setSessionStats({
+      reviewed: 0,
+      easy: 0,
+      medium: 0,
+      hard: 0,
+      startTime: Date.now(),
+    });
+  }, []);
+
+  const exitSession = useCallback(() => {
+    setStudyMode("browse");
+    setCurrentIndex(0);
+    setIsFlipped(false);
+  }, []);
 
   // Keyboard support
   useEffect(() => {
@@ -54,14 +105,17 @@ export function FlashcardDeck({ noteId }: FlashcardDeckProps) {
       } else if (e.key === " ") {
         e.preventDefault();
         toggleFlip();
+      } else if (isFlipped && studyMode === "session") {
+        if (e.key === "1") { e.preventDefault(); handleDifficulty("easy"); }
+        else if (e.key === "2") { e.preventDefault(); handleDifficulty("medium"); }
+        else if (e.key === "3") { e.preventDefault(); handleDifficulty("hard"); }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [goToNext, goToPrev, toggleFlip]);
+  }, [goToNext, goToPrev, toggleFlip, isFlipped, studyMode, handleDifficulty]);
 
-  // No deck found state
   if (!deck) {
     return (
       <div className="flex h-full flex-col items-center justify-center px-4 py-16">
@@ -83,15 +137,80 @@ export function FlashcardDeck({ noteId }: FlashcardDeckProps) {
     );
   }
 
-  const currentCard = deck.cards[currentIndex];
+  // Session complete screen
+  if (studyMode === "complete") {
+    const timeSpent = Math.round((Date.now() - sessionStats.startTime) / 1000);
+    const minutes = Math.floor(timeSpent / 60);
+    const seconds = timeSpent % 60;
+
+    return (
+      <div className="flex h-full flex-col items-center justify-center px-4 py-12">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+          <Trophy className="h-8 w-8 text-success" />
+        </div>
+        <h3 className="mb-2 text-xl font-bold text-foreground">Session Complete!</h3>
+        <p className="text-sm text-muted-foreground mb-6">
+          You reviewed {sessionStats.reviewed} cards in {minutes > 0 ? `${minutes}m ` : ""}{seconds}s
+        </p>
+
+        <div className="flex gap-4 mb-8">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-success">{sessionStats.easy}</p>
+            <p className="text-xs text-muted-foreground">Easy</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-warning">{sessionStats.medium}</p>
+            <p className="text-xs text-muted-foreground">Medium</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-destructive">{sessionStats.hard}</p>
+            <p className="text-xs text-muted-foreground">Hard</p>
+          </div>
+        </div>
+
+        <FlashcardProgress
+          total={deck.progress.total}
+          mastered={deck.progress.mastered}
+          learning={deck.progress.learning}
+          notStarted={deck.progress.notStarted}
+        />
+
+        <div className="flex gap-3 mt-8">
+          <Button variant="outline" onClick={exitSession}>
+            Back to Deck
+          </Button>
+          {sessionStats.hard > 0 && (
+            <Button onClick={startStudySession}>
+              Review Hard Cards
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const currentCard = activeCards[currentIndex];
+  if (!currentCard) return null;
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header: title + progress */}
+      {/* Header: title + progress + study session button */}
       <div className="border-b border-border px-6 py-4">
-        <h2 className="mb-3 text-lg font-semibold text-foreground">
-          {deck.title}
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-foreground">
+            {deck.title}
+          </h2>
+          {studyMode === "browse" ? (
+            <Button size="sm" onClick={startStudySession} className="gap-2">
+              <Play className="h-3.5 w-3.5" />
+              Study Session
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" onClick={exitSession}>
+              Exit Session
+            </Button>
+          )}
+        </div>
         <FlashcardProgress
           total={deck.progress.total}
           mastered={deck.progress.mastered}
@@ -104,7 +223,10 @@ export function FlashcardDeck({ noteId }: FlashcardDeckProps) {
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-8">
         {/* Card counter */}
         <p className="mb-6 text-sm font-medium text-muted-foreground">
-          {currentIndex + 1} / {totalCards}
+          {currentIndex + 1} / {activeTotal}
+          {studyMode === "session" && (
+            <span className="ml-2 text-xs text-primary">Study Session</span>
+          )}
         </p>
 
         {/* Flashcard */}
@@ -119,62 +241,75 @@ export function FlashcardDeck({ noteId }: FlashcardDeckProps) {
         {isFlipped && (
           <div className="mt-6 flex gap-3">
             <button
-              onClick={handleDifficulty}
+              onClick={() => handleDifficulty("easy")}
               className={cn(
                 "rounded-lg px-5 py-2 text-sm font-medium transition-colors",
                 "bg-success/10 text-success hover:bg-success/20"
               )}
             >
-              Easy
+              Easy {studyMode === "session" && <span className="text-xs opacity-60 ml-1">(1)</span>}
             </button>
             <button
-              onClick={handleDifficulty}
+              onClick={() => handleDifficulty("medium")}
               className={cn(
                 "rounded-lg px-5 py-2 text-sm font-medium transition-colors",
                 "bg-warning/10 text-warning hover:bg-warning/20"
               )}
             >
-              Medium
+              Medium {studyMode === "session" && <span className="text-xs opacity-60 ml-1">(2)</span>}
             </button>
             <button
-              onClick={handleDifficulty}
+              onClick={() => handleDifficulty("hard")}
               className={cn(
                 "rounded-lg px-5 py-2 text-sm font-medium transition-colors",
                 "bg-destructive/10 text-destructive hover:bg-destructive/20"
               )}
             >
-              Hard
+              Hard {studyMode === "session" && <span className="text-xs opacity-60 ml-1">(3)</span>}
             </button>
           </div>
         )}
       </div>
 
-      {/* Navigation controls */}
-      <div className="flex items-center justify-center gap-4 border-t border-border px-6 py-4">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={goToPrev}
-          className="h-10 w-10 rounded-full"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <Button
-          variant="outline"
-          onClick={toggleFlip}
-          className="gap-2 rounded-full px-6"
-        >
-          <RotateCcw className="h-4 w-4" />
-          Flip
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={goToNext}
-          className="h-10 w-10 rounded-full"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </Button>
+      {/* Navigation controls + keyboard hints */}
+      <div className="border-t border-border px-6 py-4">
+        <div className="flex items-center justify-center gap-4">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={goToPrev}
+            className="h-10 w-10 rounded-full"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="outline"
+            onClick={toggleFlip}
+            className="gap-2 rounded-full px-6"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Flip
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={goToNext}
+            className="h-10 w-10 rounded-full"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+        {/* Keyboard hints */}
+        <div className="flex items-center justify-center gap-3 mt-3">
+          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+            <Keyboard className="h-3 w-3" />
+            Space to flip
+          </span>
+          <span className="text-[10px] text-muted-foreground">Arrows to navigate</span>
+          {studyMode === "session" && (
+            <span className="text-[10px] text-muted-foreground">1/2/3 for difficulty</span>
+          )}
+        </div>
       </div>
     </div>
   );
