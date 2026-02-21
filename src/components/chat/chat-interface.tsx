@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { MessageSquare, Sparkles } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { mockConversations } from "@/lib/mock-data";
 import { ChatMessage } from "@/components/chat/chat-message";
 import { ChatInput } from "@/components/chat/chat-input";
 import { aiService } from "@/lib/ai-service";
@@ -11,6 +10,7 @@ import type { Message } from "@/types/chat";
 
 interface ChatInterfaceProps {
   noteId: string;
+  noteContent?: string;
 }
 
 const suggestedQuestions = [
@@ -20,11 +20,9 @@ const suggestedQuestions = [
   "Create a study plan for this material",
 ];
 
-export function ChatInterface({ noteId }: ChatInterfaceProps) {
-  const conversation = mockConversations.find((c) => c.noteId === noteId);
-  const [messages, setMessages] = useState<Message[]>(
-    conversation?.messages ?? []
-  );
+export function ChatInterface({ noteId, noteContent }: ChatInterfaceProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -43,14 +41,15 @@ export function ChatInterface({ noteId }: ChatInterfaceProps) {
       };
 
       setMessages((prev) => [...prev, userMessage]);
+      setIsLoading(true);
 
       try {
-        // Use the AI service to generate a response
-        const allMessages = [...messages, userMessage];
-        const noteContent = conversation
-          ? mockConversations.find((c) => c.id === conversation.id)?.noteId ?? ""
-          : "";
-        const response = await aiService.chat(noteContent, allMessages);
+        const allMessages = [...messages, userMessage].map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
+
+        const response = await aiService.chat(noteContent || "", allMessages);
 
         const aiMessage: Message = {
           id: `msg-${Date.now()}-ai`,
@@ -68,9 +67,11 @@ export function ChatInterface({ noteId }: ChatInterfaceProps) {
           timestamp: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, errorMessage]);
+      } finally {
+        setIsLoading(false);
       }
     },
-    [messages, conversation]
+    [messages, noteContent]
   );
 
   const handleSuggestedQuestion = (question: string) => {
@@ -124,13 +125,19 @@ export function ChatInterface({ noteId }: ChatInterfaceProps) {
                 isLast={index === messages.length - 1}
               />
             ))}
+            {isLoading && (
+              <div className="flex items-center gap-2 px-4 py-2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span className="text-sm text-muted-foreground">Thinking...</span>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
         )}
       </div>
 
       {/* Input */}
-      <ChatInput onSubmit={handleSend} />
+      <ChatInput onSubmit={handleSend} disabled={isLoading} />
     </div>
   );
 }

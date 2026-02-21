@@ -13,7 +13,6 @@ import {
   Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import type { NoteFormat } from "@/types/note";
 
 interface FormatOption {
@@ -74,15 +73,19 @@ const formatOptions: FormatOption[] = [
   },
 ];
 
-export function FormatSelector() {
+interface FormatSelectorProps {
+  onFormatsChange?: (formats: NoteFormat[]) => void;
+}
+
+export function FormatSelector({ onFormatsChange }: FormatSelectorProps) {
   const [selectedFormats, setSelectedFormats] = useState<NoteFormat[]>([]);
 
   const toggleFormat = (formatId: NoteFormat) => {
-    setSelectedFormats((prev) =>
-      prev.includes(formatId)
-        ? prev.filter((id) => id !== formatId)
-        : [...prev, formatId]
-    );
+    const updated = selectedFormats.includes(formatId)
+      ? selectedFormats.filter((id) => id !== formatId)
+      : [...selectedFormats, formatId];
+    setSelectedFormats(updated);
+    onFormatsChange?.(updated);
   };
 
   return (
@@ -150,11 +153,6 @@ export function FormatSelector() {
         })}
       </div>
 
-      <div className="flex justify-end pt-2">
-        <Button disabled={selectedFormats.length === 0} size="lg">
-          Generate Notes
-        </Button>
-      </div>
     </div>
   );
 }

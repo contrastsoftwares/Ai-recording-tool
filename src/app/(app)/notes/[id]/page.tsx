@@ -39,7 +39,7 @@ import { AiStatusIndicator } from "@/components/notes/ai-status-indicator";
 import { ChatInterface } from "@/components/chat/chat-interface";
 import { FlashcardDeck } from "@/components/flashcards/flashcard-deck";
 import { TestView } from "@/components/test-generator/test-view";
-import { mockNotes, mockTranscriptSegments, mockConversations } from "@/lib/mock-data";
+import { mockTranscriptSegments, mockConversations } from "@/lib/mock-data";
 import { useNotesStore } from "@/stores/notes-store";
 import type { UploadType } from "@/types/note";
 
@@ -78,8 +78,9 @@ export default function NoteWorkspacePage() {
   const [editedTitle, setEditedTitle] = useState("");
   const [currentTime, setCurrentTime] = useState(-1);
   const { toggleFavorite } = useNotesStore();
+  const notes = useNotesStore((s) => s.notes);
 
-  const note = mockNotes.find((n) => n.id === noteId);
+  const note = notes.find((n) => n.id === noteId);
   const conversations = mockConversations.filter((c) => c.noteId === noteId);
 
   const handleStartEditTitle = useCallback(() => {
@@ -316,18 +317,18 @@ export default function NoteWorkspacePage() {
 
             {activeTab === "chat" && (
               <div className="rounded-xl border border-border bg-card overflow-hidden h-[calc(100vh-16rem)]">
-                <ChatInterface noteId={noteId} />
+                <ChatInterface noteId={noteId} noteContent={note.content} />
               </div>
             )}
 
             {activeTab === "flashcards" && (
               <div className="rounded-xl border border-border bg-card overflow-hidden">
-                <FlashcardDeck noteId={noteId} />
+                <FlashcardDeck noteId={noteId} noteContent={note.content} />
               </div>
             )}
 
             {activeTab === "test" && (
-              <TestView noteId={noteId} />
+              <TestView noteId={noteId} noteContent={note.content} />
             )}
           </div>
         </div>

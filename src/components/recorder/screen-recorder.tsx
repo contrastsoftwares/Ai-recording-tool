@@ -1,16 +1,28 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Monitor, CheckCircle, Download, FileText, AlertCircle, Mic, MicOff, RotateCcw } from "lucide-react";
+import {
+  Monitor,
+  CheckCircle,
+  Download,
+  FileText,
+  AlertCircle,
+  Mic,
+  MicOff,
+  RotateCcw,
+  AlertTriangle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { RecordingControls } from "./recording-controls";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useUploadStore } from "@/stores/upload-store";
 
 type RecordingStatus = "idle" | "recording" | "paused" | "stopped";
 
 export function ScreenRecorder() {
+  const router = useRouter();
   const [status, setStatus] = useState<RecordingStatus>("idle");
   const [duration, setDuration] = useState(0);
   const [includeMicrophone, setIncludeMicrophone] = useState(false);
@@ -22,34 +34,24 @@ export function ScreenRecorder() {
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
+  const blobRef = useRef<Blob | null>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
-
     if (status === "recording") {
-      interval = setInterval(() => {
-        setDuration((prev) => prev + 1);
-      }, 1000);
+      interval = setInterval(() => setDuration((prev) => prev + 1), 1000);
     }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => { if (interval) clearInterval(interval); };
   }, [status]);
 
-  // Clean up on unmount
   useEffect(() => {
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
-      if (micStreamRef.current) {
-        micStreamRef.current.getTracks().forEach((track) => track.stop());
-      }
-      if (videoUrl) {
-        URL.revokeObjectURL(videoUrl);
-      }
+      if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
+      if (micStreamRef.current) micStreamRef.current.getTracks().forEach((t) => t.stop());
+      if (audioContextRef.current) audioContextRef.current.close().catch(() => {});
+      if (videoUrl) URL.revokeObjectURL(videoUrl);
     };
   }, [videoUrl]);
 
@@ -57,170 +59,109 @@ export function ScreenRecorder() {
     setError(null);
     setDuration(0);
     chunksRef.current = [];
-
-    // Revoke previous URL if any
-    if (videoUrl) {
-      URL.revokeObjectURL(videoUrl);
-      setVideoUrl(null);
-    }
+    blobRef.current = null;
+    if (videoUrl) { URL.revokeObjectURL(videoUrl); setVideoUrl(null); }
 
     try {
-      // Always request system audio from the screen share
-      const displayMediaOptions: DisplayMediaStreamOptions = {
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({
         video: {
           width: quality === "1080p" ? { ideal: 1920 } : { ideal: 1280 },
           height: quality === "1080p" ? { ideal: 1080 } : { ideal: 720 },
         },
-        audio: true, // Always capture system/tab audio
-      };
+        audio: true,
+      });
 
-      const displayStream =
-        await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
+      const videoTrack = displayStream.getVideoTracks()[0];
+      const systemAudioTracks = displayStream.getAudioTracks();
 
-      // Collect all tracks: video + system audio (always) + microphone (optional)
-      const tracks: MediaStreamTrack[] = [
-        ...displayStream.getVideoTracks(),
-        ...displayStream.getAudioTracks(), // System/tab audio
-      ];
+      // Use AudioContext to properly mix audio streams
+      const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
+      const destination = audioContext.createMediaStreamDestination();
 
-      // If user wants microphone, also get microphone audio
-      if (includeMicrophone) {
-        try {
-          const micStream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-          });
-          micStreamRef.current = micStream;
-          tracks.push(...micStream.getAudioTracks());
-        } catch {
-          // Microphone access failed; proceed without mic
-        }
+      if (systemAudioTracks.length > 0) {
+        const systemSource = audioContext.createMediaStreamSource(new MediaStream(systemAudioTracks));
+        systemSource.connect(destination);
       }
 
-      const combinedStream = new MediaStream(tracks);
+      if (includeMicrophone) {
+        try {
+          const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          micStreamRef.current = micStream;
+          const micSource = audioContext.createMediaStreamSource(micStream);
+          micSource.connect(destination);
+        } catch { /* proceed without mic */ }
+      }
+
+      const combinedStream = new MediaStream([videoTrack, ...destination.stream.getAudioTracks()]);
       streamRef.current = combinedStream;
 
-      // Show live preview (video only, muted to avoid feedback)
       if (videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = displayStream;
-        videoPreviewRef.current.play().catch(() => {
-          // Autoplay may fail silently; preview is not critical
-        });
+        videoPreviewRef.current.play().catch(() => {});
       }
 
       const mediaRecorder = new MediaRecorder(combinedStream, {
-        mimeType: MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
-          ? "video/webm;codecs=vp9"
-          : "video/webm",
+        mimeType: MediaRecorder.isTypeSupported("video/webm;codecs=vp9") ? "video/webm;codecs=vp9" : "video/webm",
       });
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
+        if (event.data.size > 0) chunksRef.current.push(event.data);
       };
 
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: "video/webm" });
-        const url = URL.createObjectURL(blob);
-        setVideoUrl(url);
-
-        // Stop all tracks
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach((track) => track.stop());
-          streamRef.current = null;
-        }
-        if (micStreamRef.current) {
-          micStreamRef.current.getTracks().forEach((track) => track.stop());
-          micStreamRef.current = null;
-        }
-
-        // Clear preview
-        if (videoPreviewRef.current) {
-          videoPreviewRef.current.srcObject = null;
-        }
+        blobRef.current = blob;
+        setVideoUrl(URL.createObjectURL(blob));
+        if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
+        if (micStreamRef.current) { micStreamRef.current.getTracks().forEach((t) => t.stop()); micStreamRef.current = null; }
+        if (audioContextRef.current) { audioContextRef.current.close().catch(() => {}); audioContextRef.current = null; }
+        if (videoPreviewRef.current) videoPreviewRef.current.srcObject = null;
       };
 
-      // Handle user clicking "Stop Sharing" in the browser's native UI
       displayStream.getVideoTracks().forEach((track) => {
         track.onended = () => {
-          if (
-            mediaRecorderRef.current &&
-            mediaRecorderRef.current.state !== "inactive"
-          ) {
-            mediaRecorderRef.current.stop();
-          }
+          if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") mediaRecorderRef.current.stop();
           setStatus("stopped");
         };
       });
 
-      mediaRecorder.start(100); // Collect data every 100ms
+      mediaRecorder.start(100);
       setStatus("recording");
     } catch (err) {
-      if (err instanceof DOMException) {
-        if (err.name === "NotAllowedError") {
-          setError(
-            "Screen sharing was cancelled or denied. Please allow screen sharing to record."
-          );
-        } else {
-          setError(`Screen recording error: ${err.message}`);
-        }
+      if (err instanceof DOMException && err.name === "NotAllowedError") {
+        setError("Screen sharing was cancelled or denied. Please allow screen sharing to record.");
       } else {
-        setError(
-          "An unexpected error occurred while starting screen recording."
-        );
+        setError("An unexpected error occurred while starting screen recording.");
       }
     }
   }, [videoUrl, includeMicrophone, quality]);
 
   const handlePause = useCallback(() => {
-    if (
-      mediaRecorderRef.current &&
-      mediaRecorderRef.current.state === "recording"
-    ) {
-      mediaRecorderRef.current.pause();
-    }
+    if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.pause();
     setStatus("paused");
   }, []);
 
   const handleResume = useCallback(() => {
-    if (
-      mediaRecorderRef.current &&
-      mediaRecorderRef.current.state === "paused"
-    ) {
-      mediaRecorderRef.current.resume();
-    }
+    if (mediaRecorderRef.current?.state === "paused") mediaRecorderRef.current.resume();
     setStatus("recording");
   }, []);
 
   const handleStop = useCallback(() => {
-    if (
-      mediaRecorderRef.current &&
-      mediaRecorderRef.current.state !== "inactive"
-    ) {
-      mediaRecorderRef.current.stop();
-    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") mediaRecorderRef.current.stop();
     setStatus("stopped");
   }, []);
 
   const handleReset = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (micStreamRef.current) {
-      micStreamRef.current.getTracks().forEach((track) => track.stop());
-      micStreamRef.current = null;
-    }
-    if (videoPreviewRef.current) {
-      videoPreviewRef.current.srcObject = null;
-    }
-    if (videoUrl) {
-      URL.revokeObjectURL(videoUrl);
-      setVideoUrl(null);
-    }
+    if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
+    if (micStreamRef.current) { micStreamRef.current.getTracks().forEach((t) => t.stop()); micStreamRef.current = null; }
+    if (audioContextRef.current) { audioContextRef.current.close().catch(() => {}); audioContextRef.current = null; }
+    if (videoPreviewRef.current) videoPreviewRef.current.srcObject = null;
+    if (videoUrl) { URL.revokeObjectURL(videoUrl); setVideoUrl(null); }
     mediaRecorderRef.current = null;
     chunksRef.current = [];
+    blobRef.current = null;
     setStatus("idle");
     setDuration(0);
     setError(null);
@@ -236,61 +177,51 @@ export function ScreenRecorder() {
     document.body.removeChild(a);
   }, [videoUrl]);
 
+  const handleGenerateNotes = useCallback(() => {
+    if (!blobRef.current) return;
+    const file = new File([blobRef.current], `screen-recording-${Date.now()}.webm`, { type: "video/webm" });
+    useUploadStore.getState().setFile(file);
+    router.push("/notes/new?source=recording");
+  }, [router]);
+
   return (
     <div className="flex flex-col items-center gap-6">
-      {/* Screen preview area */}
+      {/* System audio warning */}
+      {status === "idle" && (
+        <div className="flex w-full items-start gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-500 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-foreground">System audio tip</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              When the browser asks you to share your screen, make sure to check the &quot;Share audio&quot; or &quot;Share tab audio&quot; checkbox to capture system/tab audio in your recording.
+            </p>
+          </div>
+        </div>
+      )}
+
       <Card className="w-full overflow-hidden">
         <CardContent className="p-0">
-          <div
-            className={cn(
-              "relative flex aspect-video w-full items-center justify-center bg-muted/50",
-              status === "recording" && "ring-2 ring-red-500/50"
-            )}
-          >
+          <div className={cn("relative flex aspect-video w-full items-center justify-center bg-muted/50", status === "recording" && "ring-2 ring-red-500/50")}>
             {status === "stopped" ? (
-              /* Success message */
               <div className="flex flex-col items-center gap-4 text-center p-6">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
                   <CheckCircle className="h-8 w-8 text-success" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">
-                    Recording saved!
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Your screen recording has been saved successfully.
-                  </p>
+                  <h3 className="text-lg font-semibold text-foreground">Recording saved!</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">Your screen recording has been saved successfully.</p>
                 </div>
-
-                {/* Video playback */}
-                {videoUrl && (
-                  <video
-                    controls
-                    src={videoUrl}
-                    className="w-full max-w-lg rounded-lg"
-                  />
-                )}
-
+                {videoUrl && <video controls src={videoUrl} className="w-full max-w-lg rounded-lg" />}
                 <div className="flex flex-wrap items-center justify-center gap-3">
-                  <Button asChild className="gap-2">
-                    <Link href="/notes/new">
-                      <FileText className="h-4 w-4" />
-                      Generate Notes
-                    </Link>
+                  <Button onClick={handleGenerateNotes} className="gap-2">
+                    <FileText className="h-4 w-4" />
+                    Generate Notes
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={handleDownload}
-                  >
+                  <Button variant="outline" className="gap-2" onClick={handleDownload}>
                     <Download className="h-4 w-4" />
                     Download Recording
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={handleReset}
-                  >
+                  <Button variant="outline" className="gap-2" onClick={handleReset}>
                     <RotateCcw className="h-4 w-4" />
                     New Recording
                   </Button>
@@ -298,37 +229,18 @@ export function ScreenRecorder() {
               </div>
             ) : (
               <>
-                {/* Live preview video element */}
-                <video
-                  ref={videoPreviewRef}
-                  muted
-                  playsInline
-                  className={cn(
-                    "absolute inset-0 h-full w-full object-contain",
-                    status !== "recording" && status !== "paused" && "hidden"
-                  )}
-                />
-
-                {/* Preview placeholder (shown when idle) */}
+                <video ref={videoPreviewRef} muted playsInline className={cn("absolute inset-0 h-full w-full object-contain", status !== "recording" && status !== "paused" && "hidden")} />
                 {status === "idle" && (
                   <div className="flex flex-col items-center gap-3 text-muted-foreground">
                     <Monitor className="h-12 w-12" />
-                    <p className="text-sm font-medium">
-                      Your screen will appear here
-                    </p>
+                    <p className="text-sm font-medium">Your screen will appear here</p>
                   </div>
                 )}
-
-                {/* Paused overlay */}
                 {status === "paused" && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                    <p className="rounded-lg bg-background/90 px-4 py-2 text-sm font-medium text-foreground">
-                      Recording paused
-                    </p>
+                    <p className="rounded-lg bg-background/90 px-4 py-2 text-sm font-medium text-foreground">Recording paused</p>
                   </div>
                 )}
-
-                {/* REC indicator */}
                 {status === "recording" && (
                   <div className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full bg-red-500 px-2.5 py-1 text-xs font-medium text-white">
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
@@ -341,7 +253,6 @@ export function ScreenRecorder() {
         </CardContent>
       </Card>
 
-      {/* Error message */}
       {error && (
         <div className="flex w-full items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3">
           <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
@@ -349,59 +260,26 @@ export function ScreenRecorder() {
         </div>
       )}
 
-      {/* Recording controls */}
       {status !== "stopped" && (
-        <RecordingControls
-          status={status}
-          onStart={handleStart}
-          onPause={handlePause}
-          onResume={handleResume}
-          onStop={handleStop}
-          duration={duration}
-          variant="screen"
-        />
+        <RecordingControls status={status} onStart={handleStart} onPause={handlePause} onResume={handleResume} onStop={handleStop} duration={duration} variant="screen" />
       )}
 
-      {/* Settings row */}
       {status === "idle" && (
         <div className="flex w-full flex-wrap items-center justify-center gap-6">
-          {/* Microphone toggle */}
           <label className="flex items-center gap-3 cursor-pointer">
             <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
-              {includeMicrophone ? (
-                <Mic className="h-4 w-4 text-primary" />
-              ) : (
-                <MicOff className="h-4 w-4 text-muted-foreground" />
-              )}
+              {includeMicrophone ? <Mic className="h-4 w-4 text-primary" /> : <MicOff className="h-4 w-4 text-muted-foreground" />}
               Microphone
             </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={includeMicrophone}
-              onClick={() => setIncludeMicrophone(!includeMicrophone)}
-              className={cn(
-                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                includeMicrophone ? "bg-primary" : "bg-muted"
-              )}
-            >
-              <span
-                className={cn(
-                  "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-in-out",
-                  includeMicrophone ? "translate-x-5" : "translate-x-0"
-                )}
-              />
+            <button type="button" role="switch" aria-checked={includeMicrophone} onClick={() => setIncludeMicrophone(!includeMicrophone)}
+              className={cn("relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2", includeMicrophone ? "bg-primary" : "bg-muted")}>
+              <span className={cn("pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-in-out", includeMicrophone ? "translate-x-5" : "translate-x-0")} />
             </button>
           </label>
-
-          {/* Quality selector */}
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-foreground">Quality</span>
-            <select
-              value={quality}
-              onChange={(e) => setQuality(e.target.value as "720p" | "1080p")}
-              className="rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
+            <select value={quality} onChange={(e) => setQuality(e.target.value as "720p" | "1080p")}
+              className="rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <option value="720p">720p</option>
               <option value="1080p">1080p</option>
             </select>
@@ -409,10 +287,9 @@ export function ScreenRecorder() {
         </div>
       )}
 
-      {/* Helper text about audio */}
       {status === "idle" && (
         <p className="text-xs text-muted-foreground text-center">
-          System/tab audio is captured by default. Toggle microphone to also record your voice.
+          System/tab audio is captured when you enable &quot;Share audio&quot; in the browser dialog. Toggle microphone to also record your voice.
         </p>
       )}
     </div>

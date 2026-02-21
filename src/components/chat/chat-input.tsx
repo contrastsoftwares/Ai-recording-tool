@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 
 interface ChatInputProps {
   onSubmit: (message: string) => void;
+  disabled?: boolean;
 }
 
 const quickActions = [
@@ -22,7 +23,7 @@ const quickActions = [
   { label: "Explain Further", icon: HelpCircle },
 ];
 
-export function ChatInput({ onSubmit }: ChatInputProps) {
+export function ChatInput({ onSubmit, disabled }: ChatInputProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -95,7 +96,7 @@ export function ChatInput({ onSubmit }: ChatInputProps) {
         <Button
           size="icon"
           onClick={handleSubmit}
-          disabled={!input.trim()}
+          disabled={!input.trim() || disabled}
           className="h-10 w-10 shrink-0 rounded-xl"
         >
           <SendHorizonal className="h-4 w-4" />

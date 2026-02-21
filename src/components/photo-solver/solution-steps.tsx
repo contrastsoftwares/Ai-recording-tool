@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown, CheckCircle2 } from "lucide-react";
-import type { SolutionStep } from "@/lib/mock-data";
+export interface SolutionStep {
+  stepNumber: number;
+  title: string;
+  explanation: string;
+  math?: string;
+}
 
 interface SolutionStepsProps {
   steps: SolutionStep[];

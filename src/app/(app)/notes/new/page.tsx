@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Upload,
   SlidersHorizontal,
@@ -9,6 +9,7 @@ import {
   CheckCircle,
   ArrowLeft,
   Sparkles,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,9 @@ import { Progress } from "@/components/ui/progress";
 import { UploadZone } from "@/components/notes/upload-zone";
 import { FormatSelector } from "@/components/notes/format-selector";
 import { useNotesStore } from "@/stores/notes-store";
-import type { NoteFormat, Note } from "@/types/note";
+import { useUploadStore } from "@/stores/upload-store";
+import { aiService } from "@/lib/ai-service";
+import type { NoteFormat, Note, UploadType } from "@/types/note";
 
 type Step = "upload" | "format" | "processing" | "done";
 
@@ -26,100 +29,192 @@ const steps: { id: Step; label: string; icon: React.ElementType }[] = [
   { id: "processing", label: "Processing", icon: Sparkles },
 ];
 
-const processingMessages = [
-  "Analyzing your content...",
-  "Extracting key information...",
-  "Generating transcript...",
-  "Organizing notes...",
-  "Applying formatting...",
-  "Finalizing your notes...",
-];
-
-export default function NewNotePage() {
+function NewNoteContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const addNote = useNotesStore((state) => state.addNote);
+  const uploadStore = useUploadStore();
 
   const [currentStep, setCurrentStep] = useState<Step>("upload");
   const [progress, setProgress] = useState(0);
-  const [processingMessage, setProcessingMessage] = useState(
-    processingMessages[0]
-  );
+  const [processingMessage, setProcessingMessage] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [selectedFormats, setSelectedFormats] = useState<NoteFormat[]>([]);
+
+  // Track uploaded content
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
+
+  const processingRef = useRef(false);
+
+  // Check if coming from recorder with a pre-loaded file
+  useEffect(() => {
+    const source = searchParams.get("source");
+    if (source === "recording" && uploadStore.file) {
+      setSelectedFile(uploadStore.file);
+      setCurrentStep("format");
+    }
+  }, [searchParams, uploadStore.file]);
+
+  const handleFileSelected = useCallback((file: File) => {
+    setSelectedFile(file);
+    setSelectedUrl(null);
+    setError(null);
+  }, []);
+
+  const handleUrlSubmitted = useCallback((url: string) => {
+    setSelectedUrl(url);
+    setSelectedFile(null);
+    setError(null);
+  }, []);
 
   const handleUploadComplete = useCallback(() => {
+    if (!selectedFile && !selectedUrl) {
+      setError("Please upload a file or paste a URL first.");
+      return;
+    }
+    setError(null);
     setCurrentStep("format");
+  }, [selectedFile, selectedUrl]);
+
+  const handleFormatsChange = useCallback((formats: NoteFormat[]) => {
+    setSelectedFormats(formats);
   }, []);
 
-  const handleFormatSelected = useCallback(() => {
+  const handleGenerateNotes = useCallback(async () => {
+    if (selectedFormats.length === 0) {
+      setError("Please select at least one note format.");
+      return;
+    }
+    if (processingRef.current) return;
+    processingRef.current = true;
+
+    setError(null);
     setCurrentStep("processing");
-  }, []);
-
-  // Simulated processing effect
-  useEffect(() => {
-    if (currentStep !== "processing") return;
-
     setProgress(0);
-    setProcessingMessage(processingMessages[0]);
 
-    let currentProgress = 0;
-    const totalDuration = 4000; // 4 seconds total
-    const intervalMs = 80;
-    const increment = 100 / (totalDuration / intervalMs);
+    try {
+      let content = "";
+      let title: string | undefined;
+      let sourceType: UploadType = "document";
 
-    const interval = setInterval(() => {
-      currentProgress += increment;
+      // Step 1: Extract content
+      if (selectedUrl) {
+        setProcessingMessage("Extracting content from URL...");
+        setProgress(10);
 
-      if (currentProgress >= 100) {
-        currentProgress = 100;
-        clearInterval(interval);
+        const extracted = await aiService.extractContent({ url: selectedUrl });
+        content = extracted.content;
+        title = extracted.title;
+        sourceType = (extracted.sourceType as UploadType) || "link";
+        setProgress(30);
+      } else if (selectedFile) {
+        const fileType = selectedFile.type;
 
-        // Create the note and redirect
-        const newNote: Note = {
-          id: `note-${Date.now()}`,
-          title: "Untitled Notes",
-          content:
-            "# AI-Generated Notes\n\n" +
-            "## Key Points\n\n" +
-            "- The material covers several foundational concepts that are essential for understanding this topic.\n" +
-            "- Important terminology and definitions have been identified and organized below.\n" +
-            "- Relationships between concepts are highlighted to support deeper comprehension.\n\n" +
-            "## Detailed Notes\n\n" +
-            "The primary subject introduces core principles that form the foundation for more advanced study. " +
-            "Understanding these basics is critical before moving on to applied topics.\n\n" +
-            "Key definitions include the fundamental terms used throughout this field. " +
-            "Each concept builds upon the previous one, creating a logical progression of knowledge.\n\n" +
-            "## Summary\n\n" +
-            "This material provides a comprehensive overview of the topic, covering essential concepts, " +
-            "terminology, and their practical applications. Review the key points above for exam preparation.",
-          formats: ["bullet-points"] as NoteFormat[],
-          sourceType: "video",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          tags: [],
-          isFavorite: false,
-        };
+        if (fileType.startsWith("audio/") || fileType.startsWith("video/")) {
+          // Transcribe audio/video
+          setProcessingMessage("Transcribing your recording...");
+          setProgress(10);
 
-        addNote(newNote);
-        setCurrentStep("done");
+          const transcribeResult = await aiService.transcribe(selectedFile);
+          content = transcribeResult.transcript;
+          title = selectedFile.name.replace(/\.[^.]+$/, "");
+          sourceType = fileType.startsWith("audio/") ? "audio" : "video";
+          setProgress(40);
+        } else if (fileType === "application/pdf") {
+          // Extract PDF text
+          setProcessingMessage("Extracting text from PDF...");
+          setProgress(10);
 
-        // Redirect to the new note after a brief delay
-        setTimeout(() => {
-          router.push(`/notes/${newNote.id}`);
-        }, 1200);
+          const extracted = await aiService.extractContent(
+            { file: selectedFile },
+            "pdf"
+          );
+          content = extracted.content;
+          title = extracted.title;
+          sourceType = "pdf";
+          setProgress(30);
+        } else if (fileType.startsWith("image/")) {
+          // For images, we'll generate notes describing what's in the image
+          setProcessingMessage("Analyzing image...");
+          setProgress(10);
+
+          const solution = await aiService.solvePhoto(selectedFile);
+          content = `Problem: ${solution.problem}\n\nSteps:\n${solution.steps.map((s) => `${s.stepNumber}. ${s.title}: ${s.explanation}`).join("\n")}\n\nFinal Answer: ${solution.finalAnswer}`;
+          title = solution.problem.slice(0, 60);
+          sourceType = "image";
+          setProgress(30);
+        } else {
+          // Text/document files
+          setProcessingMessage("Reading document...");
+          setProgress(10);
+
+          const extracted = await aiService.extractContent({
+            file: selectedFile,
+          });
+          content = extracted.content;
+          title = extracted.title;
+          sourceType = "document";
+          setProgress(30);
+        }
       }
 
-      setProgress(Math.min(currentProgress, 100));
+      if (!content) {
+        throw new Error(
+          "No content could be extracted. Please try a different file or URL."
+        );
+      }
 
-      // Update processing message based on progress
-      const messageIndex = Math.min(
-        Math.floor((currentProgress / 100) * processingMessages.length),
-        processingMessages.length - 1
+      // Step 2: Generate notes
+      setProcessingMessage("Generating AI-powered notes...");
+      setProgress(50);
+
+      const notesResult = await aiService.generateNotes(
+        content,
+        selectedFormats,
+        title
       );
-      setProcessingMessage(processingMessages[messageIndex]);
-    }, intervalMs);
 
-    return () => clearInterval(interval);
-  }, [currentStep, addNote, router]);
+      setProgress(80);
+      setProcessingMessage("Finalizing your notes...");
 
+      // Step 3: Create note and save to store
+      const newNote: Note = {
+        id: `note-${Date.now()}`,
+        title: notesResult.title || title || "Untitled Notes",
+        content: notesResult.content,
+        formats: selectedFormats,
+        sourceType,
+        sourceUrl: selectedUrl || undefined,
+        transcript: content,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        tags: notesResult.tags || [],
+        isFavorite: false,
+      };
+
+      addNote(newNote);
+      setProgress(100);
+      setCurrentStep("done");
+
+      // Clear upload store
+      uploadStore.clear();
+
+      // Redirect to the new note
+      setTimeout(() => {
+        router.push(`/notes/${newNote.id}`);
+      }, 1200);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "An unexpected error occurred.";
+      setError(message);
+      setCurrentStep("format");
+    } finally {
+      processingRef.current = false;
+    }
+  }, [selectedFormats, selectedUrl, selectedFile, addNote, router, uploadStore]);
+
+  const hasContent = selectedFile !== null || selectedUrl !== null;
   const stepIndex = steps.findIndex((s) => s.id === currentStep);
 
   return (
@@ -150,8 +245,7 @@ export default function NewNotePage() {
         {steps.map((step, idx) => {
           const Icon = step.icon;
           const isActive = step.id === currentStep || step.id === "done";
-          const isCompleted =
-            currentStep === "done" || idx < stepIndex;
+          const isCompleted = currentStep === "done" || idx < stepIndex;
 
           return (
             <div key={step.id} className="flex items-center gap-2">
@@ -196,14 +290,29 @@ export default function NewNotePage() {
         })}
       </div>
 
+      {/* Error display */}
+      {error && (
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3">
+          <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
+          <p className="text-sm text-destructive">{error}</p>
+        </div>
+      )}
+
       {/* Step content */}
       <div className="min-h-[400px]">
         {/* Step 1: Upload */}
         {currentStep === "upload" && (
           <div className="space-y-6">
-            <UploadZone />
+            <UploadZone
+              onFileSelected={handleFileSelected}
+              onUrlSubmitted={handleUrlSubmitted}
+            />
             <div className="flex justify-end">
-              <Button onClick={handleUploadComplete} size="lg">
+              <Button
+                onClick={handleUploadComplete}
+                size="lg"
+                disabled={!hasContent}
+              >
                 Continue to Format Selection
               </Button>
             </div>
@@ -213,7 +322,16 @@ export default function NewNotePage() {
         {/* Step 2: Format selection */}
         {currentStep === "format" && (
           <div className="space-y-6">
-            <FormatSelector />
+            {/* Show what was uploaded */}
+            <div className="rounded-lg border border-border bg-muted/50 px-4 py-3">
+              <p className="text-sm text-foreground">
+                <span className="font-medium">Source: </span>
+                {selectedFile ? selectedFile.name : selectedUrl}
+              </p>
+            </div>
+
+            <FormatSelector onFormatsChange={handleFormatsChange} />
+
             <div className="flex justify-between">
               <Button
                 variant="outline"
@@ -222,7 +340,11 @@ export default function NewNotePage() {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
-              <Button onClick={handleFormatSelected} size="lg">
+              <Button
+                onClick={handleGenerateNotes}
+                size="lg"
+                disabled={selectedFormats.length === 0}
+              >
                 <Sparkles className="h-4 w-4 mr-2" />
                 Generate Notes
               </Button>
@@ -274,5 +396,19 @@ export default function NewNotePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function NewNotePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <NewNoteContent />
+    </Suspense>
   );
 }

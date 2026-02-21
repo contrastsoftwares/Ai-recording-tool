@@ -1,25 +1,24 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { SolutionSteps } from "@/components/photo-solver/solution-steps";
-import { mockPhotoSolverSolutions } from "@/lib/mock-data";
-import type { PhotoSolverSolution } from "@/lib/mock-data";
+import { aiService } from "@/lib/ai-service";
+import type { SolvePhotoResult } from "@/lib/ai-service";
 import {
   Camera,
   Upload,
   ImageIcon,
   Loader2,
   Send,
-  BookOpen,
-  Zap,
   User,
   Bot,
   Sparkles,
   X,
+  AlertCircle,
 } from "lucide-react";
 
 interface FollowUpMessage {
@@ -28,57 +27,44 @@ interface FollowUpMessage {
   content: string;
 }
 
-const mockFollowUpResponses: Record<string, string> = {
-  default:
-    "That's a great question! The key concept here is to break down the problem into smaller, manageable steps. Each step builds on the previous one, making the overall solution clearer and easier to understand. Would you like me to elaborate on any specific step?",
-};
-
 export default function PhotoSolverPage() {
-  const [selectedExample, setSelectedExample] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [showSolution, setShowSolution] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [followUpMessages, setFollowUpMessages] = useState<FollowUpMessage[]>(
-    []
-  );
+  const [error, setError] = useState<string | null>(null);
+  const [solution, setSolution] = useState<SolvePhotoResult | null>(null);
+  const [followUpMessages, setFollowUpMessages] = useState<FollowUpMessage[]>([]);
   const [followUpInput, setFollowUpInput] = useState("");
-  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [isFollowUpLoading, setIsFollowUpLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const currentExample: PhotoSolverSolution | undefined =
-    mockPhotoSolverSolutions.find((e) => e.id === selectedExample);
-
-  function handleExampleClick(exampleId: string) {
-    setSelectedExample(exampleId);
-    setShowSolution(false);
-    setIsLoading(true);
-    setFollowUpMessages([]);
-    setUploadedFileName(null);
-
-    // Simulate loading
-    setTimeout(() => {
-      setIsLoading(false);
-      setShowSolution(true);
-    }, 2000);
-  }
-
-  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setUploadedFile(file);
     setUploadedFileName(file.name);
-    setSelectedExample("photo-solve-1"); // default to calculus for demo
     setShowSolution(false);
     setIsLoading(true);
+    setError(null);
     setFollowUpMessages([]);
+    setSolution(null);
 
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const result = await aiService.solvePhoto(file);
+      setSolution(result);
       setShowSolution(true);
-    }, 2000);
-  }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to analyze the image.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  function handleSendFollowUp() {
-    if (!followUpInput.trim()) return;
+  const handleSendFollowUp = useCallback(async () => {
+    if (!followUpInput.trim() || !solution) return;
 
     const userMessage: FollowUpMessage = {
       id: `msg-${Date.now()}`,
@@ -88,28 +74,50 @@ export default function PhotoSolverPage() {
 
     setFollowUpMessages((prev) => [...prev, userMessage]);
     setFollowUpInput("");
+    setIsFollowUpLoading(true);
 
-    // Simulate assistant response
-    setTimeout(() => {
+    try {
+      // Build context from the solution
+      const context = `Problem: ${solution.problem}\n\nSolution Steps:\n${solution.steps.map((s) => `${s.stepNumber}. ${s.title}: ${s.explanation}${s.math ? ` (${s.math})` : ""}`).join("\n")}\n\nFinal Answer: ${solution.finalAnswer}`;
+
+      const allMessages = [
+        ...followUpMessages.map((m) => ({ role: m.role, content: m.content })),
+        { role: "user" as const, content: followUpInput.trim() },
+      ];
+
+      const response = await aiService.chat(context, allMessages);
+
       const assistantMessage: FollowUpMessage = {
-        id: `msg-${Date.now() + 1}`,
+        id: `msg-${Date.now()}-ai`,
         role: "assistant",
-        content: mockFollowUpResponses.default,
+        content: response,
       };
       setFollowUpMessages((prev) => [...prev, assistantMessage]);
-    }, 1000);
-  }
+    } catch {
+      const assistantMessage: FollowUpMessage = {
+        id: `msg-${Date.now()}-err`,
+        role: "assistant",
+        content: "Sorry, I encountered an error. Please try again.",
+      };
+      setFollowUpMessages((prev) => [...prev, assistantMessage]);
+    } finally {
+      setIsFollowUpLoading(false);
+    }
+  }, [followUpInput, solution, followUpMessages]);
 
   function handleReset() {
-    setSelectedExample(null);
+    setUploadedFile(null);
+    setUploadedFileName(null);
     setShowSolution(false);
     setIsLoading(false);
+    setError(null);
+    setSolution(null);
     setFollowUpMessages([]);
     setFollowUpInput("");
-    setUploadedFileName(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  const hasContent = selectedExample !== null || uploadedFileName !== null;
+  const hasContent = uploadedFile !== null;
 
   return (
     <div className="space-y-6">
@@ -117,78 +125,35 @@ export default function PhotoSolverPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Photo Solver</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Take a photo or upload an image of any problem and get step-by-step
-          solutions
+          Take a photo or upload an image of any problem and get step-by-step solutions
         </p>
       </div>
 
-      <div
-        className={cn(
-          "grid gap-6",
-          hasContent ? "lg:grid-cols-[1fr_1.2fr]" : "lg:grid-cols-1"
-        )}
-      >
+      <div className={cn("grid gap-6", hasContent ? "lg:grid-cols-[1fr_1.2fr]" : "lg:grid-cols-1")}>
         {/* Left side - Upload area */}
         <div className="space-y-4">
-          {/* Upload zone */}
-          <div
-            className={cn(
-              "relative rounded-xl border-2 border-dashed border-border bg-card transition-all",
-              !hasContent && "min-h-[320px]",
-              hasContent && "min-h-[180px]"
-            )}
-          >
-            {/* Reset button when content shown */}
+          <div className={cn("relative rounded-xl border-2 border-dashed border-border bg-card transition-all", !hasContent && "min-h-[320px]", hasContent && "min-h-[180px]")}>
             {hasContent && (
-              <button
-                onClick={handleReset}
-                className="absolute top-3 right-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-muted hover:bg-destructive/10 hover:text-destructive transition-colors"
-              >
+              <button onClick={handleReset} className="absolute top-3 right-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-muted hover:bg-destructive/10 hover:text-destructive transition-colors">
                 <X className="h-4 w-4" />
               </button>
             )}
 
             {!hasContent ? (
               <div className="flex flex-col items-center justify-center h-full py-12 px-6 rounded-xl">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                />
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="hidden"
-                  id="photo-solver-camera"
-                  onChange={handleFileUpload}
-                />
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+                <input type="file" accept="image/*" capture="environment" className="hidden" id="photo-solver-camera" onChange={handleFileUpload} />
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-4">
                   <Camera className="h-8 w-8 text-primary" />
                 </div>
-                <p className="text-base font-semibold text-foreground text-center">
-                  Take a photo or upload an image
-                </p>
-                <p className="text-sm text-muted-foreground mt-1 text-center">
-                  of any math, science, or academic problem
-                </p>
+                <p className="text-base font-semibold text-foreground text-center">Take a photo or upload an image</p>
+                <p className="text-sm text-muted-foreground mt-1 text-center">of any math, science, or academic problem</p>
                 <div className="flex items-center gap-2 mt-4">
-                  <Button
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
+                  <Button size="sm" className="gap-2" onClick={() => fileInputRef.current?.click()}>
                     <Upload className="h-4 w-4" />
                     Upload Image
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => document.getElementById("photo-solver-camera")?.click()}
-                  >
+                  <Button variant="outline" size="sm" className="gap-2" onClick={() => document.getElementById("photo-solver-camera")?.click()}>
                     <Camera className="h-4 w-4" />
                     Take Photo
                   </Button>
@@ -199,44 +164,10 @@ export default function PhotoSolverPage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-3">
                   <ImageIcon className="h-6 w-6 text-muted-foreground" />
                 </div>
-                <p className="text-sm font-medium text-foreground">
-                  {uploadedFileName
-                    ? uploadedFileName
-                    : `Example: ${currentExample?.problem?.slice(0, 40)}...`}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Problem image uploaded
-                </p>
+                <p className="text-sm font-medium text-foreground">{uploadedFileName}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Problem image uploaded</p>
               </div>
             )}
-          </div>
-
-          {/* Example chips */}
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Or try an example
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {mockPhotoSolverSolutions.map((example, i) => (
-                <button
-                  key={example.id}
-                  onClick={() => handleExampleClick(example.id)}
-                  className={cn(
-                    "inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-all",
-                    "hover:bg-accent hover:border-primary/30",
-                    selectedExample === example.id &&
-                      "border-primary bg-primary/5 ring-1 ring-primary/20"
-                  )}
-                >
-                  {i === 0 ? (
-                    <BookOpen className="h-4 w-4 text-primary" />
-                  ) : (
-                    <Zap className="h-4 w-4 text-warning" />
-                  )}
-                  {example.problem.slice(0, 30)}...
-                </button>
-              ))}
-            </div>
           </div>
         </div>
 
@@ -247,85 +178,71 @@ export default function PhotoSolverPage() {
             {isLoading && (
               <div className="flex flex-col items-center justify-center py-16 rounded-xl border border-border bg-card">
                 <Loader2 className="h-8 w-8 text-primary animate-spin mb-4" />
-                <p className="text-sm font-medium text-foreground">
-                  Analyzing your problem...
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Identifying subject and generating solution
-                </p>
+                <p className="text-sm font-medium text-foreground">Analyzing your problem...</p>
+                <p className="text-xs text-muted-foreground mt-1">Using AI to identify and solve the problem</p>
+              </div>
+            )}
+
+            {/* Error state */}
+            {error && (
+              <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3">
+                <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
+                <p className="text-sm text-destructive">{error}</p>
               </div>
             )}
 
             {/* Solution display */}
-            {showSolution && currentExample && (
+            {showSolution && solution && (
               <div className="space-y-4">
                 {/* Subject badge */}
                 <div className="flex items-center gap-2">
-                  <Badge variant="default">Mathematics</Badge>
-                  <Badge variant="secondary">
-                    {currentExample.imageDescription}
-                  </Badge>
+                  <Badge variant="default">{solution.subject}</Badge>
+                  <Badge variant="secondary">{solution.subjectDetail}</Badge>
                   <Sparkles className="h-4 w-4 text-primary ml-1" />
+                </div>
+
+                {/* Problem statement */}
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <h3 className="text-sm font-semibold text-foreground mb-2">Problem</h3>
+                  <p className="text-sm text-muted-foreground">{solution.problem}</p>
                 </div>
 
                 {/* Steps */}
                 <div className="rounded-xl border border-border bg-card p-5">
-                  <h3 className="text-sm font-semibold text-foreground mb-4">
-                    Step-by-Step Solution
-                  </h3>
-                  <SolutionSteps
-                    steps={currentExample.steps}
-                    finalAnswer={currentExample.finalAnswer}
-                  />
+                  <h3 className="text-sm font-semibold text-foreground mb-4">Step-by-Step Solution</h3>
+                  <SolutionSteps steps={solution.steps} finalAnswer={solution.finalAnswer} />
                 </div>
 
                 {/* Follow-up section */}
                 <div className="rounded-xl border border-border bg-card p-5">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">
-                    Ask a Follow-up Question
-                  </h3>
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Ask a Follow-up Question</h3>
 
-                  {/* Messages */}
                   {followUpMessages.length > 0 && (
                     <div className="space-y-3 mb-4 max-h-64 overflow-y-auto scrollbar-thin">
                       {followUpMessages.map((msg) => (
-                        <div
-                          key={msg.id}
-                          className={cn(
-                            "flex gap-2.5",
-                            msg.role === "user" && "flex-row-reverse"
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
-                              msg.role === "user"
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted text-muted-foreground"
-                            )}
-                          >
-                            {msg.role === "user" ? (
-                              <User className="h-3.5 w-3.5" />
-                            ) : (
-                              <Bot className="h-3.5 w-3.5" />
-                            )}
+                        <div key={msg.id} className={cn("flex gap-2.5", msg.role === "user" && "flex-row-reverse")}>
+                          <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full", msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+                            {msg.role === "user" ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
                           </div>
-                          <div
-                            className={cn(
-                              "rounded-lg px-3 py-2 text-sm max-w-[80%]",
-                              msg.role === "user"
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted text-foreground"
-                            )}
-                          >
+                          <div className={cn("rounded-lg px-3 py-2 text-sm max-w-[80%]", msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")}>
                             {msg.content}
                           </div>
                         </div>
                       ))}
+                      {isFollowUpLoading && (
+                        <div className="flex gap-2.5">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                            <Bot className="h-3.5 w-3.5" />
+                          </div>
+                          <div className="rounded-lg px-3 py-2 text-sm bg-muted text-muted-foreground flex items-center gap-2">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            Thinking...
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* Input */}
                   <div className="flex gap-2">
                     <Input
                       value={followUpInput}
@@ -337,13 +254,9 @@ export default function PhotoSolverPage() {
                           handleSendFollowUp();
                         }
                       }}
+                      disabled={isFollowUpLoading}
                     />
-                    <Button
-                      onClick={handleSendFollowUp}
-                      disabled={!followUpInput.trim()}
-                      size="icon"
-                      className="shrink-0"
-                    >
+                    <Button onClick={handleSendFollowUp} disabled={!followUpInput.trim() || isFollowUpLoading} size="icon" className="shrink-0">
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
