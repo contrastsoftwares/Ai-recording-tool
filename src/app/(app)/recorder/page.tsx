@@ -124,7 +124,7 @@ export default function RecorderPage() {
 
                 {/* Generate Notes button */}
                 <Button asChild variant="outline" size="sm" className="shrink-0 gap-1.5">
-                  <Link href="/dashboard">
+                  <Link href="/notes/new">
                     <FileText className="h-3.5 w-3.5" />
                     Generate Notes
                   </Link>

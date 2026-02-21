@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
 import {
   Sun,
   Moon,
-  Monitor,
   Pencil,
   Download,
   Trash2,
@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
-type Theme = "light" | "dark" | "system";
+type Theme = "light" | "dark";
 
 function Toggle({
   checked,
@@ -46,10 +46,17 @@ function Toggle({
 }
 
 export default function SettingsPage() {
+  const { theme: currentTheme, setTheme: setAppTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [name, setName] = useState("Student User");
   const [email, setEmail] = useState("student@university.edu");
-  const [theme, setTheme] = useState<Theme>("system");
   const [noteFormat, setNoteFormat] = useState("markdown");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const activeTheme: Theme = mounted ? (resolvedTheme as Theme) ?? "dark" : "dark";
   const [language, setLanguage] = useState("english");
   const [autoFlashcards, setAutoFlashcards] = useState(true);
   const [autoPracticeTests, setAutoPracticeTests] = useState(false);
@@ -60,7 +67,6 @@ export default function SettingsPage() {
   const themes: { value: Theme; label: string; icon: typeof Sun }[] = [
     { value: "light", label: "Light", icon: Sun },
     { value: "dark", label: "Dark", icon: Moon },
-    { value: "system", label: "System", icon: Monitor },
   ];
 
   return (
@@ -144,10 +150,10 @@ export default function SettingsPage() {
             {themes.map(({ value, label, icon: Icon }) => (
               <button
                 key={value}
-                onClick={() => setTheme(value)}
+                onClick={() => setAppTheme(value)}
                 className={cn(
                   "flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all hover:bg-accent/50",
-                  theme === value
+                  activeTheme === value
                     ? "border-primary bg-primary/5"
                     : "border-border"
                 )}
@@ -155,13 +161,13 @@ export default function SettingsPage() {
                 <Icon
                   className={cn(
                     "h-6 w-6",
-                    theme === value ? "text-primary" : "text-muted-foreground"
+                    activeTheme === value ? "text-primary" : "text-muted-foreground"
                   )}
                 />
                 <span
                   className={cn(
                     "text-sm font-medium",
-                    theme === value ? "text-primary" : "text-muted-foreground"
+                    activeTheme === value ? "text-primary" : "text-muted-foreground"
                   )}
                 >
                   {label}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Monitor, CheckCircle, Download, FileText, AlertCircle } from "lucide-react";
+import { Monitor, CheckCircle, Download, FileText, AlertCircle, Mic, MicOff, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +13,7 @@ type RecordingStatus = "idle" | "recording" | "paused" | "stopped";
 export function ScreenRecorder() {
   const [status, setStatus] = useState<RecordingStatus>("idle");
   const [duration, setDuration] = useState(0);
-  const [includeAudio, setIncludeAudio] = useState(true);
+  const [includeMicrophone, setIncludeMicrophone] = useState(false);
   const [quality, setQuality] = useState<"720p" | "1080p">("1080p");
   const [error, setError] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -21,6 +21,7 @@ export function ScreenRecorder() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -43,6 +44,9 @@ export function ScreenRecorder() {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
+      if (micStreamRef.current) {
+        micStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
       if (videoUrl) {
         URL.revokeObjectURL(videoUrl);
       }
@@ -61,38 +65,41 @@ export function ScreenRecorder() {
     }
 
     try {
+      // Always request system audio from the screen share
       const displayMediaOptions: DisplayMediaStreamOptions = {
         video: {
           width: quality === "1080p" ? { ideal: 1920 } : { ideal: 1280 },
           height: quality === "1080p" ? { ideal: 1080 } : { ideal: 720 },
         },
-        audio: includeAudio,
+        audio: true, // Always capture system/tab audio
       };
 
       const displayStream =
         await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
 
-      // If user wants audio, also get microphone audio and merge streams
-      let combinedStream = displayStream;
-      if (includeAudio) {
+      // Collect all tracks: video + system audio (always) + microphone (optional)
+      const tracks: MediaStreamTrack[] = [
+        ...displayStream.getVideoTracks(),
+        ...displayStream.getAudioTracks(), // System/tab audio
+      ];
+
+      // If user wants microphone, also get microphone audio
+      if (includeMicrophone) {
         try {
-          const audioStream = await navigator.mediaDevices.getUserMedia({
+          const micStream = await navigator.mediaDevices.getUserMedia({
             audio: true,
           });
-          const tracks = [
-            ...displayStream.getVideoTracks(),
-            ...audioStream.getAudioTracks(),
-          ];
-          combinedStream = new MediaStream(tracks);
+          micStreamRef.current = micStream;
+          tracks.push(...micStream.getAudioTracks());
         } catch {
-          // Microphone access failed; proceed with screen-only
-          combinedStream = displayStream;
+          // Microphone access failed; proceed without mic
         }
       }
 
+      const combinedStream = new MediaStream(tracks);
       streamRef.current = combinedStream;
 
-      // Show live preview
+      // Show live preview (video only, muted to avoid feedback)
       if (videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = displayStream;
         videoPreviewRef.current.play().catch(() => {
@@ -122,6 +129,10 @@ export function ScreenRecorder() {
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((track) => track.stop());
           streamRef.current = null;
+        }
+        if (micStreamRef.current) {
+          micStreamRef.current.getTracks().forEach((track) => track.stop());
+          micStreamRef.current = null;
         }
 
         // Clear preview
@@ -160,7 +171,7 @@ export function ScreenRecorder() {
         );
       }
     }
-  }, [videoUrl, includeAudio, quality]);
+  }, [videoUrl, includeMicrophone, quality]);
 
   const handlePause = useCallback(() => {
     if (
@@ -196,6 +207,10 @@ export function ScreenRecorder() {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
+    }
+    if (micStreamRef.current) {
+      micStreamRef.current.getTracks().forEach((track) => track.stop());
+      micStreamRef.current = null;
     }
     if (videoPreviewRef.current) {
       videoPreviewRef.current.srcObject = null;
@@ -234,7 +249,7 @@ export function ScreenRecorder() {
           >
             {status === "stopped" ? (
               /* Success message */
-              <div className="flex flex-col items-center gap-4 text-center">
+              <div className="flex flex-col items-center gap-4 text-center p-6">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
                   <CheckCircle className="h-8 w-8 text-success" />
                 </div>
@@ -258,7 +273,7 @@ export function ScreenRecorder() {
 
                 <div className="flex flex-wrap items-center justify-center gap-3">
                   <Button asChild className="gap-2">
-                    <Link href="/dashboard">
+                    <Link href="/notes/new">
                       <FileText className="h-4 w-4" />
                       Generate Notes
                     </Link>
@@ -270,6 +285,14 @@ export function ScreenRecorder() {
                   >
                     <Download className="h-4 w-4" />
                     Download Recording
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={handleReset}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    New Recording
                   </Button>
                 </div>
               </div>
@@ -340,27 +363,32 @@ export function ScreenRecorder() {
       )}
 
       {/* Settings row */}
-      {(status === "idle" || status === "stopped") && (
+      {status === "idle" && (
         <div className="flex w-full flex-wrap items-center justify-center gap-6">
-          {/* Audio toggle */}
+          {/* Microphone toggle */}
           <label className="flex items-center gap-3 cursor-pointer">
-            <span className="text-sm font-medium text-foreground">
-              Include Audio
+            <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+              {includeMicrophone ? (
+                <Mic className="h-4 w-4 text-primary" />
+              ) : (
+                <MicOff className="h-4 w-4 text-muted-foreground" />
+              )}
+              Microphone
             </span>
             <button
               type="button"
               role="switch"
-              aria-checked={includeAudio}
-              onClick={() => setIncludeAudio(!includeAudio)}
+              aria-checked={includeMicrophone}
+              onClick={() => setIncludeMicrophone(!includeMicrophone)}
               className={cn(
                 "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                includeAudio ? "bg-primary" : "bg-muted"
+                includeMicrophone ? "bg-primary" : "bg-muted"
               )}
             >
               <span
                 className={cn(
                   "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-in-out",
-                  includeAudio ? "translate-x-5" : "translate-x-0"
+                  includeMicrophone ? "translate-x-5" : "translate-x-0"
                 )}
               />
             </button>
@@ -379,6 +407,13 @@ export function ScreenRecorder() {
             </select>
           </div>
         </div>
+      )}
+
+      {/* Helper text about audio */}
+      {status === "idle" && (
+        <p className="text-xs text-muted-foreground text-center">
+          System/tab audio is captured by default. Toggle microphone to also record your voice.
+        </p>
       )}
     </div>
   );

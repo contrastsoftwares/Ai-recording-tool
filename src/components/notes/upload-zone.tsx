@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   CloudUpload,
   Upload,
@@ -13,6 +14,8 @@ import {
   FileSpreadsheet,
   Image,
   Globe,
+  CheckCircle,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -29,10 +32,18 @@ const fileTypeBadges = [
   { label: "URL", icon: Globe, color: "text-emerald-500 bg-emerald-500/10" },
 ];
 
-export function UploadZone() {
+interface UploadZoneProps {
+  onFileSelected?: (file: File) => void;
+  onUrlSubmitted?: (url: string) => void;
+}
+
+export function UploadZone({ onFileSelected, onUrlSubmitted }: UploadZoneProps) {
+  const router = useRouter();
   const [isDragging, setIsDragging] = useState(false);
   const [activeMethod, setActiveMethod] = useState<InputMethod>("file");
   const [urlValue, setUrlValue] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -47,8 +58,37 @@ export function UploadZone() {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    // Decorative only - no actual upload
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      setSelectedFile(file);
+      onFileSelected?.(file);
+    }
+  }, [onFileSelected]);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      onFileSelected?.(file);
+    }
+  }, [onFileSelected]);
+
+  const handleBrowseClick = useCallback(() => {
+    fileInputRef.current?.click();
   }, []);
+
+  const handleClearFile = useCallback(() => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, []);
+
+  const handleUrlGenerate = useCallback(() => {
+    if (urlValue.trim()) {
+      onUrlSubmitted?.(urlValue.trim());
+    }
+  }, [urlValue, onUrlSubmitted]);
 
   const inputMethods: { id: InputMethod; label: string; icon: React.ElementType }[] = [
     { id: "file", label: "File Upload", icon: Upload },
@@ -58,6 +98,15 @@ export function UploadZone() {
 
   return (
     <div className="space-y-4">
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="video/*,audio/*,.pdf,.doc,.docx,image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
       {/* Input method tabs */}
       <div className="flex gap-1 rounded-lg bg-muted p-1">
         {inputMethods.map((method) => {
@@ -83,38 +132,61 @@ export function UploadZone() {
 
       {/* File upload drop zone */}
       {activeMethod === "file" && (
-        <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          className={cn(
-            "relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-12",
-            "transition-all duration-200 cursor-pointer",
-            isDragging
-              ? "border-primary bg-primary/5 scale-[1.01]"
-              : "border-border hover:border-primary/40 hover:bg-muted/50"
-          )}
-        >
-          <div
-            className={cn(
-              "flex h-16 w-16 items-center justify-center rounded-full mb-4 transition-colors",
-              isDragging ? "bg-primary/10" : "bg-muted"
-            )}
-          >
-            <CloudUpload
+        <>
+          {selectedFile ? (
+            <div className="relative flex flex-col items-center justify-center rounded-xl border-2 border-primary bg-primary/5 p-8">
+              <button
+                onClick={handleClearFile}
+                className="absolute top-3 right-3 flex h-7 w-7 items-center justify-center rounded-full bg-muted hover:bg-destructive/10 hover:text-destructive transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
+                <CheckCircle className="h-8 w-8 text-primary" />
+              </div>
+              <p className="text-base font-medium text-foreground mb-1">
+                {selectedFile.name}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+              </p>
+            </div>
+          ) : (
+            <div
+              onClick={handleBrowseClick}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
               className={cn(
-                "h-8 w-8 transition-colors",
-                isDragging ? "text-primary" : "text-muted-foreground"
+                "relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-12",
+                "transition-all duration-200 cursor-pointer",
+                isDragging
+                  ? "border-primary bg-primary/5 scale-[1.01]"
+                  : "border-border hover:border-primary/40 hover:bg-muted/50"
               )}
-            />
-          </div>
-          <p className="text-base font-medium text-foreground mb-1">
-            {isDragging ? "Drop your files here" : "Drop files here or click to browse"}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Videos, PDFs, Audio, Documents, Images
-          </p>
-        </div>
+            >
+              <div
+                className={cn(
+                  "flex h-16 w-16 items-center justify-center rounded-full mb-4 transition-colors",
+                  isDragging ? "bg-primary/10" : "bg-muted"
+                )}
+              >
+                <CloudUpload
+                  className={cn(
+                    "h-8 w-8 transition-colors",
+                    isDragging ? "text-primary" : "text-muted-foreground"
+                  )}
+                />
+              </div>
+              <p className="text-base font-medium text-foreground mb-1">
+                {isDragging ? "Drop your files here" : "Drop files here or click to browse"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Videos, PDFs, Audio, Documents, Images
+              </p>
+            </div>
+          )}
+        </>
       )}
 
       {/* URL input */}
@@ -132,9 +204,14 @@ export function UploadZone() {
               placeholder="https://youtube.com/watch?v=..."
               value={urlValue}
               onChange={(e) => setUrlValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && urlValue.trim()) {
+                  handleUrlGenerate();
+                }
+              }}
               className="flex-1"
             />
-            <Button disabled={!urlValue.trim()}>
+            <Button disabled={!urlValue.trim()} onClick={handleUrlGenerate}>
               Generate
             </Button>
           </div>

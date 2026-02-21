@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Mic, CheckCircle, Download, FileText, AlertCircle } from "lucide-react";
+import { Mic, CheckCircle, Download, FileText, AlertCircle, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -204,7 +204,7 @@ export function AudioRecorder() {
 
                 <div className="flex flex-wrap items-center justify-center gap-3">
                   <Button asChild className="gap-2">
-                    <Link href="/dashboard">
+                    <Link href="/notes/new">
                       <FileText className="h-4 w-4" />
                       Generate Notes
                     </Link>
@@ -216,6 +216,14 @@ export function AudioRecorder() {
                   >
                     <Download className="h-4 w-4" />
                     Download Recording
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={handleReset}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    New Recording
                   </Button>
                 </div>
               </div>

@@ -149,12 +149,20 @@ export default function PhotoSolverPage() {
             )}
 
             {!hasContent ? (
-              <label className="flex flex-col items-center justify-center h-full py-12 px-6 cursor-pointer hover:bg-accent/30 transition-colors rounded-xl">
+              <div className="flex flex-col items-center justify-center h-full py-12 px-6 rounded-xl">
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   className="hidden"
+                  onChange={handleFileUpload}
+                />
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  id="photo-solver-camera"
                   onChange={handleFileUpload}
                 />
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-4">
@@ -167,16 +175,25 @@ export default function PhotoSolverPage() {
                   of any math, science, or academic problem
                 </p>
                 <div className="flex items-center gap-2 mt-4">
-                  <Button size="sm" className="gap-2">
+                  <Button
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
                     <Upload className="h-4 w-4" />
                     Upload Image
                   </Button>
-                  <Button variant="outline" size="sm" className="gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => document.getElementById("photo-solver-camera")?.click()}
+                  >
                     <Camera className="h-4 w-4" />
                     Take Photo
                   </Button>
                 </div>
-              </label>
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full py-8 px-6">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-3">
