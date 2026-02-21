@@ -53,9 +53,19 @@ export interface TestQuestion {
   explanation: string;
 }
 
+export interface TranscribeProgress {
+  message: string;
+  percent: number;
+  chunk?: number;
+  totalChunks?: number;
+}
+
 export const aiService = {
-  /** Transcribe audio/video file via Whisper */
-  async transcribe(file: File): Promise<TranscribeResult> {
+  /** Transcribe audio/video file via Whisper (supports streaming progress for large files) */
+  async transcribe(
+    file: File,
+    onProgress?: (data: TranscribeProgress) => void
+  ): Promise<TranscribeResult> {
     const formData = new FormData();
     formData.append("file", file);
 
@@ -69,6 +79,47 @@ export const aiService = {
       throw new Error(err.error || "Transcription failed");
     }
 
+    const contentType = res.headers.get("content-type") || "";
+
+    // Streaming NDJSON response for large files (chunked transcription)
+    if (contentType.includes("application/x-ndjson") && res.body) {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let result: TranscribeResult | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const event = JSON.parse(line);
+
+          if (event.type === "progress" && onProgress) {
+            onProgress(event as TranscribeProgress);
+          } else if (event.type === "result") {
+            result = {
+              transcript: event.transcript,
+              segments: event.segments,
+            };
+          } else if (event.type === "error") {
+            throw new Error(event.error);
+          }
+        }
+      }
+
+      if (!result) {
+        throw new Error("Transcription failed: no result received");
+      }
+      return result;
+    }
+
+    // Standard JSON response for small files
     return res.json();
   },
 

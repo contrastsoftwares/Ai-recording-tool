@@ -112,11 +112,18 @@ function NewNoteContent() {
         const fileType = selectedFile.type;
 
         if (fileType.startsWith("audio/") || fileType.startsWith("video/")) {
-          // Transcribe audio/video
+          // Transcribe audio/video (streams progress for large files)
           setProcessingMessage("Transcribing your recording...");
           setProgress(10);
 
-          const transcribeResult = await aiService.transcribe(selectedFile);
+          const transcribeResult = await aiService.transcribe(
+            selectedFile,
+            (data) => {
+              setProcessingMessage(data.message);
+              // Map streaming percent (5-95) into our UI range (10-40)
+              setProgress(10 + (data.percent / 100) * 30);
+            }
+          );
           content = transcribeResult.transcript;
           title = selectedFile.name.replace(/\.[^.]+$/, "");
           sourceType = fileType.startsWith("audio/") ? "audio" : "video";
