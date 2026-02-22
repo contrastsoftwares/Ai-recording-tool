@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import openai from "@/lib/openai";
-import { writeFile, readFile, mkdir, readdir, rm } from "fs/promises";
+import { writeFile, readFile, mkdir, readdir, rm, stat } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { execFile } from "child_process";
@@ -121,22 +121,40 @@ function transcribeLargeFile(file: File) {
         });
 
         const cleanAudioPath = join(tempDir, "clean_audio.mp3");
-        await execFileAsync(
-          ffmpegPath,
-          [
-            "-fflags", "+discardcorrupt+genpts",
-            "-err_detect", "ignore_err",
-            "-i",
-            inputPath,
-            "-vn",        // strip video track
-            "-ac", "1",   // mono
-            "-ar", "16000", // 16 kHz (speech‑optimised)
-            "-ab", "64k", // 64 kbps
-            "-y",         // overwrite if exists
-            cleanAudioPath,
-          ],
-          { timeout: 600_000, maxBuffer: 50 * 1024 * 1024 } // 10 min, 50 MB stderr buffer
-        );
+        let partialAudio = false;
+        try {
+          await execFileAsync(
+            ffmpegPath,
+            [
+              "-fflags", "+discardcorrupt+genpts",
+              "-err_detect", "ignore_err",
+              "-i",
+              inputPath,
+              "-vn",        // strip video track
+              "-ac", "1",   // mono
+              "-ar", "16000", // 16 kHz (speech‑optimised)
+              "-ab", "64k", // 64 kbps
+              "-y",         // overwrite if exists
+              cleanAudioPath,
+            ],
+            { timeout: 600_000, maxBuffer: 200 * 1024 * 1024 } // 10 min, 200 MB stderr buffer
+          );
+        } catch (ffmpegError: unknown) {
+          // ffmpeg may exit with error even when partial output is usable
+          // (e.g. corrupt AAC data causes channel misdetection mid-stream)
+          const fileStats = await stat(cleanAudioPath).catch(() => null);
+          if (!fileStats || fileStats.size < 10_000) {
+            // No usable output — re-throw the original error
+            throw ffmpegError;
+          }
+          // Partial output exists — proceed with what we have
+          partialAudio = true;
+          send({
+            type: "progress",
+            message: "Audio partially converted (some corrupt sections skipped)...",
+            percent: 10,
+          });
+        }
 
         // ── Step 2: Split clean MP3 into chunks (no re-encoding) ────────
         send({
@@ -221,9 +239,13 @@ function transcribeLargeFile(file: File) {
         }
 
         // ── Send final result ───────────────────────────────────────────
+        const prefix = partialAudio
+          ? "[Note: Some audio was unreadable due to file corruption. " +
+            "The transcript below covers the recoverable portions.]\n\n"
+          : "";
         send({
           type: "result",
-          transcript: fullTranscript,
+          transcript: prefix + fullTranscript,
           segments: allSegments,
         });
       } catch (error: unknown) {
