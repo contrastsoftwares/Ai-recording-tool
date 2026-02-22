@@ -113,11 +113,36 @@ function transcribeLargeFile(file: File) {
         // ── Resolve ffmpeg ──────────────────────────────────────────────
         const ffmpegPath = await getFFmpegPath();
 
-        // ── Split into chunks ───────────────────────────────────────────
+        // ── Step 1: Convert to clean MP3 (tolerates corrupt audio) ──────
+        send({
+          type: "progress",
+          message: "Converting audio (this may take a moment)...",
+          percent: 8,
+        });
+
+        const cleanAudioPath = join(tempDir, "clean_audio.mp3");
+        await execFileAsync(
+          ffmpegPath,
+          [
+            "-fflags", "+discardcorrupt+genpts",
+            "-err_detect", "ignore_err",
+            "-i",
+            inputPath,
+            "-vn",        // strip video track
+            "-ac", "1",   // mono
+            "-ar", "16000", // 16 kHz (speech‑optimised)
+            "-ab", "64k", // 64 kbps
+            "-y",         // overwrite if exists
+            cleanAudioPath,
+          ],
+          { timeout: 600_000, maxBuffer: 50 * 1024 * 1024 } // 10 min, 50 MB stderr buffer
+        );
+
+        // ── Step 2: Split clean MP3 into chunks (no re-encoding) ────────
         send({
           type: "progress",
           message: "Splitting audio into chunks...",
-          percent: 8,
+          percent: 12,
         });
 
         const chunkPattern = join(tempDir, "chunk_%03d.mp3");
@@ -125,21 +150,13 @@ function transcribeLargeFile(file: File) {
           ffmpegPath,
           [
             "-i",
-            inputPath,
-            "-f",
-            "segment",
-            "-segment_time",
-            String(CHUNK_DURATION_SECS),
-            "-vn", // strip video track
-            "-ac",
-            "1", // mono
-            "-ar",
-            "16000", // 16 kHz (speech‑optimised)
-            "-ab",
-            "64k", // 64 kbps
+            cleanAudioPath,
+            "-f", "segment",
+            "-segment_time", String(CHUNK_DURATION_SECS),
+            "-c", "copy",  // no re-encoding needed, already clean MP3
             chunkPattern,
           ],
-          { timeout: 300_000 } // 5 min for splitting
+          { timeout: 120_000 } // 2 min for splitting (just copying)
         );
 
         // ── List chunk files ────────────────────────────────────────────
