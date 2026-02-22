@@ -241,4 +241,24 @@ export const aiService = {
 
     return res.json();
   },
+
+  /** Grade a short-answer question using AI */
+  async gradeShortAnswer(
+    question: string,
+    correctAnswer: string,
+    userAnswer: string
+  ): Promise<{ score: "correct" | "partial" | "incorrect"; feedback: string }> {
+    const res = await fetch("/api/grade-answer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, correctAnswer, userAnswer }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Grading failed");
+    }
+
+    return res.json();
+  },
 };

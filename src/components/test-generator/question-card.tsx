@@ -5,11 +5,11 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2, XCircle, Lightbulb } from "lucide-react";
+import { CheckCircle2, XCircle, Lightbulb, Loader2 } from "lucide-react";
 import type { Question } from "@/types/test";
 
 interface QuestionCardProps {
-  question: Question;
+  question: Question & { aiGrade?: { score: string; feedback: string } };
   index: number;
   onAnswer: (id: string, answer: string) => void;
   showResult: boolean;
@@ -92,13 +92,13 @@ export function QuestionCard({
           <div className="grid gap-2">
             {question.options.map((option, i) => {
               const label = optionLabels[i];
-              const isSelected = selectedAnswer === label;
-              const isCorrectOption = question.correctAnswer === label;
+              const isSelected = selectedAnswer === option;
+              const isCorrectOption = question.correctAnswer === option;
 
               return (
                 <button
                   key={label}
-                  onClick={() => handleAnswer(label)}
+                  onClick={() => handleAnswer(option)}
                   disabled={showResult}
                   className={cn(
                     "flex items-center gap-3 rounded-lg border border-border p-3 text-left text-sm transition-all",
@@ -178,14 +178,32 @@ export function QuestionCard({
               disabled={showResult}
               className="resize-none"
             />
-            {showResult && (
-              <div className="rounded-lg border border-success/30 bg-success/10 p-3">
-                <p className="text-xs font-semibold text-success mb-1">
-                  Suggested Answer:
-                </p>
-                <p className="text-sm text-foreground">
-                  {question.correctAnswer}
-                </p>
+            {showResult && question.aiGrade && (
+              <div className={cn(
+                "rounded-lg border p-3",
+                question.aiGrade.score === "correct" && "border-success/30 bg-success/10",
+                question.aiGrade.score === "partial" && "border-warning/30 bg-warning/10",
+                question.aiGrade.score === "incorrect" && "border-destructive/30 bg-destructive/10"
+              )}>
+                <div className="flex items-center gap-2 mb-1">
+                  {question.aiGrade.score === "correct" && <CheckCircle2 className="h-4 w-4 text-success" />}
+                  {question.aiGrade.score === "partial" && <Lightbulb className="h-4 w-4 text-warning" />}
+                  {question.aiGrade.score === "incorrect" && <XCircle className="h-4 w-4 text-destructive" />}
+                  <p className={cn("text-xs font-semibold",
+                    question.aiGrade.score === "correct" && "text-success",
+                    question.aiGrade.score === "partial" && "text-warning",
+                    question.aiGrade.score === "incorrect" && "text-destructive"
+                  )}>
+                    {question.aiGrade.score === "correct" ? "Correct" : question.aiGrade.score === "partial" ? "Partially Correct" : "Incorrect"}
+                  </p>
+                </div>
+                <p className="text-sm text-foreground">{question.aiGrade.feedback}</p>
+              </div>
+            )}
+            {showResult && !question.aiGrade && (
+              <div className="flex items-center gap-2 p-3">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span className="text-sm text-muted-foreground">Grading your answer...</span>
               </div>
             )}
           </div>

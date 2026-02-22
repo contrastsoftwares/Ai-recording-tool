@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -16,7 +16,6 @@ import {
   File,
   Calendar,
   Tag,
-  RefreshCw,
   Download,
   Share2,
   MessagesSquare,
@@ -34,14 +33,15 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { NoteViewer } from "@/components/notes/note-viewer";
 import { TranscriptPanel } from "@/components/notes/transcript-panel";
-import { MediaPlayer } from "@/components/notes/media-player";
+
 import { AiStatusIndicator } from "@/components/notes/ai-status-indicator";
 import { ChatInterface } from "@/components/chat/chat-interface";
 import { FlashcardDeck } from "@/components/flashcards/flashcard-deck";
 import { TestView } from "@/components/test-generator/test-view";
-import { mockTranscriptSegments, mockConversations } from "@/lib/mock-data";
+
 import { useNotesStore } from "@/stores/notes-store";
-import type { UploadType } from "@/types/note";
+import { useChatStore } from "@/stores/chat-store";
+import type { UploadType, TranscriptSegment } from "@/types/note";
 
 const sourceIcons: Record<UploadType, React.ElementType> = {
   video: Video,
@@ -76,12 +76,13 @@ export default function NoteWorkspacePage() {
   const [activeTab, setActiveTab] = useState<TabId>("notes");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
-  const [currentTime, setCurrentTime] = useState(-1);
   const { toggleFavorite } = useNotesStore();
   const notes = useNotesStore((s) => s.notes);
+  const chatConversations = useChatStore((s) => s.conversations);
+  const createConversation = useChatStore((s) => s.createConversation);
 
   const note = notes.find((n) => n.id === noteId);
-  const conversations = mockConversations.filter((c) => c.noteId === noteId);
+  const conversations = chatConversations.filter((c) => c.noteId === noteId);
 
   const handleStartEditTitle = useCallback(() => {
     if (note) {
@@ -100,9 +101,42 @@ export default function NoteWorkspacePage() {
     setEditedTitle("");
   }, []);
 
-  const handleTimestampClick = useCallback((time: number) => {
-    setCurrentTime(time);
+  const handleNewConversation = useCallback(() => {
+    createConversation(noteId, "New Conversation");
+    setActiveTab("chat");
+  }, [noteId, createConversation]);
+
+  const handleExport = useCallback(() => {
+    if (!note) return;
+    const content = `# ${note.title}\n\n${note.content}`;
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${note.title.replace(/[^a-z0-9]/gi, "_")}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [note]);
+
+  const handleShare = useCallback(() => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
   }, []);
+
+  // Parse transcript string into segments for display
+  const transcriptSegments: TranscriptSegment[] = useMemo(() => {
+    if (!note?.transcript) return [];
+    const sentences = note.transcript
+      .split(/(?<=[.!?])\s+/)
+      .filter((s) => s.trim().length > 0);
+    return sentences.map((text, i) => ({
+      start: i * 10,
+      end: (i + 1) * 10,
+      text: text.trim(),
+    }));
+  }, [note?.transcript]);
 
   if (!note) {
     return (
@@ -256,7 +290,7 @@ export default function NoteWorkspacePage() {
             </div>
           </ScrollArea>
           <div className="p-2 border-t border-border">
-            <Button variant="ghost" className="w-full justify-start gap-2 text-sm">
+            <Button variant="ghost" className="w-full justify-start gap-2 text-sm" onClick={handleNewConversation}>
               <MessageSquare className="h-4 w-4" />
               New Conversation
             </Button>
@@ -292,24 +326,12 @@ export default function NoteWorkspacePage() {
           <div className="flex-1 overflow-y-auto scrollbar-thin">
             {activeTab === "notes" && (
               <div className="space-y-6">
-                {/* Media player for video/audio notes */}
-                {(note.sourceType === "video" || note.sourceType === "audio") && (
-                  <MediaPlayer
-                    type={note.sourceType as "video" | "audio"}
-                    title={note.title}
-                    currentTime={currentTime}
-                    onTimeUpdate={setCurrentTime}
-                  />
-                )}
-
                 <div className="rounded-xl border border-border bg-card p-6">
                   <NoteViewer content={note.content} formats={note.formats} />
                 </div>
-                {(note.sourceType === "video" || note.sourceType === "audio") && (
+                {transcriptSegments.length > 0 && (
                   <TranscriptPanel
-                    segments={mockTranscriptSegments}
-                    currentTime={currentTime}
-                    onTimestampClick={handleTimestampClick}
+                    segments={transcriptSegments}
                   />
                 )}
               </div>
@@ -440,14 +462,7 @@ export default function NoteWorkspacePage() {
                     variant="outline"
                     className="w-full justify-start gap-2 text-sm"
                     size="sm"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    Regenerate Notes
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start gap-2 text-sm"
-                    size="sm"
+                    onClick={handleExport}
                   >
                     <Download className="h-4 w-4" />
                     Export
@@ -456,6 +471,7 @@ export default function NoteWorkspacePage() {
                     variant="outline"
                     className="w-full justify-start gap-2 text-sm"
                     size="sm"
+                    onClick={handleShare}
                   >
                     <Share2 className="h-4 w-4" />
                     Share

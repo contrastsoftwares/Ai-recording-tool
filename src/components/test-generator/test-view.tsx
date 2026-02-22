@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   Sparkles,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { formatDuration } from "@/lib/utils";
 
@@ -31,6 +32,11 @@ interface TestData {
   questions: TestQuestion[];
 }
 
+interface AiGrade {
+  score: "correct" | "partial" | "incorrect";
+  feedback: string;
+}
+
 export function TestView({ noteId, noteContent }: TestViewProps) {
   const [test, setTest] = useState<TestData | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -40,6 +46,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [score, setScore] = useState<{ correct: number; total: number; percentage: number } | null>(null);
+  const [aiGrades, setAiGrades] = useState<Record<string, AiGrade>>({});
   const questionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const handleGenerate = useCallback(async () => {
@@ -50,6 +57,11 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     try {
       const result = await aiService.generateTest(noteContent);
       setTest(result);
+      setAnswers({});
+      setElapsedSeconds(0);
+      setScore(null);
+      setAiGrades({});
+      setTestState("taking");
     } catch (err) {
       setGenerateError(err instanceof Error ? err.message : "Failed to generate test.");
     } finally {
@@ -87,13 +99,37 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     questionRefs.current.get(questionId)?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, []);
 
+  // Grade short answers via AI
+  const gradeShortAnswers = useCallback(async () => {
+    if (!test) return;
+    const shortAnswerQuestions = test.questions.filter(
+      (q) => q.type === "short-answer" && answers[q.id]?.trim()
+    );
+
+    for (const question of shortAnswerQuestions) {
+      try {
+        const grade = await aiService.gradeShortAnswer(
+          question.question,
+          question.correctAnswer,
+          answers[question.id]
+        );
+        setAiGrades((prev) => ({ ...prev, [question.id]: grade }));
+      } catch {
+        setAiGrades((prev) => ({
+          ...prev,
+          [question.id]: { score: "incorrect", feedback: "Unable to grade this answer. Please review manually." },
+        }));
+      }
+    }
+  }, [test, answers]);
+
   function handleSubmit() {
     if (!test) return;
     let correct = 0;
     for (const question of test.questions) {
       const userAnswer = answers[question.id]?.trim().toLowerCase() ?? "";
       const correctAnswer = question.correctAnswer.trim().toLowerCase();
-      if (question.type === "short-answer") { /* skip grading */ }
+      if (question.type === "short-answer") { /* graded by AI separately */ }
       else if (userAnswer === correctAnswer) correct++;
     }
     const gradableQuestions = test.questions.filter((q) => q.type !== "short-answer");
@@ -102,12 +138,15 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     setScore({ correct, total, percentage });
     setTestState("results");
     sessionStorage.removeItem(`test-answers-${noteId}`);
+    // Start AI grading for short answers
+    gradeShortAnswers();
   }
 
   function handleRetake() {
     setAnswers({});
     setElapsedSeconds(0);
     setScore(null);
+    setAiGrades({});
     setTestState("taking");
   }
 
@@ -156,6 +195,12 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
           <p className="text-sm text-muted-foreground mt-1">Completed in {formatDuration(elapsedSeconds)}</p>
         </div>
         <TestResults score={score} onRetake={handleRetake} onReview={handleReview} />
+        <div className="flex justify-center mt-4">
+          <Button variant="outline" className="gap-2" onClick={handleGenerate} disabled={isGenerating}>
+            {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Regenerate Test
+          </Button>
+        </div>
       </div>
     );
   }
@@ -166,8 +211,14 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     const userAnswer = answers[questionId]?.trim() ?? "";
     if (testState === "review") {
       if (!userAnswer) return "unanswered";
+      if (question.type === "short-answer") {
+        const grade = aiGrades[questionId];
+        if (!grade) return "answered";
+        if (grade.score === "correct") return "correct";
+        if (grade.score === "partial") return "answered";
+        return "incorrect";
+      }
       const isCorrect = userAnswer.toLowerCase() === question.correctAnswer.trim().toLowerCase();
-      if (question.type === "short-answer") return "answered";
       return isCorrect ? "correct" : "incorrect";
     }
     return userAnswer ? "answered" : "unanswered";
@@ -195,11 +246,19 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
               </div>
             </div>
           </div>
-          {testState === "taking" && (
-            <Button onClick={handleSubmit} disabled={!allAnswered} className="gap-2" size="sm">
-              <CheckSquare className="h-4 w-4" />Submit Test
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {testState === "taking" && (
+              <Button onClick={handleSubmit} disabled={!allAnswered} className="gap-2" size="sm">
+                <CheckSquare className="h-4 w-4" />Submit Test
+              </Button>
+            )}
+            {testState === "review" && (
+              <Button variant="outline" size="sm" className="gap-2" onClick={handleGenerate} disabled={isGenerating}>
+                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                New Test
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-1.5 mt-3">
@@ -226,7 +285,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
         {test.questions.map((question, index) => (
           <div key={question.id} ref={(el) => { if (el) questionRefs.current.set(question.id, el); }}>
             <QuestionCard
-              question={{ ...question, userAnswer: answers[question.id] }}
+              question={{ ...question, userAnswer: answers[question.id], aiGrade: aiGrades[question.id] }}
               index={index}
               onAnswer={handleAnswer}
               showResult={testState === "review"}

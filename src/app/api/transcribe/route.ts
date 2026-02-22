@@ -49,7 +49,7 @@ interface TranscriptSegment {
 
 /** Transcribe a single audio buffer with Whisper. */
 async function transcribeChunk(buffer: Buffer, filename: string) {
-  const file = new File([buffer], filename, { type: "audio/mpeg" });
+  const file = new File([new Uint8Array(buffer)], filename, { type: "audio/mpeg" });
   return openai.audio.transcriptions.create({
     model: "whisper-1",
     file,

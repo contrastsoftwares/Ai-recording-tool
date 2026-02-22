@@ -207,7 +207,7 @@ export default function NotesPage() {
 
         {/* Tag chips */}
         {allTags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             {allTags.map((tag) => (
               <button
                 key={tag}
@@ -223,6 +223,15 @@ export default function NotesPage() {
                 {tag}
               </button>
             ))}
+            {selectedTags.size > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedTags(new Set())}
+                className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                Clear All
+              </button>
+            )}
           </div>
         )}
       </div>

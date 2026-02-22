@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTheme } from "next-themes";
 import {
   Sun,
@@ -45,24 +45,42 @@ function Toggle({
   );
 }
 
+function getStoredSetting<T>(key: string, defaultValue: T): T {
+  if (typeof window === "undefined") return defaultValue;
+  const stored = localStorage.getItem(`setting-${key}`);
+  if (stored === null) return defaultValue;
+  try { return JSON.parse(stored); } catch { return defaultValue; }
+}
+
+function storeSetting(key: string, value: unknown) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(`setting-${key}`, JSON.stringify(value));
+}
+
 export default function SettingsPage() {
-  const { theme: currentTheme, setTheme: setAppTheme, resolvedTheme } = useTheme();
+  const { setTheme: setAppTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [name, setName] = useState("Student User");
-  const [email, setEmail] = useState("student@university.edu");
-  const [noteFormat, setNoteFormat] = useState("markdown");
+  const [name, setName] = useState(() => getStoredSetting("name", "Student User"));
+  const [email, setEmail] = useState(() => getStoredSetting("email", "student@university.edu"));
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const activeTheme: Theme = mounted ? (resolvedTheme as Theme) ?? "dark" : "dark";
-  const [language, setLanguage] = useState("english");
-  const [autoFlashcards, setAutoFlashcards] = useState(true);
-  const [autoPracticeTests, setAutoPracticeTests] = useState(false);
-  const [audioQuality, setAudioQuality] = useState("high");
-  const [autoUpload, setAutoUpload] = useState(true);
-  const [recordingCountdown, setRecordingCountdown] = useState(true);
+  const [language, setLanguage] = useState(() => getStoredSetting("language", "english"));
+  const [autoFlashcards, setAutoFlashcards] = useState(() => getStoredSetting("autoFlashcards", false));
+  const [autoPracticeTests, setAutoPracticeTests] = useState(() => getStoredSetting("autoPracticeTests", false));
+
+  // Persist settings to localStorage on change
+  useEffect(() => { storeSetting("language", language); }, [language]);
+  useEffect(() => { storeSetting("autoFlashcards", autoFlashcards); }, [autoFlashcards]);
+  useEffect(() => { storeSetting("autoPracticeTests", autoPracticeTests); }, [autoPracticeTests]);
+
+  const handleSaveProfile = useCallback(() => {
+    storeSetting("name", name);
+    storeSetting("email", email);
+  }, [name, email]);
 
   const themes: { value: Theme; label: string; icon: typeof Sun }[] = [
     { value: "light", label: "Light", icon: Sun },
@@ -92,7 +110,7 @@ export default function SettingsPage() {
           <div className="flex items-center gap-4">
             <div className="relative">
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-                CA
+                {name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
               </div>
               <button className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-muted-foreground shadow-sm transition-colors hover:bg-accent">
                 <Pencil className="h-3.5 w-3.5" />
@@ -133,7 +151,7 @@ export default function SettingsPage() {
             />
           </div>
 
-          <Button className="w-full sm:w-auto">Save Changes</Button>
+          <Button className="w-full sm:w-auto" onClick={handleSaveProfile}>Save Changes</Button>
         </CardContent>
       </Card>
 
@@ -146,7 +164,7 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {themes.map(({ value, label, icon: Icon }) => (
               <button
                 key={value}
@@ -187,30 +205,6 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          {/* Default note format */}
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                Default Note Format
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Choose the default format for generated notes.
-              </p>
-            </div>
-            <select
-              value={noteFormat}
-              onChange={(e) => setNoteFormat(e.target.value)}
-              className="rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="markdown">Markdown</option>
-              <option value="plain">Plain Text</option>
-              <option value="rich">Rich Text</option>
-              <option value="outline">Outline</option>
-            </select>
-          </div>
-
-          <Separator />
-
           {/* Default language */}
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -244,7 +238,7 @@ export default function SettingsPage() {
                 Auto-generate Flashcards
               </p>
               <p className="text-xs text-muted-foreground">
-                Automatically create flashcards from your notes.
+                Automatically create flashcards when notes are generated.
               </p>
             </div>
             <Toggle checked={autoFlashcards} onChange={setAutoFlashcards} />
@@ -259,72 +253,10 @@ export default function SettingsPage() {
                 Auto-generate Practice Tests
               </p>
               <p className="text-xs text-muted-foreground">
-                Automatically create practice tests from your notes.
+                Automatically create practice tests when notes are generated.
               </p>
             </div>
             <Toggle checked={autoPracticeTests} onChange={setAutoPracticeTests} />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recording Preferences Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recording Preferences</CardTitle>
-          <CardDescription>
-            Configure recording behavior and quality settings.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          {/* Default audio quality */}
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                Default Audio Quality
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Higher quality uses more storage space.
-              </p>
-            </div>
-            <select
-              value={audioQuality}
-              onChange={(e) => setAudioQuality(e.target.value)}
-              className="rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </div>
-
-          <Separator />
-
-          {/* Auto-upload recordings */}
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                Auto-upload Recordings
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Automatically upload recordings after they finish.
-              </p>
-            </div>
-            <Toggle checked={autoUpload} onChange={setAutoUpload} />
-          </div>
-
-          <Separator />
-
-          {/* Recording countdown */}
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                Recording Countdown
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Show a 3-second countdown before recording starts.
-              </p>
-            </div>
-            <Toggle checked={recordingCountdown} onChange={setRecordingCountdown} />
           </div>
         </CardContent>
       </Card>
