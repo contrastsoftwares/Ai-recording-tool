@@ -15,7 +15,11 @@ export async function POST(request: NextRequest) {
     // Determine flashcard count based on content length
     const wordCount = noteContent.split(/\s+/).length;
     let cardRange: string;
-    if (wordCount < 500) {
+    if (wordCount < 100) {
+      cardRange = "2-4";
+    } else if (wordCount < 250) {
+      cardRange = "3-6";
+    } else if (wordCount < 500) {
       cardRange = "5-8";
     } else if (wordCount < 1500) {
       cardRange = "10-15";
@@ -46,7 +50,8 @@ Respond ONLY with valid JSON in this format:
 }
 
 Guidelines:
-- Create ${cardRange} flashcards — enough to cover all the content thoroughly
+- Create ${cardRange} flashcards — match the amount to how much content there actually is
+- Do NOT pad with filler or repeat content just to hit a number. If the content only supports 3 good flashcards, make 3.
 - Mix question types: definitions, concept explanations, fill-in-the-blank, application questions
 - Balance difficulty levels
 - Front should be concise and clear
