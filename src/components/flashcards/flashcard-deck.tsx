@@ -14,14 +14,22 @@ interface FlashcardDeckProps {
 }
 
 export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
-  const [cards, setCards] = useState<FlashcardResult[]>([]);
+  // Persist flashcards in localStorage so they survive tab switches
+  const [cards, setCards] = useState<FlashcardResult[]>(() => {
+    if (typeof window === "undefined") return [];
+    const saved = localStorage.getItem(`flashcards-${noteId}`);
+    if (saved) {
+      try { return JSON.parse(saved); } catch { return []; }
+    }
+    return [];
+  });
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [troubleCards, setTroubleCards] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
-    const saved = sessionStorage.getItem(`trouble-cards-${noteId}`);
+    const saved = localStorage.getItem(`trouble-cards-${noteId}`);
     if (saved) {
       try { return new Set(JSON.parse(saved)); } catch { return new Set(); }
     }
@@ -35,9 +43,16 @@ export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
   const activeTotal = activeCards.length;
   const troubleCount = cards.filter((c) => troubleCards.has(c.id)).length;
 
+  // Persist flashcards to localStorage
+  useEffect(() => {
+    if (cards.length > 0) {
+      localStorage.setItem(`flashcards-${noteId}`, JSON.stringify(cards));
+    }
+  }, [cards, noteId]);
+
   // Persist trouble cards
   useEffect(() => {
-    sessionStorage.setItem(`trouble-cards-${noteId}`, JSON.stringify([...troubleCards]));
+    localStorage.setItem(`trouble-cards-${noteId}`, JSON.stringify([...troubleCards]));
   }, [troubleCards, noteId]);
 
   const handleGenerate = useCallback(async () => {
@@ -48,6 +63,8 @@ export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
     try {
       const result = await aiService.generateFlashcards(noteContent);
       setCards(result);
+      setCurrentIndex(0);
+      setIsFlipped(false);
     } catch (err) {
       setGenerateError(err instanceof Error ? err.message : "Failed to generate flashcards.");
     } finally {
@@ -111,8 +128,8 @@ export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
         </h3>
         <p className="mb-6 max-w-sm text-center text-sm text-muted-foreground">
           {isGenerating
-            ? "AI is creating flashcards from your notes. This may take a moment."
-            : "Generate flashcards from your notes to start studying."}
+            ? "AI is creating flashcards from your content. This may take a moment."
+            : "Generate flashcards from your content to start studying."}
         </p>
         {generateError && (
           <p className="mb-4 text-sm text-destructive">{generateError}</p>

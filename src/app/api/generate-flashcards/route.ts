@@ -12,12 +12,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Determine flashcard count based on content length
+    const wordCount = noteContent.split(/\s+/).length;
+    let cardRange: string;
+    if (wordCount < 500) {
+      cardRange = "5-8";
+    } else if (wordCount < 1500) {
+      cardRange = "10-15";
+    } else if (wordCount < 3000) {
+      cardRange = "15-25";
+    } else if (wordCount < 6000) {
+      cardRange = "25-35";
+    } else {
+      cardRange = "35-50";
+    }
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: `You are an expert educator who creates effective flashcards for studying. Given note content, generate flashcards that cover the key concepts, definitions, and important facts.
+          content: `You are an expert educator who creates effective flashcards for studying. Given content, generate flashcards that cover ALL the key concepts, definitions, and important facts.
 
 Respond ONLY with valid JSON in this format:
 {
@@ -31,16 +46,17 @@ Respond ONLY with valid JSON in this format:
 }
 
 Guidelines:
-- Create 8-15 flashcards depending on the amount of content
+- Create ${cardRange} flashcards — enough to cover all the content thoroughly
 - Mix question types: definitions, concept explanations, fill-in-the-blank, application questions
 - Balance difficulty levels
 - Front should be concise and clear
 - Back should be thorough but not overly long
-- Cover the most important material first`,
+- Cover ALL important material, not just the first few topics
+- If content is lengthy, make sure later topics are also covered`,
         },
         {
           role: "user",
-          content: `Generate flashcards from these notes:\n\n${noteContent.slice(0, 30000)}`,
+          content: `Generate flashcards from this content:\n\n${noteContent.slice(0, 50000)}`,
         },
       ],
       temperature: 0.3,

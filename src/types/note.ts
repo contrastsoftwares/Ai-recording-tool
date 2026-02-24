@@ -8,6 +8,8 @@ export type NoteFormat =
   | "timeline"
   | "qa-format";
 
+export type NoteLength = "short" | "medium" | "long";
+
 export type UploadType = "video" | "audio" | "pdf" | "link" | "image" | "document";
 
 export interface NoteFormatOption {

@@ -13,9 +13,18 @@ const formatDescriptions: Record<string, string> = {
   "qa-format": "Question and answer pairs for active recall",
 };
 
+const lengthInstructions: Record<string, string> = {
+  short:
+    "Keep the notes brief and concise. Focus only on the most important key points. Aim for a short document that can be quickly reviewed — roughly 20-30% of what a full set of notes would be.",
+  medium:
+    "Create notes with a balanced level of detail. Cover all important topics but don't go into exhaustive detail on every point. This should be a moderate-length document.",
+  long:
+    "Create comprehensive, fully detailed notes. Cover every important topic, include supporting details, examples, and explanations. Be thorough — this should be a complete reference document.",
+};
+
 export async function POST(request: NextRequest) {
   try {
-    const { content, formats, title } = await request.json();
+    const { content, formats, title, length } = await request.json();
 
     if (!content || !formats?.length) {
       return NextResponse.json(
@@ -28,14 +37,18 @@ export async function POST(request: NextRequest) {
       .map((f) => formatDescriptions[f] || f)
       .join("; ");
 
+    const noteLengthGuide =
+      lengthInstructions[length as string] || lengthInstructions.medium;
+
     const systemPrompt = `You are an expert study assistant. Generate comprehensive, well-structured notes from the provided content using Markdown formatting.
 
 The notes MUST follow these format(s): ${formatInstructions}.
 
+Note length requirement: ${noteLengthGuide}
+
 If multiple formats are requested, blend them intelligently into a single cohesive document with clear section headings.
 
 Guidelines:
-- Be thorough but concise — capture all important information
 - Use proper Markdown: headings (##), bold (**text**), lists, tables where appropriate
 - Include key terms, definitions, and relationships
 - Add a brief summary at the end

@@ -127,12 +127,13 @@ export const aiService = {
   async generateNotes(
     content: string,
     formats: NoteFormat[],
-    title?: string
+    title?: string,
+    length?: string
   ): Promise<GenerateNotesResult> {
     const res = await fetch("/api/generate-notes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content, formats, title }),
+      body: JSON.stringify({ content, formats, title, length: length || "medium" }),
     });
 
     if (!res.ok) {

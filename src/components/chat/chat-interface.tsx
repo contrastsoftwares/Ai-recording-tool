@@ -23,7 +23,7 @@ const suggestedQuestions = [
 export function ChatInterface({ noteId, noteContent }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>(() => {
     if (typeof window === "undefined") return [];
-    const saved = sessionStorage.getItem(`chat-messages-${noteId}`);
+    const saved = localStorage.getItem(`chat-messages-${noteId}`);
     if (saved) {
       try { return JSON.parse(saved); } catch { return []; }
     }
@@ -33,9 +33,9 @@ export function ChatInterface({ noteId, noteContent }: ChatInterfaceProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  // Persist messages to sessionStorage
+  // Persist messages to localStorage
   useEffect(() => {
-    sessionStorage.setItem(`chat-messages-${noteId}`, JSON.stringify(messages));
+    localStorage.setItem(`chat-messages-${noteId}`, JSON.stringify(messages));
   }, [messages, noteId]);
 
   // Auto-scroll to bottom when new messages appear

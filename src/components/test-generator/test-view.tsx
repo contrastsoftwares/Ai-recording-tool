@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -16,7 +16,8 @@ import {
   ArrowLeft,
   Sparkles,
   Loader2,
-  RefreshCw,
+  ListChecks,
+  Zap,
 } from "lucide-react";
 import { formatDuration } from "@/lib/utils";
 
@@ -25,7 +26,8 @@ interface TestViewProps {
   noteContent?: string;
 }
 
-type TestState = "taking" | "results" | "review";
+type TestState = "idle" | "choosing" | "taking" | "results" | "review";
+type TestMode = "full" | "short";
 
 interface TestData {
   title: string;
@@ -38,16 +40,51 @@ interface AiGrade {
 }
 
 export function TestView({ noteId, noteContent }: TestViewProps) {
-  const [test, setTest] = useState<TestData | null>(null);
+  // Persist test data in localStorage
+  const [test, setTest] = useState<TestData | null>(() => {
+    if (typeof window === "undefined") return null;
+    const saved = localStorage.getItem(`test-data-${noteId}`);
+    if (saved) {
+      try { return JSON.parse(saved); } catch { return null; }
+    }
+    return null;
+  });
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
 
-  const [testState, setTestState] = useState<TestState>("taking");
+  const [testState, setTestState] = useState<TestState>(() => {
+    if (typeof window === "undefined") return "idle";
+    const saved = localStorage.getItem(`test-data-${noteId}`);
+    return saved ? "choosing" : "idle";
+  });
+  const [testMode, setTestMode] = useState<TestMode>("full");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [score, setScore] = useState<{ correct: number; total: number; percentage: number } | null>(null);
   const [aiGrades, setAiGrades] = useState<Record<string, AiGrade>>({});
   const questionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // Persist test data
+  useEffect(() => {
+    if (test) {
+      localStorage.setItem(`test-data-${noteId}`, JSON.stringify(test));
+    }
+  }, [test, noteId]);
+
+  // Get questions based on mode
+  const activeQuestions = useMemo(() => {
+    if (!test) return [];
+    if (testMode === "full") return test.questions;
+    // Short mode: take ~30% of questions, min 5, max 10
+    const shortCount = Math.max(5, Math.min(10, Math.ceil(test.questions.length * 0.3)));
+    // Pick evenly distributed questions
+    const step = test.questions.length / shortCount;
+    const picked: TestQuestion[] = [];
+    for (let i = 0; i < shortCount; i++) {
+      picked.push(test.questions[Math.floor(i * step)]);
+    }
+    return picked;
+  }, [test, testMode]);
 
   const handleGenerate = useCallback(async () => {
     if (!noteContent) return;
@@ -57,11 +94,11 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     try {
       const result = await aiService.generateTest(noteContent);
       setTest(result);
+      setTestState("choosing");
       setAnswers({});
       setElapsedSeconds(0);
       setScore(null);
       setAiGrades({});
-      setTestState("taking");
     } catch (err) {
       setGenerateError(err instanceof Error ? err.message : "Failed to generate test.");
     } finally {
@@ -69,20 +106,20 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     }
   }, [noteContent]);
 
-  // Restore answers from sessionStorage
+  // Restore answers from localStorage
   useEffect(() => {
-    if (!test) return;
-    const saved = sessionStorage.getItem(`test-answers-${noteId}`);
+    if (testState !== "taking" || !test) return;
+    const saved = localStorage.getItem(`test-answers-${noteId}-${testMode}`);
     if (saved) {
       try { setAnswers(JSON.parse(saved)); } catch { /* ignore */ }
     }
-  }, [test, noteId]);
+  }, [test, noteId, testMode, testState]);
 
   // Auto-save answers
   useEffect(() => {
-    if (!test) return;
-    sessionStorage.setItem(`test-answers-${noteId}`, JSON.stringify(answers));
-  }, [answers, test, noteId]);
+    if (testState !== "taking" || !test) return;
+    localStorage.setItem(`test-answers-${noteId}-${testMode}`, JSON.stringify(answers));
+  }, [answers, test, noteId, testMode, testState]);
 
   // Timer
   useEffect(() => {
@@ -99,10 +136,19 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     questionRefs.current.get(questionId)?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, []);
 
+  const startTest = useCallback((mode: TestMode) => {
+    setTestMode(mode);
+    setAnswers({});
+    setElapsedSeconds(0);
+    setScore(null);
+    setAiGrades({});
+    setTestState("taking");
+  }, []);
+
   // Grade short answers via AI
   const gradeShortAnswers = useCallback(async () => {
     if (!test) return;
-    const shortAnswerQuestions = test.questions.filter(
+    const shortAnswerQuestions = activeQuestions.filter(
       (q) => q.type === "short-answer" && answers[q.id]?.trim()
     );
 
@@ -121,24 +167,23 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
         }));
       }
     }
-  }, [test, answers]);
+  }, [test, activeQuestions, answers]);
 
   function handleSubmit() {
     if (!test) return;
     let correct = 0;
-    for (const question of test.questions) {
+    for (const question of activeQuestions) {
       const userAnswer = answers[question.id]?.trim().toLowerCase() ?? "";
       const correctAnswer = question.correctAnswer.trim().toLowerCase();
       if (question.type === "short-answer") { /* graded by AI separately */ }
       else if (userAnswer === correctAnswer) correct++;
     }
-    const gradableQuestions = test.questions.filter((q) => q.type !== "short-answer");
+    const gradableQuestions = activeQuestions.filter((q) => q.type !== "short-answer");
     const total = gradableQuestions.length;
     const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
     setScore({ correct, total, percentage });
     setTestState("results");
-    sessionStorage.removeItem(`test-answers-${noteId}`);
-    // Start AI grading for short answers
+    localStorage.removeItem(`test-answers-${noteId}-${testMode}`);
     gradeShortAnswers();
   }
 
@@ -165,8 +210,8 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
           </h3>
           <p className="text-sm text-muted-foreground max-w-sm">
             {isGenerating
-              ? "AI is creating a practice test from your notes. This may take a moment."
-              : "Generate a practice test from your notes to start testing your knowledge."}
+              ? "AI is creating a comprehensive test from your content. This may take a moment."
+              : "Generate a practice test to start testing your knowledge."}
           </p>
         </div>
         {generateError && <p className="text-sm text-destructive">{generateError}</p>}
@@ -182,8 +227,64 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     );
   }
 
-  const totalQuestions = test.questions.length;
-  const answeredCount = Object.keys(answers).filter((key) => answers[key].trim().length > 0).length;
+  // Test mode selection screen
+  if (testState === "choosing") {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-8">
+        <div className="text-center space-y-2">
+          <h3 className="text-xl font-bold text-foreground">{test.title}</h3>
+          <p className="text-sm text-muted-foreground">
+            {test.questions.length} questions generated. Choose your test mode.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg">
+          {/* Full Test */}
+          <button
+            type="button"
+            onClick={() => startTest("full")}
+            className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 hover:border-primary/50 hover:bg-primary/5 transition-all text-center"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+              <ListChecks className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <p className="text-base font-semibold text-foreground">Full Test</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                All {test.questions.length} questions
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Comprehensive coverage
+              </p>
+            </div>
+          </button>
+
+          {/* Short Test */}
+          <button
+            type="button"
+            onClick={() => startTest("short")}
+            className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 hover:border-primary/50 hover:bg-primary/5 transition-all text-center"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10">
+              <Zap className="h-6 w-6 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-base font-semibold text-foreground">Quick Quiz</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {Math.max(5, Math.min(10, Math.ceil(test.questions.length * 0.3)))} questions
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Fast knowledge check
+              </p>
+            </div>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const totalQuestions = activeQuestions.length;
+  const answeredCount = Object.keys(answers).filter((key) => answers[key]?.trim().length > 0).length;
   const allAnswered = answeredCount === totalQuestions;
 
   // Results
@@ -192,13 +293,17 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
       <div className="relative rounded-xl border border-border bg-card p-6">
         <div className="mb-4 text-center">
           <h2 className="text-xl font-bold text-foreground">{test.title}</h2>
-          <p className="text-sm text-muted-foreground mt-1">Completed in {formatDuration(elapsedSeconds)}</p>
+          <div className="flex items-center justify-center gap-2 mt-1">
+            <p className="text-sm text-muted-foreground">Completed in {formatDuration(elapsedSeconds)}</p>
+            <Badge variant="secondary" className="text-xs">
+              {testMode === "full" ? "Full Test" : "Quick Quiz"}
+            </Badge>
+          </div>
         </div>
         <TestResults score={score} onRetake={handleRetake} onReview={handleReview} />
-        <div className="flex justify-center mt-4">
-          <Button variant="outline" className="gap-2" onClick={handleGenerate} disabled={isGenerating}>
-            {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Regenerate Test
+        <div className="flex justify-center gap-3 mt-4">
+          <Button variant="outline" className="gap-2" onClick={() => setTestState("choosing")}>
+            Choose Different Mode
           </Button>
         </div>
       </div>
@@ -206,7 +311,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
   }
 
   const getQuestionState = (questionId: string) => {
-    const question = test.questions.find((q) => q.id === questionId);
+    const question = activeQuestions.find((q) => q.id === questionId);
     if (!question) return "unanswered";
     const userAnswer = answers[questionId]?.trim() ?? "";
     if (testState === "review") {
@@ -235,6 +340,9 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
             <div>
               <h2 className="text-base font-bold text-foreground">{test.title}</h2>
               <div className="flex items-center gap-3 mt-0.5">
+                <Badge variant="secondary" className="text-xs">
+                  {testMode === "full" ? "Full Test" : "Quick Quiz"}
+                </Badge>
                 {testState === "review" ? (
                   <Badge variant="secondary" className="text-xs">Review Mode</Badge>
                 ) : (
@@ -253,16 +361,15 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
               </Button>
             )}
             {testState === "review" && (
-              <Button variant="outline" size="sm" className="gap-2" onClick={handleGenerate} disabled={isGenerating}>
-                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                New Test
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setTestState("choosing")}>
+                Back to Modes
               </Button>
             )}
           </div>
         </div>
 
         <div className="flex flex-wrap gap-1.5 mt-3">
-          {test.questions.map((question, index) => {
+          {activeQuestions.map((question, index) => {
             const state = getQuestionState(question.id);
             return (
               <button key={question.id} type="button" onClick={() => scrollToQuestion(question.id)}
@@ -282,7 +389,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
       </div>
 
       <div className="space-y-4">
-        {test.questions.map((question, index) => (
+        {activeQuestions.map((question, index) => (
           <div key={question.id} ref={(el) => { if (el) questionRefs.current.set(question.id, el); }}>
             <QuestionCard
               question={{ ...question, userAnswer: answers[question.id], aiGrade: aiGrades[question.id] }}

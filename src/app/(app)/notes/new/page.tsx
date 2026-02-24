@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { UploadZone } from "@/components/notes/upload-zone";
 import { FormatSelector } from "@/components/notes/format-selector";
+import type { NoteLength } from "@/components/notes/format-selector";
 import { useNotesStore } from "@/stores/notes-store";
 import { useUploadStore } from "@/stores/upload-store";
 import { aiService } from "@/lib/ai-service";
@@ -40,6 +41,7 @@ function NewNoteContent() {
   const [processingMessage, setProcessingMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [selectedFormats, setSelectedFormats] = useState<NoteFormat[]>([]);
+  const [selectedLength, setSelectedLength] = useState<NoteLength>("medium");
 
   // Track uploaded content
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -81,6 +83,10 @@ function NewNoteContent() {
     setSelectedFormats(formats);
   }, []);
 
+  const handleLengthChange = useCallback((length: NoteLength) => {
+    setSelectedLength(length);
+  }, []);
+
   const handleGenerateNotes = useCallback(async () => {
     if (selectedFormats.length === 0) {
       setError("Please select at least one note format.");
@@ -112,7 +118,6 @@ function NewNoteContent() {
         const fileType = selectedFile.type;
 
         if (fileType.startsWith("audio/") || fileType.startsWith("video/")) {
-          // Transcribe audio/video (streams progress for large files)
           setProcessingMessage("Transcribing your recording...");
           setProgress(10);
 
@@ -120,7 +125,6 @@ function NewNoteContent() {
             selectedFile,
             (data) => {
               setProcessingMessage(data.message);
-              // Map streaming percent (5-95) into our UI range (10-40)
               setProgress(10 + (data.percent / 100) * 30);
             }
           );
@@ -129,7 +133,6 @@ function NewNoteContent() {
           sourceType = fileType.startsWith("audio/") ? "audio" : "video";
           setProgress(40);
         } else if (fileType === "application/pdf") {
-          // Extract PDF text
           setProcessingMessage("Extracting text from PDF...");
           setProgress(10);
 
@@ -142,7 +145,6 @@ function NewNoteContent() {
           sourceType = "pdf";
           setProgress(30);
         } else if (fileType.startsWith("image/")) {
-          // For images, we'll generate notes describing what's in the image
           setProcessingMessage("Analyzing image...");
           setProgress(10);
 
@@ -152,7 +154,6 @@ function NewNoteContent() {
           sourceType = "image";
           setProgress(30);
         } else {
-          // Text/document files
           setProcessingMessage("Reading document...");
           setProgress(10);
 
@@ -172,14 +173,15 @@ function NewNoteContent() {
         );
       }
 
-      // Step 2: Generate notes
+      // Step 2: Generate notes (with length parameter)
       setProcessingMessage("Generating AI-powered notes...");
       setProgress(50);
 
       const notesResult = await aiService.generateNotes(
         content,
         selectedFormats,
-        title
+        title,
+        selectedLength
       );
 
       setProgress(80);
@@ -219,7 +221,7 @@ function NewNoteContent() {
     } finally {
       processingRef.current = false;
     }
-  }, [selectedFormats, selectedUrl, selectedFile, addNote, router, uploadStore]);
+  }, [selectedFormats, selectedLength, selectedUrl, selectedFile, addNote, router, uploadStore]);
 
   const hasContent = selectedFile !== null || selectedUrl !== null;
   const stepIndex = steps.findIndex((s) => s.id === currentStep);
@@ -337,7 +339,10 @@ function NewNoteContent() {
               </p>
             </div>
 
-            <FormatSelector onFormatsChange={handleFormatsChange} />
+            <FormatSelector
+              onFormatsChange={handleFormatsChange}
+              onLengthChange={handleLengthChange}
+            />
 
             <div className="flex justify-between">
               <Button

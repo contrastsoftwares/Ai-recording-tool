@@ -68,8 +68,14 @@ export function ScreenRecorder() {
           width: quality === "1080p" ? { ideal: 1920 } : { ideal: 1280 },
           height: quality === "1080p" ? { ideal: 1080 } : { ideal: 720 },
         },
-        audio: true,
-      });
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        },
+        preferCurrentTab: true,
+        systemAudio: "include",
+      } as DisplayMediaStreamOptions & { preferCurrentTab?: boolean; systemAudio?: string });
 
       const videoTrack = displayStream.getVideoTracks()[0];
       const systemAudioTracks = displayStream.getAudioTracks();
@@ -186,14 +192,14 @@ export function ScreenRecorder() {
 
   return (
     <div className="flex flex-col items-center gap-6">
-      {/* System audio warning */}
+      {/* System audio info */}
       {status === "idle" && (
-        <div className="flex w-full items-start gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3">
-          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-500 mt-0.5" />
+        <div className="flex w-full items-start gap-3 rounded-lg border border-primary/50 bg-primary/10 px-4 py-3">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-primary mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-foreground">System audio tip</p>
+            <p className="text-sm font-medium text-foreground">Audio capture enabled</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              When the browser asks you to share your screen, make sure to check the &quot;Share audio&quot; or &quot;Share tab audio&quot; checkbox to capture system/tab audio in your recording.
+              System/tab audio is requested automatically. When the browser dialog appears, the &quot;Share audio&quot; option should be enabled by default. If it isn&apos;t, make sure to check it to capture audio in your recording.
             </p>
           </div>
         </div>
@@ -289,7 +295,7 @@ export function ScreenRecorder() {
 
       {status === "idle" && (
         <p className="text-xs text-muted-foreground text-center">
-          System/tab audio is captured when you enable &quot;Share audio&quot; in the browser dialog. Toggle microphone to also record your voice.
+          System/tab audio capture is requested by default. Toggle microphone above to also record your voice.
         </p>
       )}
     </div>

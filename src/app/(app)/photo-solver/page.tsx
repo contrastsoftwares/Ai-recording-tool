@@ -77,7 +77,6 @@ export default function PhotoSolverPage() {
     setIsFollowUpLoading(true);
 
     try {
-      // Build context from the solution
       const context = `Problem: ${solution.problem}\n\nSolution Steps:\n${solution.steps.map((s) => `${s.stepNumber}. ${s.title}: ${s.explanation}${s.math ? ` (${s.math})` : ""}`).join("\n")}\n\nFinal Answer: ${solution.finalAnswer}`;
 
       const allMessages = [
@@ -130,7 +129,7 @@ export default function PhotoSolverPage() {
       </div>
 
       <div className={cn("grid gap-6", hasContent ? "lg:grid-cols-[1fr_1.2fr]" : "lg:grid-cols-1")}>
-        {/* Left side - Upload area */}
+        {/* Left side - Upload area + Follow-up chat */}
         <div className="space-y-4">
           <div className={cn("relative rounded-xl border-2 border-dashed border-border bg-card transition-all", !hasContent && "min-h-[320px]", hasContent && "min-h-[180px]")}>
             {hasContent && (
@@ -169,9 +168,60 @@ export default function PhotoSolverPage() {
               </div>
             )}
           </div>
+
+          {/* Follow-up chat moved under the photo */}
+          {showSolution && solution && (
+            <div className="rounded-xl border border-border bg-card p-5">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Ask a Follow-up Question</h3>
+
+              {followUpMessages.length > 0 && (
+                <div className="space-y-3 mb-4 max-h-80 overflow-y-auto scrollbar-thin">
+                  {followUpMessages.map((msg) => (
+                    <div key={msg.id} className={cn("flex gap-2.5", msg.role === "user" && "flex-row-reverse")}>
+                      <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full", msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+                        {msg.role === "user" ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
+                      </div>
+                      <div className={cn("rounded-lg px-3 py-2 text-sm max-w-[80%]", msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")}>
+                        {msg.content}
+                      </div>
+                    </div>
+                  ))}
+                  {isFollowUpLoading && (
+                    <div className="flex gap-2.5">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                        <Bot className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="rounded-lg px-3 py-2 text-sm bg-muted text-muted-foreground flex items-center gap-2">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Thinking...
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Input
+                  value={followUpInput}
+                  onChange={(e) => setFollowUpInput(e.target.value)}
+                  placeholder="e.g., Can you explain step 2 in more detail?"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendFollowUp();
+                    }
+                  }}
+                  disabled={isFollowUpLoading}
+                />
+                <Button onClick={handleSendFollowUp} disabled={!followUpInput.trim() || isFollowUpLoading} size="icon" className="shrink-0">
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Right side - Solution */}
+        {/* Right side - Solution (extended to fill full height) */}
         {hasContent && (
           <div className="space-y-4">
             {/* Loading state */}
@@ -191,7 +241,7 @@ export default function PhotoSolverPage() {
               </div>
             )}
 
-            {/* Solution display */}
+            {/* Solution display - no follow-up section here, it's on the left now */}
             {showSolution && solution && (
               <div className="space-y-4">
                 {/* Subject badge */}
@@ -207,59 +257,10 @@ export default function PhotoSolverPage() {
                   <p className="text-sm text-muted-foreground">{solution.problem}</p>
                 </div>
 
-                {/* Steps */}
+                {/* Steps - takes up the full remaining space */}
                 <div className="rounded-xl border border-border bg-card p-5">
                   <h3 className="text-sm font-semibold text-foreground mb-4">Step-by-Step Solution</h3>
                   <SolutionSteps steps={solution.steps} finalAnswer={solution.finalAnswer} />
-                </div>
-
-                {/* Follow-up section */}
-                <div className="rounded-xl border border-border bg-card p-5">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Ask a Follow-up Question</h3>
-
-                  {followUpMessages.length > 0 && (
-                    <div className="space-y-3 mb-4 max-h-64 overflow-y-auto scrollbar-thin">
-                      {followUpMessages.map((msg) => (
-                        <div key={msg.id} className={cn("flex gap-2.5", msg.role === "user" && "flex-row-reverse")}>
-                          <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full", msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
-                            {msg.role === "user" ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
-                          </div>
-                          <div className={cn("rounded-lg px-3 py-2 text-sm max-w-[80%]", msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")}>
-                            {msg.content}
-                          </div>
-                        </div>
-                      ))}
-                      {isFollowUpLoading && (
-                        <div className="flex gap-2.5">
-                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                            <Bot className="h-3.5 w-3.5" />
-                          </div>
-                          <div className="rounded-lg px-3 py-2 text-sm bg-muted text-muted-foreground flex items-center gap-2">
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            Thinking...
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="flex gap-2">
-                    <Input
-                      value={followUpInput}
-                      onChange={(e) => setFollowUpInput(e.target.value)}
-                      placeholder="e.g., Can you explain step 2 in more detail?"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendFollowUp();
-                        }
-                      }}
-                      disabled={isFollowUpLoading}
-                    />
-                    <Button onClick={handleSendFollowUp} disabled={!followUpInput.trim() || isFollowUpLoading} size="icon" className="shrink-0">
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
                 </div>
               </div>
             )}

@@ -12,12 +12,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Determine question count based on content length
+    const wordCount = noteContent.split(/\s+/).length;
+    let questionRange: string;
+    if (wordCount < 500) {
+      questionRange = "8-12";
+    } else if (wordCount < 1500) {
+      questionRange = "15-20";
+    } else if (wordCount < 3000) {
+      questionRange = "20-30";
+    } else if (wordCount < 6000) {
+      questionRange = "30-40";
+    } else {
+      questionRange = "40-50";
+    }
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: `You are an expert educator who creates practice tests. Given note content, generate a comprehensive practice test with a mix of question types.
+          content: `You are an expert educator who creates comprehensive practice tests. Given content, generate a thorough test that covers ALL the important topics and concepts.
 
 Respond ONLY with valid JSON in this format:
 {
@@ -47,16 +62,17 @@ Respond ONLY with valid JSON in this format:
 }
 
 Guidelines:
-- Generate 8-12 questions
+- Generate ${questionRange} questions — enough to cover ALL the content thoroughly
 - Mix: ~60% multiple choice, ~20% true/false, ~20% short answer
-- Cover the most important concepts from the notes
+- Cover ALL important concepts from the content, not just the beginning
 - Questions should test understanding, not just memorization
 - Include clear explanations for each answer
-- Make distractors (wrong options) plausible but clearly wrong`,
+- Make distractors (wrong options) plausible but clearly wrong
+- Ensure later topics in the content are also tested`,
         },
         {
           role: "user",
-          content: `Generate a practice test from these notes:\n\n${noteContent.slice(0, 30000)}`,
+          content: `Generate a comprehensive practice test from this content:\n\n${noteContent.slice(0, 50000)}`,
         },
       ],
       temperature: 0.3,

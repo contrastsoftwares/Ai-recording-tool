@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -9,6 +9,7 @@ import {
   MessageSquare,
   Layers,
   ClipboardCheck,
+  ScrollText,
   Video,
   Headphones,
   Link2,
@@ -18,7 +19,6 @@ import {
   Tag,
   Download,
   Share2,
-  MessagesSquare,
   Star,
   Trash2,
   Pencil,
@@ -40,7 +40,6 @@ import { FlashcardDeck } from "@/components/flashcards/flashcard-deck";
 import { TestView } from "@/components/test-generator/test-view";
 
 import { useNotesStore } from "@/stores/notes-store";
-import { useChatStore } from "@/stores/chat-store";
 import type { UploadType, TranscriptSegment } from "@/types/note";
 
 const sourceIcons: Record<UploadType, React.ElementType> = {
@@ -66,6 +65,7 @@ const tabs = [
   { id: "chat", label: "Chat", icon: MessageSquare },
   { id: "flashcards", label: "Flashcards", icon: Layers },
   { id: "test", label: "Test", icon: ClipboardCheck },
+  { id: "transcript", label: "Transcript", icon: ScrollText },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -78,11 +78,28 @@ export default function NoteWorkspacePage() {
   const [editedTitle, setEditedTitle] = useState("");
   const { toggleFavorite } = useNotesStore();
   const notes = useNotesStore((s) => s.notes);
-  const chatConversations = useChatStore((s) => s.conversations);
-  const createConversation = useChatStore((s) => s.createConversation);
 
   const note = notes.find((n) => n.id === noteId);
-  const conversations = chatConversations.filter((c) => c.noteId === noteId);
+
+  // Scroll position preservation per tab
+  const scrollPositions = useRef<Record<string, number>>({});
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const handleTabChange = useCallback((newTab: TabId) => {
+    // Save current scroll position
+    if (contentRef.current) {
+      scrollPositions.current[activeTab] = contentRef.current.scrollTop;
+    }
+    setActiveTab(newTab);
+  }, [activeTab]);
+
+  // Restore scroll position when tab changes
+  useEffect(() => {
+    if (contentRef.current) {
+      const savedPosition = scrollPositions.current[activeTab] || 0;
+      contentRef.current.scrollTop = savedPosition;
+    }
+  }, [activeTab]);
 
   const handleStartEditTitle = useCallback(() => {
     if (note) {
@@ -92,7 +109,6 @@ export default function NoteWorkspacePage() {
   }, [note]);
 
   const handleSaveTitle = useCallback(() => {
-    // In a real app this would update the store
     setIsEditingTitle(false);
   }, []);
 
@@ -100,11 +116,6 @@ export default function NoteWorkspacePage() {
     setIsEditingTitle(false);
     setEditedTitle("");
   }, []);
-
-  const handleNewConversation = useCallback(() => {
-    createConversation(noteId, "New Conversation");
-    setActiveTab("chat");
-  }, [noteId, createConversation]);
 
   const handleExport = useCallback(() => {
     if (!note) return;
@@ -252,64 +263,23 @@ export default function NoteWorkspacePage() {
         </div>
       </div>
 
-      {/* Main content area */}
+      {/* Main content area - no conversations sidebar */}
       <div className="flex flex-1 gap-0 lg:gap-4 overflow-hidden mt-4">
-        {/* Left panel: Conversations sidebar (desktop only) */}
-        <div className="hidden lg:flex flex-col w-64 shrink-0 rounded-xl border border-border bg-card overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-            <MessagesSquare className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">
-              Conversations
-            </span>
-          </div>
-          <ScrollArea className="flex-1">
-            <div className="p-2 space-y-1">
-              {conversations.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-6 px-2">
-                  No conversations yet. Start chatting to ask questions about this note.
-                </p>
-              ) : (
-                conversations.map((conv) => (
-                  <button
-                    key={conv.id}
-                    type="button"
-                    className={cn(
-                      "w-full flex flex-col items-start gap-0.5 rounded-lg px-3 py-2.5 text-left",
-                      "hover:bg-muted transition-colors"
-                    )}
-                  >
-                    <span className="text-sm font-medium text-foreground line-clamp-1">
-                      {conv.title}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDate(conv.updatedAt)}
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-          <div className="p-2 border-t border-border">
-            <Button variant="ghost" className="w-full justify-start gap-2 text-sm" onClick={handleNewConversation}>
-              <MessageSquare className="h-4 w-4" />
-              New Conversation
-            </Button>
-          </div>
-        </div>
-
         {/* Center panel: Tabbed content */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Tabs */}
-          <div className="flex gap-1 rounded-lg bg-muted p-1 shrink-0 mb-4">
+          <div className="flex gap-1 rounded-lg bg-muted p-1 shrink-0 mb-4 overflow-x-auto">
             {tabs.map((tab) => {
               const Icon = tab.icon;
+              // Hide transcript tab if no transcript available
+              if (tab.id === "transcript" && !note.transcript) return null;
               return (
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={cn(
-                    "flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all",
+                    "flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all whitespace-nowrap",
                     activeTab === tab.id
                       ? "bg-background text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
@@ -322,35 +292,34 @@ export default function NoteWorkspacePage() {
             })}
           </div>
 
-          {/* Tab content */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin">
-            {activeTab === "notes" && (
-              <div className="space-y-6">
-                <div className="rounded-xl border border-border bg-card p-6">
-                  <NoteViewer content={note.content} formats={note.formats} />
-                </div>
-                {transcriptSegments.length > 0 && (
-                  <TranscriptPanel
-                    segments={transcriptSegments}
-                  />
-                )}
+          {/* Tab content - all rendered but hidden to preserve state/scroll */}
+          <div ref={contentRef} className="flex-1 overflow-y-auto scrollbar-thin">
+            <div className={activeTab === "notes" ? "" : "hidden"}>
+              <div className="rounded-xl border border-border bg-card p-6">
+                <NoteViewer content={note.content} formats={note.formats} />
               </div>
-            )}
+            </div>
 
-            {activeTab === "chat" && (
+            <div className={activeTab === "chat" ? "h-full" : "hidden"}>
               <div className="rounded-xl border border-border bg-card overflow-hidden h-[calc(100vh-16rem)]">
                 <ChatInterface noteId={noteId} noteContent={note.content} />
               </div>
-            )}
+            </div>
 
-            {activeTab === "flashcards" && (
+            <div className={activeTab === "flashcards" ? "" : "hidden"}>
               <div className="rounded-xl border border-border bg-card overflow-hidden">
-                <FlashcardDeck noteId={noteId} noteContent={note.content} />
+                <FlashcardDeck noteId={noteId} noteContent={note.transcript || note.content} />
               </div>
-            )}
+            </div>
 
-            {activeTab === "test" && (
-              <TestView noteId={noteId} noteContent={note.content} />
+            <div className={activeTab === "test" ? "" : "hidden"}>
+              <TestView noteId={noteId} noteContent={note.transcript || note.content} />
+            </div>
+
+            {note.transcript && (
+              <div className={activeTab === "transcript" ? "" : "hidden"}>
+                <TranscriptPanel segments={transcriptSegments} />
+              </div>
             )}
           </div>
         </div>
