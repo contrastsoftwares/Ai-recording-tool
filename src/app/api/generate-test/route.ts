@@ -13,7 +13,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine question count based on content length
-    const wordCount = noteContent.split(/\s+/).length;
+    const wordCount = noteContent.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount < 10) {
+      return NextResponse.json(
+        { error: "Content is too short to generate a test. Please provide more content." },
+        { status: 400 }
+      );
+    }
     let questionRange: string;
     if (wordCount < 100) {
       questionRange = "3-5";

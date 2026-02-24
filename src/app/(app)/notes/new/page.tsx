@@ -173,6 +173,14 @@ function NewNoteContent() {
         );
       }
 
+      // Check minimum content length
+      const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+      if (wordCount < 10) {
+        throw new Error(
+          "The content is too short to generate meaningful notes. Please upload a file with more content (at least a few sentences)."
+        );
+      }
+
       // Step 2: Generate notes (with length parameter)
       setProcessingMessage("Generating AI-powered notes...");
       setProgress(50);

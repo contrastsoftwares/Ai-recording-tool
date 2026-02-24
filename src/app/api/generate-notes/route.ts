@@ -33,6 +33,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount < 10) {
+      return NextResponse.json(
+        { error: "Content is too short to generate notes. Please provide at least a few sentences." },
+        { status: 400 }
+      );
+    }
+
     const formatInstructions = (formats as string[])
       .map((f) => formatDescriptions[f] || f)
       .join("; ");

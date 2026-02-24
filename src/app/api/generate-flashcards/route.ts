@@ -13,7 +13,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine flashcard count based on content length
-    const wordCount = noteContent.split(/\s+/).length;
+    const wordCount = noteContent.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount < 10) {
+      return NextResponse.json(
+        { error: "Content is too short to generate flashcards. Please provide more content." },
+        { status: 400 }
+      );
+    }
     let cardRange: string;
     if (wordCount < 100) {
       cardRange = "2-4";
