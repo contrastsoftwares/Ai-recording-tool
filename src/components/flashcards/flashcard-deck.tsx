@@ -98,9 +98,17 @@ export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
     });
   }, [activeCards, currentIndex]);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts (only when not typing in an input/textarea)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
       if (e.key === "ArrowLeft") { e.preventDefault(); goToPrev(); }
       else if (e.key === "ArrowRight") { e.preventDefault(); goToNext(); }
       else if (e.key === " ") { e.preventDefault(); toggleFlip(); }

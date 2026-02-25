@@ -11,16 +11,27 @@ interface ChatMessageProps {
   isLast?: boolean;
 }
 
+/** Clean LaTeX delimiters from text */
+function cleanLatex(text: string): string {
+  return text
+    .replace(/\\\((.+?)\\\)/g, "$1")
+    .replace(/\\\[(.+?)\\\]/g, "$1");
+}
+
 /**
- * Renders message content with basic markdown support:
+ * Renders message content with markdown support:
+ * - Headings (## text)
  * - Bold (**text**)
  * - Inline code (`code`)
  * - Numbered lists (1. item)
  * - Bullet lists (- item or * item)
- * - Line breaks preserved
+ * - LaTeX notation stripped
+ * - Proper paragraph spacing
  */
-function renderMessageContent(content: string): React.ReactNode {
-  const lines = content.split("\n");
+export function renderMessageContent(content: string): React.ReactNode {
+  // Clean LaTeX delimiters
+  const cleaned = cleanLatex(content);
+  const lines = cleaned.split("\n");
   const elements: React.ReactNode[] = [];
   let bulletItems: string[] = [];
   let orderedItems: string[] = [];
@@ -28,7 +39,7 @@ function renderMessageContent(content: string): React.ReactNode {
   const flushBulletList = () => {
     if (bulletItems.length > 0) {
       elements.push(
-        <ul key={`ul-${elements.length}`} className="my-1.5 ml-4 space-y-0.5">
+        <ul key={`ul-${elements.length}`} className="my-2 ml-4 space-y-1">
           {bulletItems.map((item, i) => (
             <li key={i} className="list-disc pl-1 text-sm leading-relaxed">
               {renderInlineFormatting(item)}
@@ -43,7 +54,7 @@ function renderMessageContent(content: string): React.ReactNode {
   const flushOrderedList = () => {
     if (orderedItems.length > 0) {
       elements.push(
-        <ol key={`ol-${elements.length}`} className="my-1.5 ml-4 space-y-0.5">
+        <ol key={`ol-${elements.length}`} className="my-2 ml-4 space-y-1">
           {orderedItems.map((item, i) => (
             <li key={i} className="list-decimal pl-1 text-sm leading-relaxed">
               {renderInlineFormatting(item)}
@@ -63,10 +74,30 @@ function renderMessageContent(content: string): React.ReactNode {
     if (trimmed === "") {
       flushBulletList();
       flushOrderedList();
-      // Add a small break for paragraph separation
       if (elements.length > 0) {
-        elements.push(<div key={`br-${i}`} className="h-2" />);
+        elements.push(<div key={`br-${i}`} className="h-3" />);
       }
+      continue;
+    }
+
+    // Headings
+    const headingMatch = trimmed.match(/^(#{1,4})\s+(.+)/);
+    if (headingMatch) {
+      flushBulletList();
+      flushOrderedList();
+      const level = headingMatch[1].length;
+      const text = headingMatch[2];
+      const classes: Record<number, string> = {
+        1: "text-base font-bold mt-3 mb-1",
+        2: "text-sm font-bold mt-3 mb-1",
+        3: "text-sm font-semibold mt-2 mb-1",
+        4: "text-sm font-medium mt-2 mb-1",
+      };
+      elements.push(
+        <p key={`h-${i}`} className={classes[level] || classes[2]}>
+          {renderInlineFormatting(text)}
+        </p>
+      );
       continue;
     }
 
@@ -89,13 +120,12 @@ function renderMessageContent(content: string): React.ReactNode {
     flushBulletList();
     flushOrderedList();
     elements.push(
-      <span key={`line-${i}`} className="block text-sm leading-relaxed">
+      <p key={`line-${i}`} className="text-sm leading-relaxed my-0.5">
         {renderInlineFormatting(trimmed)}
-      </span>
+      </p>
     );
   }
 
-  // Flush any remaining lists
   flushBulletList();
   flushOrderedList();
 

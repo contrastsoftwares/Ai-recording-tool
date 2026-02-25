@@ -8,7 +8,7 @@ const formatDescriptions: Record<string, string> = {
     "Cornell note format with a Cues | Notes table and a Summary section at the bottom",
   outline: "Hierarchical numbered outline (I. A. 1. a.)",
   "key-concepts": "Concept / Definition pairs for every key concept",
-  summary: "Brief summary capturing the main points",
+  summary: "A thorough summary capturing all main points and key takeaways — scale the summary length proportionally to the content (longer content should have a longer, more detailed summary)",
   timeline: "Chronological timeline with dates/times and events",
   "qa-format": "Question and answer pairs for active recall",
 };
@@ -24,7 +24,7 @@ const lengthInstructions: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   try {
-    const { content, formats, title, length } = await request.json();
+    const { content, formats, title, length, language } = await request.json();
 
     if (!content || !formats?.length) {
       return NextResponse.json(
@@ -48,6 +48,11 @@ export async function POST(request: NextRequest) {
     const noteLengthGuide =
       lengthInstructions[length as string] || lengthInstructions.medium;
 
+    const languageName = (language as string) || "english";
+    const languageInstruction = languageName !== "english"
+      ? `\n\nIMPORTANT: Generate the notes in ${languageName.charAt(0).toUpperCase() + languageName.slice(1)}. All headings, content, and summaries must be written in ${languageName.charAt(0).toUpperCase() + languageName.slice(1)}.`
+      : "";
+
     const systemPrompt = `You are an expert study assistant. Generate comprehensive, well-structured notes from the provided content using Markdown formatting.
 
 The notes MUST follow these format(s): ${formatInstructions}.
@@ -59,8 +64,9 @@ If multiple formats are requested, blend them intelligently into a single cohesi
 Guidelines:
 - Use proper Markdown: headings (##), bold (**text**), lists, tables where appropriate
 - Include key terms, definitions, and relationships
-- Add a brief summary at the end
-- If the content is a transcript, clean up filler words and organize by topic`;
+- IMPORTANT: Only include ONE summary section in the entire document. If the requested formats already include a summary (e.g. Cornell notes or summary format), do NOT add another summary at the end. Never duplicate summaries.
+- If the content is a transcript, clean up filler words and organize by topic
+- For each requested format section, ensure the content is proportional to the source material length — do not write overly brief sections for long content${languageInstruction}`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",

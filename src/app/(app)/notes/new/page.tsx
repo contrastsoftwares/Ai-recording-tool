@@ -43,6 +43,15 @@ function NewNoteContent() {
   const [selectedFormats, setSelectedFormats] = useState<NoteFormat[]>([]);
   const [selectedLength, setSelectedLength] = useState<NoteLength>("medium");
 
+  // Read language preference from settings
+  const getLanguage = () => {
+    if (typeof window === "undefined") return "english";
+    try {
+      const stored = localStorage.getItem("setting-language");
+      return stored ? JSON.parse(stored) : "english";
+    } catch { return "english"; }
+  };
+
   // Track uploaded content
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
@@ -189,13 +198,16 @@ function NewNoteContent() {
         content,
         selectedFormats,
         title,
-        selectedLength
+        selectedLength,
+        getLanguage()
       );
 
       setProgress(80);
       setProcessingMessage("Finalizing your notes...");
 
       // Step 3: Create note and save to store
+      // Store raw content for transcript generation later; only auto-attach transcript for audio/video
+      const isMediaSource = sourceType === "audio" || sourceType === "video";
       const newNote: Note = {
         id: `note-${Date.now()}`,
         title: notesResult.title || title || "Untitled Notes",
@@ -203,7 +215,8 @@ function NewNoteContent() {
         formats: selectedFormats,
         sourceType,
         sourceUrl: selectedUrl || undefined,
-        transcript: content,
+        rawContent: content,
+        transcript: isMediaSource ? content : undefined,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         tags: notesResult.tags || [],

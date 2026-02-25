@@ -73,9 +73,8 @@ export function ScreenRecorder() {
           noiseSuppression: false,
           autoGainControl: false,
         },
-        preferCurrentTab: true,
         systemAudio: "include",
-      } as DisplayMediaStreamOptions & { preferCurrentTab?: boolean; systemAudio?: string });
+      } as DisplayMediaStreamOptions & { systemAudio?: string });
 
       const videoTrack = displayStream.getVideoTracks()[0];
       const systemAudioTracks = displayStream.getAudioTracks();

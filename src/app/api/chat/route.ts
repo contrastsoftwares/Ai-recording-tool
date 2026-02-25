@@ -16,8 +16,13 @@ export async function POST(request: NextRequest) {
 
 ${noteContent ? `Here are the notes you should reference when answering questions:\n\n---\n${noteContent.slice(0, 50000)}\n---\n\n` : ""}
 Guidelines:
+- Write in clear, natural English that reads well
 - Be thorough but concise in your responses
-- Use Markdown formatting (bold, lists, code blocks) when helpful
+- Use Markdown formatting sparingly — bold for key terms only, lists for multiple items, headings for sections
+- Do NOT overuse bold or asterisks. Avoid bolding entire sentences or phrases.
+- Separate paragraphs and sections with blank lines so the response is easy to read
+- Use numbered lists only when presenting sequential steps. Use bullet lists for unordered items.
+- Do NOT use LaTeX notation like \\( or \\). Write math in plain text (e.g. "6 / 2 × 3 = 9")
 - Reference specific sections of the notes when applicable
 - If asked to generate flashcards or tests, provide well-structured content
 - Be encouraging and supportive in your tone

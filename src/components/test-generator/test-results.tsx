@@ -112,7 +112,7 @@ export function TestResults({ score, onRetake, onReview }: TestResultsProps) {
       {/* Score text */}
       <div className="text-center space-y-2">
         <p className="text-lg font-semibold text-foreground">
-          {score.correct} out of {score.total} correct
+          {Number.isInteger(score.correct) ? score.correct : score.correct.toFixed(1)} out of {score.total} correct
         </p>
 
         {/* Grade badge */}

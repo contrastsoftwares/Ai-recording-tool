@@ -26,6 +26,7 @@ export interface Note {
   formats: NoteFormat[];
   sourceType: UploadType;
   sourceUrl?: string;
+  rawContent?: string;
   transcript?: string;
   createdAt: string;
   updatedAt: string;

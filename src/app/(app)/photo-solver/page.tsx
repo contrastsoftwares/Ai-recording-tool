@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { SolutionSteps } from "@/components/photo-solver/solution-steps";
+import { renderMessageContent } from "@/components/chat/chat-message";
 import { aiService } from "@/lib/ai-service";
 import type { SolvePhotoResult } from "@/lib/ai-service";
 import {
@@ -182,7 +183,7 @@ export default function PhotoSolverPage() {
                         {msg.role === "user" ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
                       </div>
                       <div className={cn("rounded-lg px-3 py-2 text-sm max-w-[80%]", msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")}>
-                        {msg.content}
+                        {msg.role === "assistant" ? renderMessageContent(msg.content) : msg.content}
                       </div>
                     </div>
                   ))}

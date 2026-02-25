@@ -62,7 +62,6 @@ export function renderInlineFormatting(text: string): React.ReactNode {
 export function NoteViewer({ content, formats }: NoteViewerProps) {
   const [copied, setCopied] = useState(false);
   const [showToc, setShowToc] = useState(false);
-  const [activeFormat, setActiveFormat] = useState(0);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const handleCopy = useCallback(async () => {
@@ -260,29 +259,16 @@ export function NoteViewer({ content, formats }: NoteViewerProps) {
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
         <div className="flex items-center gap-2">
-          {formats.length > 1 ? (
-            <div className="flex gap-1">
-              {formats.map((format, idx) => (
-                <button
-                  key={format}
-                  type="button"
-                  onClick={() => setActiveFormat(idx)}
-                  className={cn(
-                    "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium transition-colors",
-                    idx === activeFormat
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-primary/10 text-primary hover:bg-primary/20"
-                  )}
-                >
-                  {format.replace("-", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                </button>
-              ))}
-            </div>
-          ) : formats.length === 1 ? (
-            <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-              {formats[0].replace("-", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-            </span>
-          ) : null}
+          <div className="flex flex-wrap gap-1">
+            {formats.map((format) => (
+              <span
+                key={format}
+                className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+              >
+                {format.replace("-", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+              </span>
+            ))}
+          </div>
         </div>
 
         <div className="flex items-center gap-1">

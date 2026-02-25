@@ -33,8 +33,10 @@ export async function POST(request: NextRequest) {
       questionRange = "18-25";
     } else if (wordCount < 6000) {
       questionRange = "25-35";
-    } else {
+    } else if (wordCount < 12000) {
       questionRange = "35-50";
+    } else {
+      questionRange = "50-70";
     }
 
     const response = await openai.chat.completions.create({

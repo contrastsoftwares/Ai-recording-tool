@@ -68,6 +68,9 @@ const tabs = [
   { id: "transcript", label: "Transcript", icon: ScrollText },
 ] as const;
 
+// Only show transcript tab for audio/video sources
+const mediaSourceTypes = new Set(["audio", "video"]);
+
 type TabId = (typeof tabs)[number]["id"];
 
 export default function NoteWorkspacePage() {
@@ -271,8 +274,8 @@ export default function NoteWorkspacePage() {
           <div className="flex gap-1 rounded-lg bg-muted p-1 shrink-0 mb-4 overflow-x-auto">
             {tabs.map((tab) => {
               const Icon = tab.icon;
-              // Hide transcript tab if no transcript available
-              if (tab.id === "transcript" && !note.transcript) return null;
+              // Only show transcript tab for audio/video sources
+              if (tab.id === "transcript" && !mediaSourceTypes.has(note.sourceType)) return null;
               return (
                 <button
                   key={tab.id}
@@ -308,15 +311,15 @@ export default function NoteWorkspacePage() {
 
             <div className={activeTab === "flashcards" ? "" : "hidden"}>
               <div className="rounded-xl border border-border bg-card overflow-hidden">
-                <FlashcardDeck noteId={noteId} noteContent={note.transcript || note.content} />
+                <FlashcardDeck noteId={noteId} noteContent={note.rawContent || note.content} />
               </div>
             </div>
 
             <div className={activeTab === "test" ? "" : "hidden"}>
-              <TestView noteId={noteId} noteContent={note.transcript || note.content} />
+              <TestView noteId={noteId} noteContent={note.rawContent || note.content} />
             </div>
 
-            {note.transcript && (
+            {mediaSourceTypes.has(note.sourceType) && (
               <div className={activeTab === "transcript" ? "" : "hidden"}>
                 <TranscriptPanel segments={transcriptSegments} />
               </div>

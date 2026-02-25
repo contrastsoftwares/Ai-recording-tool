@@ -226,6 +226,7 @@ export default function SettingsPage() {
               <option value="german">German</option>
               <option value="chinese">Chinese</option>
               <option value="japanese">Japanese</option>
+              <option value="korean">Korean</option>
             </select>
           </div>
 

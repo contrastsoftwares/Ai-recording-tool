@@ -18,6 +18,7 @@ import {
   Loader2,
   ListChecks,
   Zap,
+  RefreshCw,
 } from "lucide-react";
 import { formatDuration } from "@/lib/utils";
 
@@ -75,13 +76,13 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
   const activeQuestions = useMemo(() => {
     if (!test) return [];
     if (testMode === "full") return test.questions;
-    // Short mode: take ~30% of questions, min 5, max 10
-    const shortCount = Math.max(5, Math.min(10, Math.ceil(test.questions.length * 0.3)));
-    // Pick evenly distributed questions
-    const step = test.questions.length / shortCount;
+    // Quick quiz: exclude short-answer questions, take ~30% of the rest, min 5, max 10
+    const nonShortAnswer = test.questions.filter((q) => q.type !== "short-answer");
+    const shortCount = Math.max(5, Math.min(10, Math.ceil(nonShortAnswer.length * 0.3)));
+    const step = nonShortAnswer.length / shortCount;
     const picked: TestQuestion[] = [];
-    for (let i = 0; i < shortCount; i++) {
-      picked.push(test.questions[Math.floor(i * step)]);
+    for (let i = 0; i < shortCount && i < nonShortAnswer.length; i++) {
+      picked.push(nonShortAnswer[Math.floor(i * step)]);
     }
     return picked;
   }, [test, testMode]);
@@ -145,46 +146,60 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     setTestState("taking");
   }, []);
 
-  // Grade short answers via AI
-  const gradeShortAnswers = useCallback(async () => {
+  async function handleSubmit() {
     if (!test) return;
-    const shortAnswerQuestions = activeQuestions.filter(
-      (q) => q.type === "short-answer" && answers[q.id]?.trim()
-    );
-
-    for (const question of shortAnswerQuestions) {
-      try {
-        const grade = await aiService.gradeShortAnswer(
-          question.question,
-          question.correctAnswer,
-          answers[question.id]
-        );
-        setAiGrades((prev) => ({ ...prev, [question.id]: grade }));
-      } catch {
-        setAiGrades((prev) => ({
-          ...prev,
-          [question.id]: { score: "incorrect", feedback: "Unable to grade this answer. Please review manually." },
-        }));
-      }
-    }
-  }, [test, activeQuestions, answers]);
-
-  function handleSubmit() {
-    if (!test) return;
-    let correct = 0;
-    for (const question of activeQuestions) {
-      const userAnswer = answers[question.id]?.trim().toLowerCase() ?? "";
-      const correctAnswer = question.correctAnswer.trim().toLowerCase();
-      if (question.type === "short-answer") { /* graded by AI separately */ }
-      else if (userAnswer === correctAnswer) correct++;
-    }
-    const gradableQuestions = activeQuestions.filter((q) => q.type !== "short-answer");
-    const total = gradableQuestions.length;
-    const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
-    setScore({ correct, total, percentage });
     setTestState("results");
     localStorage.removeItem(`test-answers-${noteId}-${testMode}`);
-    gradeShortAnswers();
+
+    // Grade non-short-answer questions immediately
+    let correct = 0;
+    const totalQuestions = activeQuestions.length;
+    for (const question of activeQuestions) {
+      if (question.type === "short-answer") continue;
+      const userAnswer = answers[question.id]?.trim().toLowerCase() ?? "";
+      const correctAnswer = question.correctAnswer.trim().toLowerCase();
+      if (userAnswer === correctAnswer) correct++;
+    }
+
+    // Show initial score (without short answers)
+    const shortAnswerQuestions = activeQuestions.filter((q) => q.type === "short-answer");
+    setScore({ correct, total: totalQuestions, percentage: totalQuestions > 0 ? Math.round((correct / totalQuestions) * 100) : 0 });
+
+    // Grade short answers via AI, then update score
+    if (shortAnswerQuestions.length > 0) {
+      const grades: Record<string, AiGrade> = {};
+      for (const question of shortAnswerQuestions) {
+        if (!answers[question.id]?.trim()) continue;
+        try {
+          const grade = await aiService.gradeShortAnswer(
+            question.question,
+            question.correctAnswer,
+            answers[question.id]
+          );
+          grades[question.id] = grade;
+          setAiGrades((prev) => ({ ...prev, [question.id]: grade }));
+        } catch {
+          grades[question.id] = { score: "incorrect", feedback: "Unable to grade this answer. Please review manually." };
+          setAiGrades((prev) => ({
+            ...prev,
+            [question.id]: grades[question.id],
+          }));
+        }
+      }
+
+      // Recalculate score including AI-graded short answers
+      let updatedCorrect = correct;
+      for (const question of shortAnswerQuestions) {
+        const grade = grades[question.id];
+        if (grade?.score === "correct") updatedCorrect += 1;
+        else if (grade?.score === "partial") updatedCorrect += 0.5;
+      }
+      setScore({
+        correct: updatedCorrect,
+        total: totalQuestions,
+        percentage: totalQuestions > 0 ? Math.round((updatedCorrect / totalQuestions) * 100) : 0,
+      });
+    }
   }
 
   function handleRetake() {
@@ -271,7 +286,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
             <div>
               <p className="text-base font-semibold text-foreground">Quick Quiz</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {Math.max(5, Math.min(10, Math.ceil(test.questions.length * 0.3)))} questions
+                {Math.max(5, Math.min(10, Math.ceil(test.questions.filter((q) => q.type !== "short-answer").length * 0.3)))} questions
               </p>
               <p className="text-xs text-muted-foreground">
                 Fast knowledge check
@@ -279,6 +294,26 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
             </div>
           </button>
         </div>
+
+        {/* Regenerate button */}
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={() => {
+            localStorage.removeItem(`test-data-${noteId}`);
+            setTest(null);
+            setTestState("idle");
+            handleGenerate();
+          }}
+          disabled={isGenerating}
+        >
+          {isGenerating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          Generate New Questions
+        </Button>
       </div>
     );
   }

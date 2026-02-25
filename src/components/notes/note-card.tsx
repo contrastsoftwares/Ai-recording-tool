@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import {
   Video,
@@ -14,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { formatDate, truncate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { useNotesStore } from "@/stores/notes-store";
 import type { Note, UploadType } from "@/types/note";
 
 const sourceConfig: Record<
@@ -33,7 +33,7 @@ interface NoteCardProps {
 }
 
 export function NoteCard({ note }: NoteCardProps) {
-  const [isFavorite, setIsFavorite] = useState(note.isFavorite);
+  const toggleFavorite = useNotesStore((s) => s.toggleFavorite);
   const source = sourceConfig[note.sourceType];
   const SourceIcon = source.icon;
 
@@ -71,15 +71,15 @@ export function NoteCard({ note }: NoteCardProps) {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            setIsFavorite(!isFavorite);
+            toggleFavorite(note.id);
           }}
           className="p-1 rounded-md hover:bg-muted transition-colors"
-          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          aria-label={note.isFavorite ? "Remove from favorites" : "Add to favorites"}
         >
           <Star
             className={cn(
               "h-4 w-4 transition-colors",
-              isFavorite
+              note.isFavorite
                 ? "fill-amber-400 text-amber-400"
                 : "text-muted-foreground"
             )}
