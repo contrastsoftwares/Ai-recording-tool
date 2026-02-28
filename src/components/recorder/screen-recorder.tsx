@@ -18,11 +18,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RecordingControls } from "./recording-controls";
 import { useRouter } from "next/navigation";
 import { useUploadStore } from "@/stores/upload-store";
+import { useTranslation } from "@/lib/i18n";
 
 type RecordingStatus = "idle" | "recording" | "paused" | "stopped";
 
 export function ScreenRecorder() {
   const router = useRouter();
+  const t = useTranslation();
   const [status, setStatus] = useState<RecordingStatus>("idle");
   const [duration, setDuration] = useState(0);
   const [includeMicrophone, setIncludeMicrophone] = useState(false);
@@ -191,16 +193,13 @@ export function ScreenRecorder() {
 
   return (
     <div className="flex flex-col items-center gap-6">
-      {/* System audio info */}
+      {/* System audio reminder */}
       {status === "idle" && (
-        <div className="flex w-full items-start gap-3 rounded-lg border border-primary/50 bg-primary/10 px-4 py-3">
-          <AlertTriangle className="h-5 w-5 shrink-0 text-primary mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-foreground">Audio capture enabled</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              System/tab audio is requested automatically. When the browser dialog appears, the &quot;Share audio&quot; option should be enabled by default. If it isn&apos;t, make sure to check it to capture audio in your recording.
-            </p>
-          </div>
+        <div className="flex w-full items-center gap-3 rounded-lg border border-primary/50 bg-primary/10 px-4 py-3">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-primary" />
+          <p className="text-sm text-foreground">
+            {t.screenRecorder.audioWarning} <span className="font-semibold">&quot;{t.screenRecorder.shareAudio}&quot;</span> when sharing, or your recording may have no sound.
+          </p>
         </div>
       )}
 
@@ -213,22 +212,22 @@ export function ScreenRecorder() {
                   <CheckCircle className="h-8 w-8 text-success" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Recording saved!</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">Your screen recording has been saved successfully.</p>
+                  <h3 className="text-lg font-semibold text-foreground">{t.screenRecorder.recordingSaved}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{t.screenRecorder.screenSaved}</p>
                 </div>
                 {videoUrl && <video controls src={videoUrl} className="w-full max-w-lg rounded-lg" />}
                 <div className="flex flex-wrap items-center justify-center gap-3">
                   <Button onClick={handleGenerateNotes} className="gap-2">
                     <FileText className="h-4 w-4" />
-                    Generate Notes
+                    {t.screenRecorder.generateNotes}
                   </Button>
                   <Button variant="outline" className="gap-2" onClick={handleDownload}>
                     <Download className="h-4 w-4" />
-                    Download Recording
+                    {t.screenRecorder.downloadRecording}
                   </Button>
                   <Button variant="outline" className="gap-2" onClick={handleReset}>
                     <RotateCcw className="h-4 w-4" />
-                    New Recording
+                    {t.screenRecorder.newRecording}
                   </Button>
                 </div>
               </div>
@@ -238,12 +237,12 @@ export function ScreenRecorder() {
                 {status === "idle" && (
                   <div className="flex flex-col items-center gap-3 text-muted-foreground">
                     <Monitor className="h-12 w-12" />
-                    <p className="text-sm font-medium">Your screen will appear here</p>
+                    <p className="text-sm font-medium">{t.screenRecorder.screenPreview}</p>
                   </div>
                 )}
                 {status === "paused" && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                    <p className="rounded-lg bg-background/90 px-4 py-2 text-sm font-medium text-foreground">Recording paused</p>
+                    <p className="rounded-lg bg-background/90 px-4 py-2 text-sm font-medium text-foreground">{t.screenRecorder.recordingPaused}</p>
                   </div>
                 )}
                 {status === "recording" && (
@@ -274,7 +273,7 @@ export function ScreenRecorder() {
           <label className="flex items-center gap-3 cursor-pointer">
             <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
               {includeMicrophone ? <Mic className="h-4 w-4 text-primary" /> : <MicOff className="h-4 w-4 text-muted-foreground" />}
-              Microphone
+              {t.screenRecorder.microphone}
             </span>
             <button type="button" role="switch" aria-checked={includeMicrophone} onClick={() => setIncludeMicrophone(!includeMicrophone)}
               className={cn("relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2", includeMicrophone ? "bg-primary" : "bg-muted")}>
@@ -282,7 +281,7 @@ export function ScreenRecorder() {
             </button>
           </label>
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-foreground">Quality</span>
+            <span className="text-sm font-medium text-foreground">{t.screenRecorder.quality}</span>
             <select value={quality} onChange={(e) => setQuality(e.target.value as "720p" | "1080p")}
               className="rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <option value="720p">720p</option>
@@ -294,7 +293,7 @@ export function ScreenRecorder() {
 
       {status === "idle" && (
         <p className="text-xs text-muted-foreground text-center">
-          System/tab audio capture is requested by default. Toggle microphone above to also record your voice.
+          {t.screenRecorder.systemAudioNote}
         </p>
       )}
     </div>

@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RecordingControls } from "./recording-controls";
 import { useRouter } from "next/navigation";
 import { useUploadStore } from "@/stores/upload-store";
+import { useTranslation } from "@/lib/i18n";
 
 type RecordingStatus = "idle" | "recording" | "paused" | "stopped";
 
@@ -30,6 +31,7 @@ function WaveformBar({ index, isRecording }: { index: number; isRecording: boole
 
 export function AudioRecorder() {
   const router = useRouter();
+  const t = useTranslation();
   const [status, setStatus] = useState<RecordingStatus>("idle");
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -155,22 +157,22 @@ export function AudioRecorder() {
                   <CheckCircle className="h-8 w-8 text-success" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Recording saved!</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">Your audio recording has been saved successfully.</p>
+                  <h3 className="text-lg font-semibold text-foreground">{t.audioRecorder.recordingSaved}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{t.audioRecorder.audioSaved}</p>
                 </div>
                 {audioUrl && <audio controls src={audioUrl} className="w-full max-w-sm" />}
                 <div className="flex flex-wrap items-center justify-center gap-3">
                   <Button onClick={handleGenerateNotes} className="gap-2">
                     <FileText className="h-4 w-4" />
-                    Generate Notes
+                    {t.audioRecorder.generateNotes}
                   </Button>
                   <Button variant="outline" className="gap-2" onClick={handleDownload}>
                     <Download className="h-4 w-4" />
-                    Download Recording
+                    {t.audioRecorder.downloadRecording}
                   </Button>
                   <Button variant="outline" className="gap-2" onClick={handleReset}>
                     <RotateCcw className="h-4 w-4" />
-                    New Recording
+                    {t.audioRecorder.newRecording}
                   </Button>
                 </div>
               </div>
@@ -197,7 +199,7 @@ export function AudioRecorder() {
           <span className="relative flex h-2 w-2">
             <span className="inline-flex h-2 w-2 rounded-full bg-success" />
           </span>
-          <span className="text-sm font-medium text-success">Microphone ready</span>
+          <span className="text-sm font-medium text-success">{t.audioRecorder.microphoneReady}</span>
         </div>
       )}
 

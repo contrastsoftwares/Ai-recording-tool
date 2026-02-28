@@ -1,25 +1,22 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { Search, PanelRightClose, PanelRightOpen, Bookmark, BookmarkCheck } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Search, ScrollText, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { TranscriptSegment } from "@/types/note";
 
-interface TranscriptPanelProps {
-  segments: TranscriptSegment[];
-  currentTime?: number;
-  onTimestampClick?: (time: number) => void;
+interface TranscriptSegment {
+  start: number;
+  end: number;
+  text: string;
 }
 
-const speakerColors = [
-  "text-blue-600 dark:text-blue-400",
-  "text-violet-600 dark:text-violet-400",
-  "text-emerald-600 dark:text-emerald-400",
-  "text-amber-600 dark:text-amber-400",
-  "text-rose-600 dark:text-rose-400",
-];
+interface TranscriptPanelProps {
+  noteId: string;
+  rawContent: string;
+}
 
 function formatTimestamp(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -27,151 +24,144 @@ function formatTimestamp(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-export function TranscriptPanel({ segments, currentTime = -1, onTimestampClick }: TranscriptPanelProps) {
-  const [isOpen, setIsOpen] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [bookmarks, setBookmarks] = useState<Set<number>>(new Set());
-  const scrollRef = useRef<HTMLDivElement>(null);
+function parseContentIntoSegments(content: string): TranscriptSegment[] {
+  if (!content) return [];
+  const sentences = content
+    .split(/(?<=[.!?])\s+/)
+    .filter((s) => s.trim().length > 0);
+  return sentences.map((text, i) => ({
+    start: i * 10,
+    end: (i + 1) * 10,
+    text: text.trim(),
+  }));
+}
 
-  const speakerColorMap = new Map<string, string>();
-  let colorIdx = 0;
-  segments.forEach((seg) => {
-    if (seg.speaker && !speakerColorMap.has(seg.speaker)) {
-      speakerColorMap.set(seg.speaker, speakerColors[colorIdx % speakerColors.length]);
-      colorIdx++;
+export function TranscriptPanel({ noteId, rawContent }: TranscriptPanelProps) {
+  const [segments, setSegments] = useState<TranscriptSegment[]>(() => {
+    if (typeof window === "undefined") return [];
+    const saved = localStorage.getItem(`transcript-${noteId}`);
+    if (saved) {
+      try { return JSON.parse(saved); } catch { return []; }
     }
+    return [];
   });
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Persist segments to localStorage
+  useEffect(() => {
+    if (segments.length > 0) {
+      localStorage.setItem(`transcript-${noteId}`, JSON.stringify(segments));
+    }
+  }, [segments, noteId]);
+
+  const handleGenerate = useCallback(() => {
+    if (!rawContent) {
+      setError("No content available to generate transcript.");
+      return;
+    }
+    setIsGenerating(true);
+    setError(null);
+
+    // Parse the raw content into transcript segments
+    setTimeout(() => {
+      try {
+        const parsed = parseContentIntoSegments(rawContent);
+        setSegments(parsed);
+      } catch {
+        setError("Failed to generate transcript.");
+      } finally {
+        setIsGenerating(false);
+      }
+    }, 300);
+  }, [rawContent]);
 
   const filteredSegments = segments.filter((segment) =>
     segment.text.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const toggleBookmark = useCallback((index: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setBookmarks((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
-      return next;
-    });
-  }, []);
-
-  const isActive = (segment: TranscriptSegment) =>
-    currentTime >= segment.start && currentTime < segment.end;
+  // Empty state: show generate button
+  if (segments.length === 0) {
+    return (
+      <div className="rounded-xl border border-border bg-card">
+        <div className="flex flex-col items-center justify-center py-16 px-4">
+          {isGenerating ? (
+            <>
+              <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+              <p className="text-sm font-medium text-foreground">Generating transcript...</p>
+            </>
+          ) : (
+            <>
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted mb-4">
+                <ScrollText className="h-7 w-7 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">
+                Transcript
+              </h3>
+              <p className="text-sm text-muted-foreground text-center max-w-sm mb-4">
+                Generate a formatted transcript view from the source content.
+              </p>
+              {error && (
+                <div className="flex items-center gap-2 mb-4 text-destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="text-sm">{error}</span>
+                </div>
+              )}
+              <Button onClick={handleGenerate} className="gap-2">
+                <ScrollText className="h-4 w-4" />
+                Generate Transcript
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium",
-          "text-muted-foreground hover:text-foreground hover:bg-muted",
-          "transition-colors mb-2"
-        )}
-      >
-        {isOpen ? (
-          <>
-            <PanelRightClose className="h-4 w-4" />
-            Hide Transcript
-          </>
-        ) : (
-          <>
-            <PanelRightOpen className="h-4 w-4" />
-            Show Transcript
-          </>
-        )}
-      </button>
-
-      {isOpen && (
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <div className="p-3 border-b border-border">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search transcript..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-8 text-sm"
-              />
-            </div>
-          </div>
-
-          <ScrollArea className="h-[400px]">
-            <div ref={scrollRef} className="p-3 space-y-1">
-              {filteredSegments.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  {searchQuery ? "No matching segments found" : "No transcript available"}
-                </p>
-              ) : (
-                filteredSegments.map((segment, index) => {
-                  const active = isActive(segment);
-                  const isBookmarked = bookmarks.has(index);
-                  const speakerColor = segment.speaker
-                    ? speakerColorMap.get(segment.speaker)
-                    : undefined;
-
-                  return (
-                    <div
-                      key={index}
-                      className={cn(
-                        "flex gap-3 rounded-lg px-3 py-2 transition-all cursor-pointer group",
-                        active
-                          ? "bg-primary/10 border-l-2 border-primary"
-                          : "hover:bg-muted/50 border-l-2 border-transparent",
-                        isBookmarked && !active && "bg-amber-500/5 border-l-amber-400/50"
-                      )}
-                      onClick={() => onTimestampClick?.(segment.start)}
-                    >
-                      <span
-                        className={cn(
-                          "shrink-0 inline-flex items-center rounded-md px-1.5 py-0.5",
-                          "text-xs font-mono h-fit mt-0.5 transition-colors",
-                          active
-                            ? "bg-primary/20 text-primary"
-                            : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
-                        )}
-                      >
-                        {formatTimestamp(segment.start)}
-                      </span>
-
-                      <p className="text-sm text-foreground/90 leading-relaxed flex-1">
-                        {segment.speaker && (
-                          <span className={cn("font-medium mr-1", speakerColor)}>
-                            {segment.speaker}:
-                          </span>
-                        )}
-                        {segment.text}
-                      </p>
-
-                      <button
-                        type="button"
-                        onClick={(e) => toggleBookmark(index, e)}
-                        className={cn(
-                          "shrink-0 p-1 rounded-md transition-all self-start",
-                          isBookmarked
-                            ? "text-amber-500 opacity-100"
-                            : "text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-amber-500"
-                        )}
-                        title={isBookmarked ? "Remove bookmark" : "Bookmark this segment"}
-                      >
-                        {isBookmarked ? (
-                          <BookmarkCheck className="h-3.5 w-3.5 fill-current" />
-                        ) : (
-                          <Bookmark className="h-3.5 w-3.5" />
-                        )}
-                      </button>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </ScrollArea>
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="p-3 border-b border-border">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search transcript..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 h-8 text-sm"
+          />
         </div>
-      )}
+      </div>
+
+      <ScrollArea className="h-[400px]">
+        <div className="p-3 space-y-1">
+          {filteredSegments.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              {searchQuery ? "No matching segments found" : "No transcript available"}
+            </p>
+          ) : (
+            filteredSegments.map((segment, index) => (
+              <div
+                key={index}
+                className="flex gap-3 rounded-lg px-3 py-2 transition-all hover:bg-muted/50 border-l-2 border-transparent"
+              >
+                <span
+                  className={cn(
+                    "shrink-0 inline-flex items-center rounded-md px-1.5 py-0.5",
+                    "text-xs font-mono h-fit mt-0.5",
+                    "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {formatTimestamp(segment.start)}
+                </span>
+                <p className="text-sm text-foreground/90 leading-relaxed flex-1">
+                  {segment.text}
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
 }

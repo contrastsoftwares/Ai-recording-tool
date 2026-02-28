@@ -21,6 +21,7 @@ import {
   X,
   AlertCircle,
 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 interface FollowUpMessage {
   id: string;
@@ -29,6 +30,7 @@ interface FollowUpMessage {
 }
 
 export default function PhotoSolverPage() {
+  const t = useTranslation();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [showSolution, setShowSolution] = useState(false);
@@ -123,9 +125,9 @@ export default function PhotoSolverPage() {
     <div className="space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Photo Solver</h1>
+        <h1 className="text-2xl font-bold text-foreground">{t.photoSolver.title}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Take a photo or upload an image of any problem and get step-by-step solutions
+          {t.photoSolver.subtitle}
         </p>
       </div>
 
@@ -146,16 +148,16 @@ export default function PhotoSolverPage() {
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-4">
                   <Camera className="h-8 w-8 text-primary" />
                 </div>
-                <p className="text-base font-semibold text-foreground text-center">Take a photo or upload an image</p>
-                <p className="text-sm text-muted-foreground mt-1 text-center">of any math, science, or academic problem</p>
+                <p className="text-base font-semibold text-foreground text-center">{t.photoSolver.takeOrUpload}</p>
+                <p className="text-sm text-muted-foreground mt-1 text-center">{t.photoSolver.ofAnyProblem}</p>
                 <div className="flex items-center gap-2 mt-4">
                   <Button size="sm" className="gap-2" onClick={() => fileInputRef.current?.click()}>
                     <Upload className="h-4 w-4" />
-                    Upload Image
+                    {t.photoSolver.uploadImage}
                   </Button>
                   <Button variant="outline" size="sm" className="gap-2" onClick={() => document.getElementById("photo-solver-camera")?.click()}>
                     <Camera className="h-4 w-4" />
-                    Take Photo
+                    {t.photoSolver.takePhoto}
                   </Button>
                 </div>
               </div>
@@ -165,7 +167,7 @@ export default function PhotoSolverPage() {
                   <ImageIcon className="h-6 w-6 text-muted-foreground" />
                 </div>
                 <p className="text-sm font-medium text-foreground">{uploadedFileName}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Problem image uploaded</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t.photoSolver.imageUploaded}</p>
               </div>
             )}
           </div>
@@ -173,7 +175,7 @@ export default function PhotoSolverPage() {
           {/* Follow-up chat moved under the photo */}
           {showSolution && solution && (
             <div className="rounded-xl border border-border bg-card p-5">
-              <h3 className="text-sm font-semibold text-foreground mb-3">Ask a Follow-up Question</h3>
+              <h3 className="text-sm font-semibold text-foreground mb-3">{t.photoSolver.askFollowUp}</h3>
 
               {followUpMessages.length > 0 && (
                 <div className="space-y-3 mb-4 max-h-80 overflow-y-auto scrollbar-thin">
@@ -194,7 +196,7 @@ export default function PhotoSolverPage() {
                       </div>
                       <div className="rounded-lg px-3 py-2 text-sm bg-muted text-muted-foreground flex items-center gap-2">
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        Thinking...
+                        {t.photoSolver.thinking}
                       </div>
                     </div>
                   )}
@@ -205,7 +207,7 @@ export default function PhotoSolverPage() {
                 <Input
                   value={followUpInput}
                   onChange={(e) => setFollowUpInput(e.target.value)}
-                  placeholder="e.g., Can you explain step 2 in more detail?"
+                  placeholder={t.photoSolver.followUpPlaceholder}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
@@ -229,8 +231,8 @@ export default function PhotoSolverPage() {
             {isLoading && (
               <div className="flex flex-col items-center justify-center py-16 rounded-xl border border-border bg-card">
                 <Loader2 className="h-8 w-8 text-primary animate-spin mb-4" />
-                <p className="text-sm font-medium text-foreground">Analyzing your problem...</p>
-                <p className="text-xs text-muted-foreground mt-1">Using AI to identify and solve the problem</p>
+                <p className="text-sm font-medium text-foreground">{t.photoSolver.analyzing}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t.photoSolver.analyzingSubtext}</p>
               </div>
             )}
 
@@ -254,13 +256,13 @@ export default function PhotoSolverPage() {
 
                 {/* Problem statement */}
                 <div className="rounded-xl border border-border bg-card p-5">
-                  <h3 className="text-sm font-semibold text-foreground mb-2">Problem</h3>
+                  <h3 className="text-sm font-semibold text-foreground mb-2">{t.photoSolver.problem}</h3>
                   <p className="text-sm text-muted-foreground">{solution.problem}</p>
                 </div>
 
                 {/* Steps - takes up the full remaining space */}
                 <div className="rounded-xl border border-border bg-card p-5">
-                  <h3 className="text-sm font-semibold text-foreground mb-4">Step-by-Step Solution</h3>
+                  <h3 className="text-sm font-semibold text-foreground mb-4">{t.photoSolver.stepByStep}</h3>
                   <SolutionSteps steps={solution.steps} finalAnswer={solution.finalAnswer} />
                 </div>
               </div>

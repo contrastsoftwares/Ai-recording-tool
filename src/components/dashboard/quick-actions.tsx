@@ -3,51 +3,54 @@
 import Link from "next/link";
 import { Upload, Camera, Monitor, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const actions = [
-  {
-    title: "Upload & Generate Notes",
-    description: "Upload videos, PDFs, audio files or paste a link to generate AI-powered notes",
-    icon: Upload,
-    href: "/notes/new",
-    color: "text-blue-500",
-    bgColor: "bg-blue-500/10",
-    hoverBorder: "hover:border-blue-500/40",
-    span: true,
-  },
-  {
-    title: "Photo Solver",
-    description: "Snap a photo of a problem and get step-by-step solutions",
-    icon: Camera,
-    href: "/photo-solver",
-    color: "text-violet-500",
-    bgColor: "bg-violet-500/10",
-    hoverBorder: "hover:border-violet-500/40",
-    span: false,
-  },
-  {
-    title: "Record Screen",
-    description: "Capture your screen and generate notes from the recording",
-    icon: Monitor,
-    href: "/recorder?mode=screen",
-    color: "text-emerald-500",
-    bgColor: "bg-emerald-500/10",
-    hoverBorder: "hover:border-emerald-500/40",
-    span: false,
-  },
-  {
-    title: "Record Audio",
-    description: "Record lectures or conversations and transcribe them into notes",
-    icon: Mic,
-    href: "/recorder?mode=audio",
-    color: "text-amber-500",
-    bgColor: "bg-amber-500/10",
-    hoverBorder: "hover:border-amber-500/40",
-    span: false,
-  },
-];
+import { useTranslation } from "@/lib/i18n";
 
 export function QuickActions() {
+  const t = useTranslation();
+
+  const actions = [
+    {
+      title: t.dashboard.uploadAndGenerate,
+      description: t.dashboard.uploadAndGenerateDesc,
+      icon: Upload,
+      href: "/notes/new",
+      color: "text-blue-500",
+      bgColor: "bg-blue-500/10",
+      hoverBorder: "hover:border-blue-500/40",
+      span: true,
+    },
+    {
+      title: t.dashboard.photoSolverAction,
+      description: t.dashboard.photoSolverDesc,
+      icon: Camera,
+      href: "/photo-solver",
+      color: "text-violet-500",
+      bgColor: "bg-violet-500/10",
+      hoverBorder: "hover:border-violet-500/40",
+      span: false,
+    },
+    {
+      title: t.dashboard.recordScreen,
+      description: t.dashboard.recordScreenDesc,
+      icon: Monitor,
+      href: "/recorder?mode=screen",
+      color: "text-emerald-500",
+      bgColor: "bg-emerald-500/10",
+      hoverBorder: "hover:border-emerald-500/40",
+      span: false,
+    },
+    {
+      title: t.dashboard.recordAudio,
+      description: t.dashboard.recordAudioDesc,
+      icon: Mic,
+      href: "/recorder?mode=audio",
+      color: "text-amber-500",
+      bgColor: "bg-amber-500/10",
+      hoverBorder: "hover:border-amber-500/40",
+      span: false,
+    },
+  ];
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {actions.map((action) => {

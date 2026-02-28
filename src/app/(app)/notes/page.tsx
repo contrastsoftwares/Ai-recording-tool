@@ -16,6 +16,7 @@ import {
   Star,
   FolderOpen,
 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,20 +25,21 @@ import { NoteCard } from "@/components/notes/note-card";
 import { useNotesStore } from "@/stores/notes-store";
 import type { UploadType } from "@/types/note";
 
-const sourceFilters: { value: UploadType | "all"; label: string; icon: React.ElementType }[] = [
-  { value: "all", label: "All", icon: FolderOpen },
-  { value: "video", label: "Video", icon: Video },
-  { value: "audio", label: "Audio", icon: Headphones },
-  { value: "pdf", label: "PDF", icon: FileText },
-  { value: "link", label: "Link", icon: Link2 },
-  { value: "image", label: "Image", icon: Image },
-  { value: "document", label: "Document", icon: File },
-];
-
 type SortOption = "newest" | "oldest" | "alphabetical";
 
 export default function NotesPage() {
+  const t = useTranslation();
   const { notes } = useNotesStore();
+
+  const sourceFilters: { value: UploadType | "all"; label: string; icon: React.ElementType }[] = [
+    { value: "all", label: t.notesPage.all, icon: FolderOpen },
+    { value: "video", label: t.notesPage.video, icon: Video },
+    { value: "audio", label: t.notesPage.audio, icon: Headphones },
+    { value: "pdf", label: t.notesPage.pdf, icon: FileText },
+    { value: "link", label: t.notesPage.link, icon: Link2 },
+    { value: "image", label: t.notesPage.image, icon: Image },
+    { value: "document", label: t.notesPage.document, icon: File },
+  ];
   const [searchQuery, setSearchQuery] = useState("");
   const [sourceFilter, setSourceFilter] = useState<UploadType | "all">("all");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
@@ -118,22 +120,22 @@ export default function NotesPage() {
     });
   };
 
-  const sortLabel = sortBy === "newest" ? "Newest" : sortBy === "oldest" ? "Oldest" : "A-Z";
+  const sortLabel = sortBy === "newest" ? t.notesPage.newest : sortBy === "oldest" ? t.notesPage.oldest : t.notesPage.alphabetical;
 
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">My Notes</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t.notesPage.title}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {notes.length} {notes.length === 1 ? "note" : "notes"} total
+            {notes.length} {notes.length === 1 ? t.notesPage.noteCount : t.notesPage.notesCount} total
           </p>
         </div>
         <Link href="/notes/new">
           <Button className="gap-2">
             <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Create New</span>
+            <span className="hidden sm:inline">{t.notesPage.createNew}</span>
           </Button>
         </Link>
       </div>
@@ -144,7 +146,7 @@ export default function NotesPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search notes by title, content, or tags..."
+            placeholder={t.notesPage.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -162,7 +164,7 @@ export default function NotesPage() {
                 <button
                   key={filter.value}
                   type="button"
-                  onClick={() => setSourceFilter(filter.value)}
+                  onClick={() => setSourceFilter(sourceFilter === filter.value && filter.value !== "all" ? "all" : filter.value)}
                   className={cn(
                     "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors",
                     sourceFilter === filter.value
@@ -191,7 +193,7 @@ export default function NotesPage() {
             )}
           >
             <Star className={cn("h-3 w-3", showFavoritesOnly && "fill-current")} />
-            Favorites
+            {t.notesPage.favorites}
           </button>
 
           {/* Sort toggle */}
@@ -227,9 +229,9 @@ export default function NotesPage() {
               <button
                 type="button"
                 onClick={() => setSelectedTags(new Set())}
-                className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                className="inline-flex items-center rounded-md border border-destructive/40 bg-destructive/5 px-2 py-0.5 text-xs font-medium text-destructive hover:bg-destructive/15 transition-colors"
               >
-                Clear All
+                {t.notesPage.clearAll}
               </button>
             )}
           </div>
@@ -242,17 +244,17 @@ export default function NotesPage() {
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
             <FolderOpen className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-1">No notes found</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-1">{t.notesPage.noNotesFound}</h3>
           <p className="text-sm text-muted-foreground text-center max-w-sm">
             {searchQuery || sourceFilter !== "all" || showFavoritesOnly || selectedTags.size > 0
-              ? "Try adjusting your filters or search query."
-              : "Get started by uploading a lecture, recording, or document."}
+              ? t.notesPage.tryAdjusting
+              : t.notesPage.getStarted}
           </p>
           {!searchQuery && sourceFilter === "all" && !showFavoritesOnly && selectedTags.size === 0 && (
             <Link href="/notes/new" className="mt-4">
               <Button variant="outline" className="gap-2">
                 <Plus className="h-4 w-4" />
-                Create Your First Note
+                {t.notesPage.createFirstNote}
               </Button>
             </Link>
           )}

@@ -5,7 +5,7 @@ const formatDescriptions: Record<string, string> = {
   "bullet-points": "Concise bullet points highlighting key ideas",
   sentences: "Full sentence paragraphs for detailed reading",
   cornell:
-    "Cornell note format with a Cues | Notes table and a Summary section at the bottom",
+    "Cornell note format with a Cues | Notes table. Do NOT add a separate summary section for Cornell notes — if a summary format is also requested, that single summary serves as the Cornell summary too",
   outline: "Hierarchical numbered outline (I. A. 1. a.)",
   "key-concepts": "Concept / Definition pairs for every key concept",
   summary: "A thorough summary capturing all main points and key takeaways — scale the summary length proportionally to the content (longer content should have a longer, more detailed summary)",

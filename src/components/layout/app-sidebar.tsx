@@ -9,24 +9,28 @@ import {
   FileText,
   Camera,
   Mic,
+  Monitor,
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { useTranslation } from "@/lib/i18n";
 
-const navItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "My Notes", href: "/notes", icon: FileText },
-  { label: "Photo Solver", href: "/photo-solver", icon: Camera },
-  { label: "Recorder", href: "/recorder", icon: Mic },
-  { label: "Settings", href: "/settings", icon: Settings },
+const navIcons = [
+  { key: "dashboard" as const, href: "/dashboard", icon: LayoutDashboard },
+  { key: "myNotes" as const, href: "/notes", icon: FileText },
+  { key: "photoSolver" as const, href: "/photo-solver", icon: Camera },
+  { key: "audioRecorder" as const, href: "/recorder", icon: Mic },
+  { key: "screenRecording" as const, href: "/screen-recording", icon: Monitor },
+  { key: "settings" as const, href: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const t = useTranslation();
 
   return (
     <aside
@@ -54,10 +58,10 @@ export function AppSidebar() {
         {!collapsed && (
           <div className="flex flex-col overflow-hidden">
             <span className="text-base font-bold tracking-tight truncate">
-              Contrast AI
+              {t.sidebar.brand}
             </span>
             <span className="text-xs text-muted-foreground truncate">
-              AI Study Companion
+              {t.sidebar.subtitle}
             </span>
           </div>
         )}
@@ -66,10 +70,11 @@ export function AppSidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 scrollbar-thin">
         <ul className="flex flex-col gap-1">
-          {navItems.map((item) => {
+          {navIcons.map((item) => {
             const isActive =
               pathname === item.href || pathname.startsWith(item.href + "/");
             const Icon = item.icon;
+            const label = t.nav[item.key];
 
             return (
               <li key={item.href}>
@@ -83,10 +88,10 @@ export function AppSidebar() {
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                     collapsed && "justify-center px-0"
                   )}
-                  title={collapsed ? item.label : undefined}
+                  title={collapsed ? label : undefined}
                 >
                   <Icon className="h-5 w-5 shrink-0" />
-                  {!collapsed && <span className="truncate">{item.label}</span>}
+                  {!collapsed && <span className="truncate">{label}</span>}
                 </Link>
               </li>
             );
@@ -105,15 +110,15 @@ export function AppSidebar() {
             "text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
             collapsed && "justify-center px-0"
           )}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? t.sidebar.expandSidebar : t.sidebar.collapseSidebar}
+          title={collapsed ? t.sidebar.expandSidebar : t.sidebar.collapseSidebar}
         >
           {collapsed ? (
             <PanelLeftOpen className="h-5 w-5 shrink-0" />
           ) : (
             <PanelLeftClose className="h-5 w-5 shrink-0" />
           )}
-          {!collapsed && <span>Collapse</span>}
+          {!collapsed && <span>{t.sidebar.collapse}</span>}
         </button>
       </div>
     </aside>

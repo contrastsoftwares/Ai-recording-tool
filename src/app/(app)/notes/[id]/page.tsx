@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -39,8 +39,9 @@ import { ChatInterface } from "@/components/chat/chat-interface";
 import { FlashcardDeck } from "@/components/flashcards/flashcard-deck";
 import { TestView } from "@/components/test-generator/test-view";
 
+import { useTranslation } from "@/lib/i18n";
 import { useNotesStore } from "@/stores/notes-store";
-import type { UploadType, TranscriptSegment } from "@/types/note";
+import type { UploadType } from "@/types/note";
 
 const sourceIcons: Record<UploadType, React.ElementType> = {
   video: Video,
@@ -60,26 +61,28 @@ const sourceColors: Record<UploadType, string> = {
   document: "text-slate-500 bg-slate-500/10",
 };
 
-const tabs = [
-  { id: "notes", label: "Notes", icon: FileText },
-  { id: "chat", label: "Chat", icon: MessageSquare },
-  { id: "flashcards", label: "Flashcards", icon: Layers },
-  { id: "test", label: "Test", icon: ClipboardCheck },
-  { id: "transcript", label: "Transcript", icon: ScrollText },
-] as const;
-
 // Only show transcript tab for audio/video sources
 const mediaSourceTypes = new Set(["audio", "video"]);
 
-type TabId = (typeof tabs)[number]["id"];
+type TabId = "notes" | "chat" | "flashcards" | "test" | "transcript";
 
 export default function NoteWorkspacePage() {
+  const t = useTranslation();
   const params = useParams();
+  const router = useRouter();
   const noteId = params.id as string;
+
+  const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
+    { id: "notes", label: t.noteDetail.notes, icon: FileText },
+    { id: "chat", label: t.noteDetail.chat, icon: MessageSquare },
+    { id: "flashcards", label: t.noteDetail.flashcards, icon: Layers },
+    { id: "test", label: t.noteDetail.test, icon: ClipboardCheck },
+    { id: "transcript", label: t.noteDetail.transcript, icon: ScrollText },
+  ];
   const [activeTab, setActiveTab] = useState<TabId>("notes");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
-  const { toggleFavorite } = useNotesStore();
+  const { toggleFavorite, deleteNote } = useNotesStore();
   const notes = useNotesStore((s) => s.notes);
 
   const note = notes.find((n) => n.id === noteId);
@@ -139,18 +142,16 @@ export default function NoteWorkspacePage() {
     navigator.clipboard.writeText(url);
   }, []);
 
-  // Parse transcript string into segments for display
-  const transcriptSegments: TranscriptSegment[] = useMemo(() => {
-    if (!note?.transcript) return [];
-    const sentences = note.transcript
-      .split(/(?<=[.!?])\s+/)
-      .filter((s) => s.trim().length > 0);
-    return sentences.map((text, i) => ({
-      start: i * 10,
-      end: (i + 1) * 10,
-      text: text.trim(),
-    }));
-  }, [note?.transcript]);
+  const handleDelete = useCallback(() => {
+    if (!note) return;
+    if (window.confirm(`${t.noteDetail.delete} "${note.title}"? ${t.common.confirmDelete}`)) {
+      deleteNote(noteId);
+      router.push("/notes");
+    }
+  }, [note, noteId, deleteNote, router, t]);
+
+  // Raw content for on-demand transcript generation
+  const transcriptContent = note?.rawContent || note?.transcript || "";
 
   if (!note) {
     return (
@@ -159,15 +160,15 @@ export default function NoteWorkspacePage() {
           <FileText className="h-8 w-8 text-muted-foreground" />
         </div>
         <h2 className="text-xl font-semibold text-foreground mb-2">
-          Note not found
+          {t.noteDetail.noteNotFound}
         </h2>
         <p className="text-sm text-muted-foreground text-center mb-4">
-          The note you are looking for does not exist or has been removed.
+          {t.noteDetail.noteNotFoundDesc}
         </p>
         <Link href="/dashboard">
           <Button variant="outline">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
+            {t.noteDetail.backToDashboard}
           </Button>
         </Link>
       </div>
@@ -210,16 +211,27 @@ export default function NoteWorkspacePage() {
                 </Button>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={handleStartEditTitle}
-                className="group flex items-center gap-2 text-left"
-              >
-                <h1 className="text-lg font-semibold text-foreground truncate">
-                  {note.title}
-                </h1>
-                <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleStartEditTitle}
+                  className="group flex items-center gap-2 text-left"
+                >
+                  <h1 className="text-lg font-semibold text-foreground truncate">
+                    {note.title}
+                  </h1>
+                  <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 shrink-0"
+                  onClick={() => toggleFavorite(noteId)}
+                  title={note.isFavorite ? t.noteDetail.removeFromFavorites : t.noteDetail.addToFavorites}
+                >
+                  <Star className={cn("h-4 w-4", note.isFavorite ? "fill-amber-400 text-amber-400" : "text-muted-foreground")} />
+                </Button>
+              </div>
             )}
           </div>
 
@@ -233,7 +245,7 @@ export default function NoteWorkspacePage() {
               <Calendar className="h-3 w-3" />
               {formatDate(note.createdAt)}
             </span>
-            <span className="text-xs text-muted-foreground">{wordCount} words</span>
+            <span className="text-xs text-muted-foreground">{wordCount} {t.noteDetail.words}</span>
             {note.tags.map((tag) => (
               <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">
                 {tag}
@@ -245,24 +257,6 @@ export default function NoteWorkspacePage() {
         {/* Action buttons */}
         <div className="flex items-center gap-1 shrink-0">
           <AiStatusIndicator noteId={noteId} />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => toggleFavorite(noteId)}
-            title={note.isFavorite ? "Remove from favorites" : "Add to favorites"}
-          >
-            <Star className={cn("h-4 w-4", note.isFavorite ? "fill-amber-400 text-amber-400" : "text-muted-foreground")} />
-          </Button>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Share">
-            <Share2 className="h-4 w-4 text-muted-foreground" />
-          </Button>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Export">
-            <Download className="h-4 w-4 text-muted-foreground" />
-          </Button>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive" title="Delete">
-            <Trash2 className="h-4 w-4" />
-          </Button>
         </div>
       </div>
 
@@ -321,7 +315,7 @@ export default function NoteWorkspacePage() {
 
             {mediaSourceTypes.has(note.sourceType) && (
               <div className={activeTab === "transcript" ? "" : "hidden"}>
-                <TranscriptPanel segments={transcriptSegments} />
+                <TranscriptPanel noteId={noteId} rawContent={transcriptContent} />
               </div>
             )}
           </div>
@@ -331,7 +325,7 @@ export default function NoteWorkspacePage() {
         <div className="hidden lg:flex flex-col w-80 shrink-0 rounded-xl border border-border bg-card overflow-hidden">
           <div className="px-4 py-3 border-b border-border">
             <span className="text-sm font-medium text-foreground">
-              Note Info
+              {t.noteDetail.noteInfo}
             </span>
           </div>
           <ScrollArea className="flex-1">
@@ -339,7 +333,7 @@ export default function NoteWorkspacePage() {
               {/* Source type */}
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Source
+                  {t.noteDetail.source}
                 </label>
                 <div className="flex items-center gap-2">
                   <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg", sourceColors[note.sourceType].split(" ")[1])}>
@@ -364,7 +358,7 @@ export default function NoteWorkspacePage() {
               {/* Date */}
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Created
+                  {t.noteDetail.created}
                 </label>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -381,15 +375,15 @@ export default function NoteWorkspacePage() {
               {/* Word count */}
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Stats
+                  {t.noteDetail.stats}
                 </label>
-                <p className="text-sm text-foreground">{wordCount} words</p>
+                <p className="text-sm text-foreground">{wordCount} {t.noteDetail.words}</p>
               </div>
 
               {/* Tags */}
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Tags
+                  {t.noteDetail.tags}
                 </label>
                 <div className="flex flex-wrap gap-1.5">
                   {note.tags.map((tag) => (
@@ -408,7 +402,7 @@ export default function NoteWorkspacePage() {
               {/* Formats used */}
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Formats
+                  {t.noteDetail.formats}
                 </label>
                 <div className="flex flex-wrap gap-1.5">
                   {note.formats.map((format) => (
@@ -427,7 +421,7 @@ export default function NoteWorkspacePage() {
               {/* Actions */}
               <div className="space-y-2 pt-2 border-t border-border">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Actions
+                  {t.noteDetail.actions}
                 </label>
                 <div className="space-y-1.5">
                   <Button
@@ -437,7 +431,7 @@ export default function NoteWorkspacePage() {
                     onClick={handleExport}
                   >
                     <Download className="h-4 w-4" />
-                    Export
+                    {t.noteDetail.export}
                   </Button>
                   <Button
                     variant="outline"
@@ -446,7 +440,16 @@ export default function NoteWorkspacePage() {
                     onClick={handleShare}
                   >
                     <Share2 className="h-4 w-4" />
-                    Share
+                    {t.noteDetail.share}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start gap-2 text-sm text-destructive hover:text-destructive"
+                    size="sm"
+                    onClick={handleDelete}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {t.noteDetail.delete}
                   </Button>
                 </div>
               </div>

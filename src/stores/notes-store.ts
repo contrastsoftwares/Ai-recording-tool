@@ -3,7 +3,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Note } from "@/types/note";
-import { mockNotes } from "@/lib/mock-data";
 
 interface NotesState {
   notes: Note[];
@@ -18,7 +17,7 @@ interface NotesState {
 export const useNotesStore = create<NotesState>()(
   persist(
     (set) => ({
-      notes: mockNotes,
+      notes: [],
       activeNote: null,
       setActiveNote: (note) => set({ activeNote: note }),
       toggleFavorite: (noteId) =>

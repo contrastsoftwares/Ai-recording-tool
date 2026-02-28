@@ -271,6 +271,28 @@ function transcribeLargeFile(file: File) {
   });
 }
 
+// ── Duration check ────────────────────────────────────────────────────────────
+
+const MAX_DIRECT_DURATION_SECS = 480; // 8 min – chunk anything longer
+
+/** Get audio duration in seconds using ffmpeg. Returns null if undetectable. */
+async function getAudioDuration(filePath: string): Promise<number | null> {
+  try {
+    const ffmpegPath = await getFFmpegPath();
+    // ffmpeg -i <file> with no output will print duration to stderr
+    const result = await execFileAsync(ffmpegPath, ["-i", filePath, "-f", "null", "-"], {
+      timeout: 30_000,
+    }).catch((err: unknown) => ({ stderr: ((err as Record<string, string>).stderr) || "" }));
+    const match = (result.stderr as string).match(/Duration:\s*(\d+):(\d+):(\d+)/);
+    if (match) {
+      return parseInt(match[1]) * 3600 + parseInt(match[2]) * 60 + parseInt(match[3]);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
@@ -282,7 +304,27 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "No file provided" }, { status: 400 });
     }
 
+    // For files under the size limit, also check duration.
+    // Long but small files (e.g. 1hr compressed audio < 24MB) need chunking too.
     if (file.size <= MAX_DIRECT_SIZE) {
+      try {
+        const tempDir = join(tmpdir(), `dur-check-${Date.now()}`);
+        await mkdir(tempDir, { recursive: true });
+        const tempPath = join(tempDir, "input");
+        const buf = await file.arrayBuffer();
+        await writeFile(tempPath, Buffer.from(buf));
+        const duration = await getAudioDuration(tempPath);
+        await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+
+        if (duration !== null && duration > MAX_DIRECT_DURATION_SECS) {
+          // File is small but long — use the chunking pipeline
+          const freshFile = new File([buf], file.name, { type: file.type });
+          return transcribeLargeFile(freshFile);
+        }
+      } catch {
+        // If duration check fails, fall through to direct transcription
+      }
+
       return transcribeSmallFile(file);
     }
 

@@ -5,42 +5,43 @@ import { usePathname, useRouter } from "next/navigation";
 import { Search, Bell, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNotesStore } from "@/stores/notes-store";
-
-const pageTitles: Record<string, string> = {
-  "/dashboard": "Dashboard",
-  "/notes": "My Notes",
-  "/photo-solver": "Photo Solver",
-  "/recorder": "Recorder",
-  "/settings": "Settings",
-};
-
-function getPageTitle(pathname: string): string {
-  // Exact match first
-  if (pageTitles[pathname]) return pageTitles[pathname];
-
-  // Prefix match for nested routes
-  for (const [path, title] of Object.entries(pageTitles)) {
-    if (pathname.startsWith(path + "/")) return title;
-  }
-
-  return "Contrast AI";
-}
+import { useTranslation } from "@/lib/i18n";
 
 export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
-  const title = getPageTitle(pathname);
+  const t = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
   const notes = useNotesStore((s) => s.notes);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Derive page title from translations
+  const pageTitleMap: Record<string, string> = {
+    "/dashboard": t.nav.dashboard,
+    "/notes": t.nav.myNotes,
+    "/photo-solver": t.nav.photoSolver,
+    "/recorder": t.nav.audioRecorder,
+    "/screen-recording": t.nav.screenRecording,
+    "/settings": t.nav.settings,
+  };
+
+  function getPageTitle(p: string): string {
+    if (pageTitleMap[p]) return pageTitleMap[p];
+    for (const [path, title] of Object.entries(pageTitleMap)) {
+      if (p.startsWith(path + "/")) return title;
+    }
+    return t.sidebar.brand;
+  }
+
+  const title = getPageTitle(pathname);
+
   const filteredNotes = searchQuery.trim()
     ? notes.filter(
         (n) =>
           n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          n.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()))
+          n.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
       )
     : [];
 
@@ -77,7 +78,7 @@ export function AppHeader() {
       <div className="flex items-center gap-3">
         <button
           className="flex lg:hidden items-center justify-center h-9 w-9 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-          aria-label="Menu"
+          aria-label={t.header.menu}
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -93,7 +94,7 @@ export function AppHeader() {
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search notes, recordings..."
+            placeholder={t.header.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -122,7 +123,7 @@ export function AppHeader() {
             <div className="absolute top-full left-0 right-0 mt-1 rounded-lg border border-border bg-background shadow-lg z-50 max-h-64 overflow-y-auto">
               {filteredNotes.length === 0 ? (
                 <div className="px-4 py-3 text-sm text-muted-foreground">
-                  No notes found for &ldquo;{searchQuery}&rdquo;
+                  {t.header.noNotesFound} &ldquo;{searchQuery}&rdquo;
                 </div>
               ) : (
                 filteredNotes.map((note) => (
@@ -164,7 +165,7 @@ export function AppHeader() {
         {/* Notification bell */}
         <button
           className="flex items-center justify-center h-9 w-9 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors relative"
-          aria-label="Notifications"
+          aria-label={t.header.notifications}
         >
           <Bell className="h-5 w-5" />
           <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary" />
@@ -173,7 +174,7 @@ export function AppHeader() {
         {/* User avatar */}
         <button
           className="flex items-center justify-center h-9 w-9 rounded-full bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity"
-          aria-label="User menu"
+          aria-label={t.header.userMenu}
         >
           CA
         </button>

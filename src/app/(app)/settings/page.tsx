@@ -10,6 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -58,6 +59,7 @@ function storeSetting(key: string, value: unknown) {
 }
 
 export default function SettingsPage() {
+  const t = useTranslation();
   const { setTheme: setAppTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [name, setName] = useState(() => getStoredSetting("name", "Student User"));
@@ -83,26 +85,26 @@ export default function SettingsPage() {
   }, [name, email]);
 
   const themes: { value: Theme; label: string; icon: typeof Sun }[] = [
-    { value: "light", label: "Light", icon: Sun },
-    { value: "dark", label: "Dark", icon: Moon },
+    { value: "light", label: t.settings.light, icon: Sun },
+    { value: "dark", label: t.settings.dark, icon: Moon },
   ];
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <h1 className="text-2xl font-bold text-foreground">{t.settings.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage your account settings and preferences.
+          {t.settings.subtitle}
         </p>
       </div>
 
       {/* Profile Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Profile</CardTitle>
+          <CardTitle>{t.settings.profile}</CardTitle>
           <CardDescription>
-            Your personal information and account details.
+            {t.settings.profileDesc}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -117,9 +119,9 @@ export default function SettingsPage() {
               </button>
             </div>
             <div>
-              <p className="text-sm font-medium text-foreground">Profile Photo</p>
+              <p className="text-sm font-medium text-foreground">{t.settings.profilePhoto}</p>
               <p className="text-xs text-muted-foreground">
-                Click the edit button to change your avatar.
+                {t.settings.profilePhotoDesc}
               </p>
             </div>
           </div>
@@ -129,7 +131,7 @@ export default function SettingsPage() {
           {/* Name */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
-              Full Name
+              {t.settings.fullName}
             </label>
             <Input
               value={name}
@@ -141,7 +143,7 @@ export default function SettingsPage() {
           {/* Email */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
-              Email
+              {t.settings.email}
             </label>
             <Input
               type="email"
@@ -151,16 +153,16 @@ export default function SettingsPage() {
             />
           </div>
 
-          <Button className="w-full sm:w-auto" onClick={handleSaveProfile}>Save Changes</Button>
+          <Button className="w-full sm:w-auto" onClick={handleSaveProfile}>{t.settings.saveChanges}</Button>
         </CardContent>
       </Card>
 
       {/* Appearance Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Appearance</CardTitle>
+          <CardTitle>{t.settings.appearance}</CardTitle>
           <CardDescription>
-            Customize the look and feel of the application.
+            {t.settings.appearanceDesc}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -199,9 +201,9 @@ export default function SettingsPage() {
       {/* Note Preferences Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Note Preferences</CardTitle>
+          <CardTitle>{t.settings.notePreferences}</CardTitle>
           <CardDescription>
-            Configure how your AI-generated notes are created.
+            {t.settings.notePreferencesDesc}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -209,10 +211,10 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-foreground">
-                Default Language
+                {t.settings.defaultLanguage}
               </p>
               <p className="text-xs text-muted-foreground">
-                Language for generated notes and summaries.
+                {t.settings.defaultLanguageDesc}
               </p>
             </div>
             <select
@@ -236,10 +238,10 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-foreground">
-                Auto-generate Flashcards
+                {t.settings.autoFlashcards}
               </p>
               <p className="text-xs text-muted-foreground">
-                Automatically create flashcards when notes are generated.
+                {t.settings.autoFlashcardsDesc}
               </p>
             </div>
             <Toggle checked={autoFlashcards} onChange={setAutoFlashcards} />
@@ -251,10 +253,10 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-foreground">
-                Auto-generate Practice Tests
+                {t.settings.autoPracticeTests}
               </p>
               <p className="text-xs text-muted-foreground">
-                Automatically create practice tests when notes are generated.
+                {t.settings.autoPracticeTestsDesc}
               </p>
             </div>
             <Toggle checked={autoPracticeTests} onChange={setAutoPracticeTests} />
@@ -265,20 +267,20 @@ export default function SettingsPage() {
       {/* Account Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Account</CardTitle>
+          <CardTitle>{t.settings.account}</CardTitle>
           <CardDescription>
-            Manage your account data and preferences.
+            {t.settings.accountDesc}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-3">
             <Button variant="outline" className="gap-2">
               <Download className="h-4 w-4" />
-              Export All Data
+              {t.settings.exportAllData}
             </Button>
             <Button variant="destructive" className="gap-2">
               <Trash2 className="h-4 w-4" />
-              Delete Account
+              {t.settings.deleteAccount}
             </Button>
           </div>
           <Separator />

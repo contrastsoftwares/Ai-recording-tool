@@ -21,17 +21,19 @@ import { useNotesStore } from "@/stores/notes-store";
 import { useUploadStore } from "@/stores/upload-store";
 import { aiService } from "@/lib/ai-service";
 import type { NoteFormat, Note, UploadType } from "@/types/note";
+import { useTranslation } from "@/lib/i18n";
 
 type Step = "upload" | "format" | "processing" | "done";
 
-const steps: { id: Step; label: string; icon: React.ElementType }[] = [
-  { id: "upload", label: "Upload", icon: Upload },
-  { id: "format", label: "Format", icon: SlidersHorizontal },
-  { id: "processing", label: "Processing", icon: Sparkles },
-];
-
 function NewNoteContent() {
   const router = useRouter();
+  const t = useTranslation();
+
+  const steps: { id: Step; label: string; icon: React.ElementType }[] = [
+    { id: "upload", label: t.newNote.upload, icon: Upload },
+    { id: "format", label: t.newNote.format, icon: SlidersHorizontal },
+    { id: "processing", label: t.newNote.processing, icon: Sparkles },
+  ];
   const searchParams = useSearchParams();
   const addNote = useNotesStore((state) => state.addNote);
   const uploadStore = useUploadStore();
@@ -206,8 +208,7 @@ function NewNoteContent() {
       setProcessingMessage("Finalizing your notes...");
 
       // Step 3: Create note and save to store
-      // Store raw content for transcript generation later; only auto-attach transcript for audio/video
-      const isMediaSource = sourceType === "audio" || sourceType === "video";
+      // Store raw content; transcript is generated on-demand from the Transcript tab
       const newNote: Note = {
         id: `note-${Date.now()}`,
         title: notesResult.title || title || "Untitled Notes",
@@ -216,7 +217,6 @@ function NewNoteContent() {
         sourceType,
         sourceUrl: selectedUrl || undefined,
         rawContent: content,
-        transcript: isMediaSource ? content : undefined,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         tags: notesResult.tags || [],
@@ -258,14 +258,14 @@ function NewNoteContent() {
           onClick={() => router.push("/notes")}
         >
           <ArrowLeft className="h-4 w-4" />
-          Back
+          {t.newNote.back}
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            Create New Notes
+            {t.newNote.title}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Upload your content and let AI generate notes for you
+            {t.newNote.subtitle}
           </p>
         </div>
       </div>
@@ -343,7 +343,7 @@ function NewNoteContent() {
                 size="lg"
                 disabled={!hasContent}
               >
-                Continue to Format Selection
+                {t.newNote.continueToFormat}
               </Button>
             </div>
           </div>
@@ -355,7 +355,7 @@ function NewNoteContent() {
             {/* Show what was uploaded */}
             <div className="rounded-lg border border-border bg-muted/50 px-4 py-3">
               <p className="text-sm text-foreground">
-                <span className="font-medium">Source: </span>
+                <span className="font-medium">{t.newNote.source} </span>
                 {selectedFile ? selectedFile.name : selectedUrl}
               </p>
             </div>
@@ -371,7 +371,7 @@ function NewNoteContent() {
                 onClick={() => setCurrentStep("upload")}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+                {t.newNote.back}
               </Button>
               <Button
                 onClick={handleGenerateNotes}
@@ -379,7 +379,7 @@ function NewNoteContent() {
                 disabled={selectedFormats.length === 0}
               >
                 <Sparkles className="h-4 w-4 mr-2" />
-                Generate Notes
+                {t.newNote.generateNotes}
               </Button>
             </div>
           </div>
@@ -398,7 +398,7 @@ function NewNoteContent() {
             </div>
 
             <h3 className="text-lg font-semibold text-foreground mb-2">
-              Generating Your Notes
+              {t.newNote.generatingYourNotes}
             </h3>
             <p className="text-sm text-muted-foreground mb-6">
               {processingMessage}
@@ -407,7 +407,7 @@ function NewNoteContent() {
             <div className="w-full max-w-md space-y-2">
               <Progress value={progress} />
               <p className="text-center text-xs text-muted-foreground">
-                {Math.round(progress)}% complete
+                {Math.round(progress)}% {t.newNote.complete}
               </p>
             </div>
           </div>
@@ -420,10 +420,10 @@ function NewNoteContent() {
               <CheckCircle className="h-10 w-10 text-success" />
             </div>
             <h3 className="text-lg font-semibold text-foreground mb-2">
-              Notes Generated Successfully!
+              {t.newNote.notesGenerated}
             </h3>
             <p className="text-sm text-muted-foreground">
-              Redirecting to your new notes...
+              {t.newNote.redirecting}
             </p>
           </div>
         )}

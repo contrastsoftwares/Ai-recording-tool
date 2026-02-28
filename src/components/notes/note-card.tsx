@@ -9,6 +9,7 @@ import {
   Image,
   File,
   Star,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate, truncate } from "@/lib/utils";
@@ -34,6 +35,7 @@ interface NoteCardProps {
 
 export function NoteCard({ note }: NoteCardProps) {
   const toggleFavorite = useNotesStore((s) => s.toggleFavorite);
+  const deleteNote = useNotesStore((s) => s.deleteNote);
   const source = sourceConfig[note.sourceType];
   const SourceIcon = source.icon;
 
@@ -123,6 +125,22 @@ export function NoteCard({ note }: NoteCardProps) {
           {formatDate(note.createdAt)}
         </p>
       </div>
+
+      {/* Delete button - appears on hover */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (window.confirm(`Delete "${note.title}"?`)) {
+            deleteNote(note.id);
+          }
+        }}
+        className="absolute bottom-3 right-3 p-1.5 rounded-md bg-destructive/10 text-destructive opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/20"
+        aria-label="Delete note"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
     </Link>
   );
 }

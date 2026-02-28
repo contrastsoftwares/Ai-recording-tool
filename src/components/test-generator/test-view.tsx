@@ -40,6 +40,16 @@ interface AiGrade {
   feedback: string;
 }
 
+// Fisher-Yates shuffle
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export function TestView({ noteId, noteContent }: TestViewProps) {
   // Persist test data in localStorage
   const [test, setTest] = useState<TestData | null>(() => {
@@ -64,6 +74,8 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
   const [score, setScore] = useState<{ correct: number; total: number; percentage: number } | null>(null);
   const [aiGrades, setAiGrades] = useState<Record<string, AiGrade>>({});
   const questionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  // Track quiz version to allow re-generating quick quiz questions
+  const [quizVersion, setQuizVersion] = useState(0);
 
   // Persist test data
   useEffect(() => {
@@ -72,20 +84,50 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     }
   }, [test, noteId]);
 
-  // Get questions based on mode
+  // Get questions based on mode, scrambled for both modes
   const activeQuestions = useMemo(() => {
     if (!test) return [];
-    if (testMode === "full") return test.questions;
-    // Quick quiz: exclude short-answer questions, take ~30% of the rest, min 5, max 10
-    const nonShortAnswer = test.questions.filter((q) => q.type !== "short-answer");
-    const shortCount = Math.max(5, Math.min(10, Math.ceil(nonShortAnswer.length * 0.3)));
-    const step = nonShortAnswer.length / shortCount;
-    const picked: TestQuestion[] = [];
-    for (let i = 0; i < shortCount && i < nonShortAnswer.length; i++) {
-      picked.push(nonShortAnswer[Math.floor(i * step)]);
+
+    if (testMode === "full") {
+      // Full test: all questions, scrambled order
+      return shuffle(test.questions);
     }
-    return picked;
-  }, [test, testMode]);
+
+    // Quick quiz: exclude short-answer, pick ~30% with 70-80% new + 20-30% old, scrambled
+    const nonShortAnswer = test.questions.filter((q) => q.type !== "short-answer");
+    const quizSize = Math.max(5, Math.min(10, Math.ceil(nonShortAnswer.length * 0.3)));
+
+    // Get previous quiz question IDs from localStorage
+    let prevQuizIds: Set<string>;
+    try {
+      prevQuizIds = new Set<string>(
+        JSON.parse(localStorage.getItem(`prev-quiz-ids-${noteId}`) || "[]")
+      );
+    } catch {
+      prevQuizIds = new Set();
+    }
+
+    const newPool = nonShortAnswer.filter((q) => !prevQuizIds.has(q.id));
+    const oldPool = nonShortAnswer.filter((q) => prevQuizIds.has(q.id));
+
+    const newCount = Math.ceil(quizSize * 0.75); // ~75% new
+    const oldCount = quizSize - newCount; // ~25% old
+
+    const picked: TestQuestion[] = [];
+    picked.push(...shuffle(newPool).slice(0, newCount));
+    picked.push(...shuffle(oldPool).slice(0, oldCount));
+
+    // Fill remaining slots if either pool was too small
+    while (picked.length < quizSize && picked.length < nonShortAnswer.length) {
+      const usedIds = new Set(picked.map((p) => p.id));
+      const remaining = nonShortAnswer.filter((q) => !usedIds.has(q.id));
+      if (remaining.length === 0) break;
+      picked.push(remaining[Math.floor(Math.random() * remaining.length)]);
+    }
+
+    return shuffle(picked);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [test, testMode, quizVersion]);
 
   const handleGenerate = useCallback(async () => {
     if (!noteContent) return;
@@ -143,8 +185,20 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     setElapsedSeconds(0);
     setScore(null);
     setAiGrades({});
+    // Force re-compute of quiz questions when starting (for scramble)
+    setQuizVersion((v) => v + 1);
     setTestState("taking");
   }, []);
+
+  // Save quiz question IDs when taking a quick quiz (for 70-80/20-30 split)
+  useEffect(() => {
+    if (testState === "taking" && testMode === "short" && activeQuestions.length > 0) {
+      localStorage.setItem(
+        `prev-quiz-ids-${noteId}`,
+        JSON.stringify(activeQuestions.map((q) => q.id))
+      );
+    }
+  }, [testState, testMode, activeQuestions, noteId]);
 
   async function handleSubmit() {
     if (!test) return;
@@ -289,31 +343,11 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
                 {Math.max(5, Math.min(10, Math.ceil(test.questions.filter((q) => q.type !== "short-answer").length * 0.3)))} questions
               </p>
               <p className="text-xs text-muted-foreground">
-                Fast knowledge check
+                New mix each time
               </p>
             </div>
           </button>
         </div>
-
-        {/* Regenerate button */}
-        <Button
-          variant="outline"
-          className="gap-2"
-          onClick={() => {
-            localStorage.removeItem(`test-data-${noteId}`);
-            setTest(null);
-            setTestState("idle");
-            handleGenerate();
-          }}
-          disabled={isGenerating}
-        >
-          {isGenerating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4" />
-          )}
-          Generate New Questions
-        </Button>
       </div>
     );
   }
