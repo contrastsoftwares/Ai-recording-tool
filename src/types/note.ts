@@ -30,6 +30,7 @@ export interface Note {
   transcript?: string;
   createdAt: string;
   updatedAt: string;
+  lastAccessedAt?: string;
   tags: string[];
   isFavorite: boolean;
 }

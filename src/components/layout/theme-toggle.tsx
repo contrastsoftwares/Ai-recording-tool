@@ -4,9 +4,11 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 export function ThemeToggle({ collapsed = false }: { collapsed?: boolean }) {
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const t = useTranslation();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -24,7 +26,7 @@ export function ThemeToggle({ collapsed = false }: { collapsed?: boolean }) {
         aria-label="Toggle theme"
       >
         <Moon className="h-5 w-5 shrink-0" />
-        {!collapsed && <span>Dark</span>}
+        {!collapsed && <span>{t.settings.dark}</span>}
       </button>
     );
   }
@@ -43,15 +45,15 @@ export function ThemeToggle({ collapsed = false }: { collapsed?: boolean }) {
         "text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
         collapsed && "justify-center px-0"
       )}
-      aria-label={`Current theme: ${isDark ? "Dark" : "Light"}. Click to switch.`}
-      title={`Theme: ${isDark ? "Dark" : "Light"}`}
+      aria-label={`Current theme: ${isDark ? t.settings.dark : t.settings.light}. Click to switch.`}
+      title={`Theme: ${isDark ? t.settings.dark : t.settings.light}`}
     >
       {isDark ? (
         <Moon className="h-5 w-5 shrink-0" />
       ) : (
         <Sun className="h-5 w-5 shrink-0" />
       )}
-      {!collapsed && <span>{isDark ? "Dark" : "Light"}</span>}
+      {!collapsed && <span>{isDark ? t.settings.dark : t.settings.light}</span>}
     </button>
   );
 }

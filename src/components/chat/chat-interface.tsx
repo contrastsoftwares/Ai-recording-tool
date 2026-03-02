@@ -5,6 +5,7 @@ import { Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChatMessage } from "@/components/chat/chat-message";
 import { ChatInput } from "@/components/chat/chat-input";
+import { useTranslation } from "@/lib/i18n";
 import { aiService } from "@/lib/ai-service";
 import type { Message } from "@/types/chat";
 
@@ -13,14 +14,14 @@ interface ChatInterfaceProps {
   noteContent?: string;
 }
 
-const suggestedQuestions = [
-  "Summarize the key points from this note",
-  "Explain the most important concept",
-  "What are common exam questions on this topic?",
-  "Create a study plan for this material",
-];
-
 export function ChatInterface({ noteId, noteContent }: ChatInterfaceProps) {
+  const t = useTranslation();
+  const suggestedQuestions = [
+    t.chat.suggestSummarize,
+    t.chat.suggestExplain,
+    t.chat.suggestExamQuestions,
+    t.chat.suggestStudyPlan,
+  ];
   const [messages, setMessages] = useState<Message[]>(() => {
     if (typeof window === "undefined") return [];
     const saved = localStorage.getItem(`chat-messages-${noteId}`);
@@ -74,8 +75,7 @@ export function ChatInterface({ noteId, noteContent }: ChatInterfaceProps) {
         const errorMessage: Message = {
           id: `msg-${Date.now()}-err`,
           role: "assistant",
-          content:
-            "I apologize, but I encountered an error processing your request. Please try again.",
+          content: t.chat.error,
           timestamp: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, errorMessage]);
@@ -83,7 +83,7 @@ export function ChatInterface({ noteId, noteContent }: ChatInterfaceProps) {
         setIsLoading(false);
       }
     },
-    [messages, noteContent]
+    [messages, noteContent, t]
   );
 
   const handleSuggestedQuestion = (question: string) => {
@@ -104,10 +104,10 @@ export function ChatInterface({ noteId, noteContent }: ChatInterfaceProps) {
               <Sparkles className="h-7 w-7 text-primary" />
             </div>
             <h3 className="mb-2 text-lg font-semibold text-foreground">
-              Ask me anything about your notes
+              {t.chat.welcome}
             </h3>
             <p className="mb-6 max-w-sm text-center text-sm text-muted-foreground">
-              I can summarize, explain, quiz you, or help you study. Just ask!
+              {t.chat.welcomeSub}
             </p>
 
             {/* Suggested questions */}
@@ -140,7 +140,7 @@ export function ChatInterface({ noteId, noteContent }: ChatInterfaceProps) {
             {isLoading && (
               <div className="flex items-center gap-2 px-4 py-2">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                <span className="text-sm text-muted-foreground">Thinking...</span>
+                <span className="text-sm text-muted-foreground">{t.chat.thinking}</span>
               </div>
             )}
             <div ref={messagesEndRef} />

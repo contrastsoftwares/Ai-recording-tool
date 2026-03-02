@@ -31,8 +31,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { NoteViewer } from "@/components/notes/note-viewer";
 import { TranscriptPanel } from "@/components/notes/transcript-panel";
+import dynamic from "next/dynamic";
+
+const RichTextEditor = dynamic(
+  () => import("@/components/notes/rich-text-editor").then((m) => ({ default: m.RichTextEditor })),
+  { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground">...</div> }
+);
 
 import { AiStatusIndicator } from "@/components/notes/ai-status-indicator";
 import { ChatInterface } from "@/components/chat/chat-interface";
@@ -41,7 +48,7 @@ import { TestView } from "@/components/test-generator/test-view";
 
 import { useTranslation } from "@/lib/i18n";
 import { useNotesStore } from "@/stores/notes-store";
-import type { UploadType } from "@/types/note";
+import type { UploadType, NoteFormat } from "@/types/note";
 
 const sourceIcons: Record<UploadType, React.ElementType> = {
   video: Video,
@@ -82,10 +89,20 @@ export default function NoteWorkspacePage() {
   const [activeTab, setActiveTab] = useState<TabId>("notes");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
-  const { toggleFavorite, deleteNote } = useNotesStore();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const updateNote = useNotesStore((s) => s.updateNote);
+  const { toggleFavorite, deleteNote, accessNote } = useNotesStore();
   const notes = useNotesStore((s) => s.notes);
 
   const note = notes.find((n) => n.id === noteId);
+
+  // Track note access for "recent notes" ordering
+  useEffect(() => {
+    if (noteId) {
+      accessNote(noteId);
+    }
+  }, [noteId, accessNote]);
 
   // Scroll position preservation per tab
   const scrollPositions = useRef<Record<string, number>>({});
@@ -143,12 +160,9 @@ export default function NoteWorkspacePage() {
   }, []);
 
   const handleDelete = useCallback(() => {
-    if (!note) return;
-    if (window.confirm(`${t.noteDetail.delete} "${note.title}"? ${t.common.confirmDelete}`)) {
-      deleteNote(noteId);
-      router.push("/notes");
-    }
-  }, [note, noteId, deleteNote, router, t]);
+    deleteNote(noteId);
+    router.push("/notes");
+  }, [noteId, deleteNote, router]);
 
   // Raw content for on-demand transcript generation
   const transcriptContent = note?.rawContent || note?.transcript || "";
@@ -292,8 +306,40 @@ export default function NoteWorkspacePage() {
           {/* Tab content - all rendered but hidden to preserve state/scroll */}
           <div ref={contentRef} className="flex-1 overflow-y-auto scrollbar-thin">
             <div className={activeTab === "notes" ? "" : "hidden"}>
-              <div className="rounded-xl border border-border bg-card p-6">
-                <NoteViewer content={note.content} formats={note.formats} />
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
+                {/* Edit/View toggle */}
+                <div className="flex items-center justify-end px-4 py-2 border-b border-border bg-muted/30">
+                  <div className="inline-flex rounded-md bg-muted p-0.5">
+                    <button
+                      onClick={() => setIsEditing(false)}
+                      className={cn(
+                        "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                        !isEditing ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {t.noteDetail.view}
+                    </button>
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className={cn(
+                        "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                        isEditing ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {t.noteDetail.edit}
+                    </button>
+                  </div>
+                </div>
+                {isEditing ? (
+                  <RichTextEditor
+                    content={note.content}
+                    onChange={(html) => updateNote(noteId, { content: html })}
+                  />
+                ) : (
+                  <div className="p-6">
+                    <NoteViewer content={note.content} formats={note.formats} />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -363,7 +409,7 @@ export default function NoteWorkspacePage() {
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-foreground">
-                    {new Date(note.createdAt).toLocaleDateString("en-US", {
+                    {new Date(note.createdAt).toLocaleDateString(undefined, {
                       month: "long",
                       day: "numeric",
                       year: "numeric",
@@ -405,16 +451,26 @@ export default function NoteWorkspacePage() {
                   {t.noteDetail.formats}
                 </label>
                 <div className="flex flex-wrap gap-1.5">
-                  {note.formats.map((format) => (
-                    <span
-                      key={format}
-                      className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
-                    >
-                      {format
-                        .replace("-", " ")
-                        .replace(/\b\w/g, (c) => c.toUpperCase())}
-                    </span>
-                  ))}
+                  {note.formats.map((format) => {
+                    const formatLabels: Record<string, string> = {
+                      "bullet-points": t.formatSelector.bulletPoints,
+                      sentences: t.formatSelector.sentences,
+                      cornell: t.formatSelector.cornellNotes,
+                      outline: t.formatSelector.outline,
+                      "key-concepts": t.formatSelector.keyConcepts,
+                      summary: t.formatSelector.summary,
+                      timeline: t.formatSelector.timeline,
+                      "qa-format": t.formatSelector.qaFormat,
+                    };
+                    return (
+                      <span
+                        key={format}
+                        className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+                      >
+                        {formatLabels[format] || format.replace("-", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -446,7 +502,7 @@ export default function NoteWorkspacePage() {
                     variant="outline"
                     className="w-full justify-start gap-2 text-sm text-destructive hover:text-destructive"
                     size="sm"
-                    onClick={handleDelete}
+                    onClick={() => setShowDeleteConfirm(true)}
                   >
                     <Trash2 className="h-4 w-4" />
                     {t.noteDetail.delete}
@@ -457,6 +513,16 @@ export default function NoteWorkspacePage() {
           </ScrollArea>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title={`${t.noteDetail.delete} "${note.title}"?`}
+        description={t.common.confirmDelete}
+        confirmLabel={t.noteDetail.delete}
+        cancelLabel={t.common.cancel}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

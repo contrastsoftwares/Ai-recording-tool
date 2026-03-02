@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FlashcardSingle } from "@/components/flashcards/flashcard-single";
 import { aiService } from "@/lib/ai-service";
 import type { FlashcardResult } from "@/lib/ai-service";
+import { useTranslation } from "@/lib/i18n";
 
 interface FlashcardDeckProps {
   noteId: string;
@@ -14,6 +15,7 @@ interface FlashcardDeckProps {
 }
 
 export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
+  const t = useTranslation();
   // Persist flashcards in localStorage so they survive tab switches
   const [cards, setCards] = useState<FlashcardResult[]>(() => {
     if (typeof window === "undefined") return [];
@@ -132,12 +134,12 @@ export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
           <Layers className="h-7 w-7 text-muted-foreground" />
         </div>
         <h3 className="mb-2 text-lg font-semibold text-foreground">
-          {isGenerating ? "Generating flashcards..." : "No flashcards yet"}
+          {isGenerating ? t.flashcards.generating : t.flashcards.noFlashcardsYet}
         </h3>
         <p className="mb-6 max-w-sm text-center text-sm text-muted-foreground">
           {isGenerating
-            ? "AI is creating flashcards from your content. This may take a moment."
-            : "Generate flashcards from your content to start studying."}
+            ? t.flashcards.generatingDesc
+            : t.flashcards.generateDesc}
         </p>
         {generateError && (
           <p className="mb-4 text-sm text-destructive">{generateError}</p>
@@ -147,7 +149,7 @@ export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
         ) : (
           <Button onClick={handleGenerate} disabled={!noteContent}>
             <Layers className="mr-2 h-4 w-4" />
-            Generate Flashcards
+            {t.flashcards.generate}
           </Button>
         )}
       </div>
@@ -161,12 +163,12 @@ export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
           <AlertTriangle className="h-7 w-7 text-muted-foreground" />
         </div>
-        <h3 className="mb-2 text-lg font-semibold text-foreground">No trouble cards</h3>
+        <h3 className="mb-2 text-lg font-semibold text-foreground">{t.flashcards.noTroubleCards}</h3>
         <p className="mb-6 max-w-sm text-center text-sm text-muted-foreground">
-          You haven&apos;t marked any cards as trouble yet. Mark cards you find difficult to review them here.
+          {t.flashcards.noTroubleDesc}
         </p>
         <Button variant="outline" onClick={() => setShowTroubleOnly(false)}>
-          Show All Cards
+          {t.flashcards.showAllCards}
         </Button>
       </div>
     );
@@ -181,10 +183,10 @@ export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
       <div className="border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">
-            Flashcards ({cards.length})
+            {t.flashcards.title} ({cards.length})
             {troubleCount > 0 && (
               <span className="ml-2 text-sm font-normal text-warning">
-                {troubleCount} marked as trouble
+                {troubleCount} {t.flashcards.troubleCount}
               </span>
             )}
           </h2>
@@ -197,7 +199,7 @@ export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
                 className="gap-2"
               >
                 <AlertTriangle className="h-3.5 w-3.5" />
-                {showTroubleOnly ? "Show All" : "Trouble Only"}
+                {showTroubleOnly ? t.flashcards.showAll : t.flashcards.troubleOnly}
               </Button>
             )}
           </div>
@@ -207,7 +209,7 @@ export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-8">
         <p className="mb-6 text-sm font-medium text-muted-foreground">
           {currentIndex + 1} / {activeTotal}
-          {showTroubleOnly && <span className="ml-2 text-xs text-warning">Trouble Cards</span>}
+          {showTroubleOnly && <span className="ml-2 text-xs text-warning">{t.flashcards.troubleCards}</span>}
         </p>
         <FlashcardSingle front={currentCard.front} back={currentCard.back} isFlipped={isFlipped} onFlip={toggleFlip} />
 
@@ -222,7 +224,7 @@ export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
             )}
           >
             <AlertTriangle className="inline h-4 w-4 mr-1.5 -mt-0.5" />
-            {isCurrentTrouble ? "Marked as Trouble" : "Mark as Trouble"}
+            {isCurrentTrouble ? t.flashcards.markedAsTrouble : t.flashcards.markAsTrouble}
             <span className="text-xs opacity-60 ml-1.5">(T)</span>
           </button>
         </div>
@@ -231,13 +233,13 @@ export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
       <div className="border-t border-border px-6 py-4">
         <div className="flex items-center justify-center gap-4">
           <Button variant="outline" size="icon" onClick={goToPrev} className="h-10 w-10 rounded-full"><ChevronLeft className="h-5 w-5" /></Button>
-          <Button variant="outline" onClick={toggleFlip} className="gap-2 rounded-full px-6"><RotateCcw className="h-4 w-4" />Flip</Button>
+          <Button variant="outline" onClick={toggleFlip} className="gap-2 rounded-full px-6"><RotateCcw className="h-4 w-4" />{t.flashcards.flip}</Button>
           <Button variant="outline" size="icon" onClick={goToNext} className="h-10 w-10 rounded-full"><ChevronRight className="h-5 w-5" /></Button>
         </div>
         <div className="flex items-center justify-center gap-3 mt-3">
-          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"><Keyboard className="h-3 w-3" />Space to flip</span>
-          <span className="text-[10px] text-muted-foreground">Arrows to navigate</span>
-          <span className="text-[10px] text-muted-foreground">T for trouble</span>
+          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"><Keyboard className="h-3 w-3" />{t.flashcards.spaceToFlip}</span>
+          <span className="text-[10px] text-muted-foreground">{t.flashcards.arrowsToNavigate}</span>
+          <span className="text-[10px] text-muted-foreground">{t.flashcards.tForTrouble}</span>
         </div>
       </div>
     </div>

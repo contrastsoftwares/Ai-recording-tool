@@ -222,13 +222,13 @@ export default function SettingsPage() {
               onChange={(e) => setLanguage(e.target.value)}
               className="rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <option value="english">English</option>
-              <option value="spanish">Spanish</option>
-              <option value="french">French</option>
-              <option value="german">German</option>
-              <option value="chinese">Chinese</option>
-              <option value="japanese">Japanese</option>
-              <option value="korean">Korean</option>
+              <option value="english">{t.languageNames.english}</option>
+              <option value="spanish">{t.languageNames.spanish}</option>
+              <option value="french">{t.languageNames.french}</option>
+              <option value="german">{t.languageNames.german}</option>
+              <option value="chinese">{t.languageNames.chinese}</option>
+              <option value="japanese">{t.languageNames.japanese}</option>
+              <option value="korean">{t.languageNames.korean}</option>
             </select>
           </div>
 

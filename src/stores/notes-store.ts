@@ -12,6 +12,7 @@ interface NotesState {
   addNote: (note: Note) => void;
   deleteNote: (noteId: string) => void;
   updateNote: (noteId: string, updates: Partial<Note>) => void;
+  accessNote: (noteId: string) => void;
 }
 
 export const useNotesStore = create<NotesState>()(
@@ -38,6 +39,12 @@ export const useNotesStore = create<NotesState>()(
         set((state) => ({
           notes: state.notes.map((n) =>
             n.id === noteId ? { ...n, ...updates, updatedAt: new Date().toISOString() } : n
+          ),
+        })),
+      accessNote: (noteId) =>
+        set((state) => ({
+          notes: state.notes.map((n) =>
+            n.id === noteId ? { ...n, lastAccessedAt: new Date().toISOString() } : n
           ),
         })),
     }),

@@ -33,10 +33,18 @@ if (typeof window !== "undefined") {
   };
 }
 
+/**
+ * Returns translations for the current language.
+ * Always starts with "english" on the server and first client render
+ * to avoid hydration mismatch, then syncs to the stored language.
+ */
 export function useTranslation(): Translations {
-  const [lang, setLang] = useState<Language>(getStoredLanguage);
+  // Always start with english to match server render
+  const [lang, setLang] = useState<Language>("english");
 
   useEffect(() => {
+    // After mount, read the real language from localStorage
+    setLang(getStoredLanguage());
     const handler = () => setLang(getStoredLanguage());
     listeners.add(handler);
     return () => { listeners.delete(handler); };
@@ -46,9 +54,10 @@ export function useTranslation(): Translations {
 }
 
 export function useLanguage(): [Language, (lang: Language) => void] {
-  const [lang, setLangState] = useState<Language>(getStoredLanguage);
+  const [lang, setLangState] = useState<Language>("english");
 
   useEffect(() => {
+    setLangState(getStoredLanguage());
     const handler = () => setLangState(getStoredLanguage());
     listeners.add(handler);
     return () => { listeners.delete(handler); };

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTranslation } from "@/lib/i18n";
 
 interface TranscriptSegment {
   start: number;
@@ -37,6 +38,7 @@ function parseContentIntoSegments(content: string): TranscriptSegment[] {
 }
 
 export function TranscriptPanel({ noteId, rawContent }: TranscriptPanelProps) {
+  const t = useTranslation();
   const [segments, setSegments] = useState<TranscriptSegment[]>(() => {
     if (typeof window === "undefined") return [];
     const saved = localStorage.getItem(`transcript-${noteId}`);
@@ -58,7 +60,7 @@ export function TranscriptPanel({ noteId, rawContent }: TranscriptPanelProps) {
 
   const handleGenerate = useCallback(() => {
     if (!rawContent) {
-      setError("No content available to generate transcript.");
+      setError(t.transcript.noContent);
       return;
     }
     setIsGenerating(true);
@@ -70,12 +72,12 @@ export function TranscriptPanel({ noteId, rawContent }: TranscriptPanelProps) {
         const parsed = parseContentIntoSegments(rawContent);
         setSegments(parsed);
       } catch {
-        setError("Failed to generate transcript.");
+        setError(t.transcript.failed);
       } finally {
         setIsGenerating(false);
       }
     }, 300);
-  }, [rawContent]);
+  }, [rawContent, t]);
 
   const filteredSegments = segments.filter((segment) =>
     segment.text.toLowerCase().includes(searchQuery.toLowerCase())
@@ -89,7 +91,7 @@ export function TranscriptPanel({ noteId, rawContent }: TranscriptPanelProps) {
           {isGenerating ? (
             <>
               <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
-              <p className="text-sm font-medium text-foreground">Generating transcript...</p>
+              <p className="text-sm font-medium text-foreground">{t.transcript.generating}</p>
             </>
           ) : (
             <>
@@ -97,10 +99,10 @@ export function TranscriptPanel({ noteId, rawContent }: TranscriptPanelProps) {
                 <ScrollText className="h-7 w-7 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-1">
-                Transcript
+                {t.transcript.title}
               </h3>
               <p className="text-sm text-muted-foreground text-center max-w-sm mb-4">
-                Generate a formatted transcript view from the source content.
+                {t.transcript.generateDesc}
               </p>
               {error && (
                 <div className="flex items-center gap-2 mb-4 text-destructive">
@@ -110,7 +112,7 @@ export function TranscriptPanel({ noteId, rawContent }: TranscriptPanelProps) {
               )}
               <Button onClick={handleGenerate} className="gap-2">
                 <ScrollText className="h-4 w-4" />
-                Generate Transcript
+                {t.transcript.generate}
               </Button>
             </>
           )}
@@ -125,7 +127,7 @@ export function TranscriptPanel({ noteId, rawContent }: TranscriptPanelProps) {
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search transcript..."
+            placeholder={t.transcript.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-8 h-8 text-sm"
@@ -137,7 +139,7 @@ export function TranscriptPanel({ noteId, rawContent }: TranscriptPanelProps) {
         <div className="p-3 space-y-1">
           {filteredSegments.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
-              {searchQuery ? "No matching segments found" : "No transcript available"}
+              {searchQuery ? t.transcript.noMatching : t.transcript.noTranscript}
             </p>
           ) : (
             filteredSegments.map((segment, index) => (

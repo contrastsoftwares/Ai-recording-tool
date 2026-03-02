@@ -13,6 +13,7 @@ import {
   Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 import type { NoteFormat } from "@/types/note";
 
 export type NoteLength = "short" | "medium" | "long";
@@ -24,83 +25,84 @@ interface FormatOption {
   icon: React.ElementType;
 }
 
-const formatOptions: FormatOption[] = [
-  {
-    id: "bullet-points",
-    label: "Bullet Points",
-    description: "Concise bullet point summaries",
-    icon: List,
-  },
-  {
-    id: "sentences",
-    label: "Sentences",
-    description: "Full paragraph explanations",
-    icon: AlignLeft,
-  },
-  {
-    id: "cornell",
-    label: "Cornell Notes",
-    description: "Two-column: cues + notes + summary",
-    icon: LayoutGrid,
-  },
-  {
-    id: "outline",
-    label: "Outline",
-    description: "Hierarchical numbered structure",
-    icon: ListOrdered,
-  },
-  {
-    id: "key-concepts",
-    label: "Key Concepts",
-    description: "Terms and definitions",
-    icon: Key,
-  },
-  {
-    id: "summary",
-    label: "Summary",
-    description: "Brief overview of main points",
-    icon: FileText,
-  },
-  {
-    id: "timeline",
-    label: "Timeline",
-    description: "Chronological event sequence",
-    icon: Clock,
-  },
-  {
-    id: "qa-format",
-    label: "Q&A Format",
-    description: "Question and answer pairs",
-    icon: HelpCircle,
-  },
-];
-
-const lengthOptions: { id: NoteLength; label: string; description: string }[] = [
-  {
-    id: "short",
-    label: "Short",
-    description: "Brief and concise notes",
-  },
-  {
-    id: "medium",
-    label: "Medium",
-    description: "Balanced detail level",
-  },
-  {
-    id: "long",
-    label: "Long",
-    description: "Full detailed notes",
-  },
-];
-
 interface FormatSelectorProps {
   onFormatsChange?: (formats: NoteFormat[]) => void;
   onLengthChange?: (length: NoteLength) => void;
 }
 
 export function FormatSelector({ onFormatsChange, onLengthChange }: FormatSelectorProps) {
+  const t = useTranslation();
   const [selectedFormats, setSelectedFormats] = useState<NoteFormat[]>([]);
   const [selectedLength, setSelectedLength] = useState<NoteLength>("medium");
+
+  const formatOptions: FormatOption[] = [
+    {
+      id: "bullet-points",
+      label: t.formatSelector.bulletPoints,
+      description: t.formatSelector.bulletPointsDesc,
+      icon: List,
+    },
+    {
+      id: "sentences",
+      label: t.formatSelector.sentences,
+      description: t.formatSelector.sentencesDesc,
+      icon: AlignLeft,
+    },
+    {
+      id: "cornell",
+      label: t.formatSelector.cornellNotes,
+      description: t.formatSelector.cornellNotesDesc,
+      icon: LayoutGrid,
+    },
+    {
+      id: "outline",
+      label: t.formatSelector.outline,
+      description: t.formatSelector.outlineDesc,
+      icon: ListOrdered,
+    },
+    {
+      id: "key-concepts",
+      label: t.formatSelector.keyConcepts,
+      description: t.formatSelector.keyConceptsDesc,
+      icon: Key,
+    },
+    {
+      id: "summary",
+      label: t.formatSelector.summary,
+      description: t.formatSelector.summaryDesc,
+      icon: FileText,
+    },
+    {
+      id: "timeline",
+      label: t.formatSelector.timeline,
+      description: t.formatSelector.timelineDesc,
+      icon: Clock,
+    },
+    {
+      id: "qa-format",
+      label: t.formatSelector.qaFormat,
+      description: t.formatSelector.qaFormatDesc,
+      icon: HelpCircle,
+    },
+  ];
+
+  const lengthOptions: { id: NoteLength; label: string; description: string }[] = [
+    {
+      id: "short",
+      label: t.formatSelector.short,
+      description: t.formatSelector.shortDesc,
+    },
+    {
+      id: "medium",
+      label: t.formatSelector.medium,
+      description: t.formatSelector.mediumDesc,
+    },
+    {
+      id: "long",
+      label: t.formatSelector.long,
+      description: t.formatSelector.longDesc,
+    },
+  ];
 
   const toggleFormat = (formatId: NoteFormat) => {
     const updated = selectedFormats.includes(formatId)
@@ -120,10 +122,10 @@ export function FormatSelector({ onFormatsChange, onLengthChange }: FormatSelect
       {/* Note length selection */}
       <div>
         <h3 className="text-lg font-semibold text-foreground">
-          Note Length
+          {t.formatSelector.noteLength}
         </h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Choose how detailed your notes should be
+          {t.formatSelector.lengthDesc}
         </p>
         <div className="grid grid-cols-3 gap-3 mt-3">
           {lengthOptions.map((option) => {
@@ -166,10 +168,10 @@ export function FormatSelector({ onFormatsChange, onLengthChange }: FormatSelect
       {/* Note format selection */}
       <div>
         <h3 className="text-lg font-semibold text-foreground">
-          Choose Note Format
+          {t.formatSelector.chooseFormat}
         </h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Select one or more formats — AI will blend them intelligently
+          {t.formatSelector.formatDesc}
         </p>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">

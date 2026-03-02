@@ -273,7 +273,7 @@ function transcribeLargeFile(file: File) {
 
 // ── Duration check ────────────────────────────────────────────────────────────
 
-const MAX_DIRECT_DURATION_SECS = 480; // 8 min – chunk anything longer
+const MAX_DIRECT_DURATION_SECS = 300; // 5 min – chunk anything longer
 
 /** Get audio duration in seconds using ffmpeg. Returns null if undetectable. */
 async function getAudioDuration(filePath: string): Promise<number | null> {
@@ -304,31 +304,41 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // For files under the size limit, also check duration.
-    // Long but small files (e.g. 1hr compressed audio < 24MB) need chunking too.
-    if (file.size <= MAX_DIRECT_SIZE) {
+    // Always check duration when possible. Long but small files (e.g. 1hr
+    // compressed audio < 24MB) need chunking too.
+    const buf = await file.arrayBuffer();
+    let needsChunking = file.size > MAX_DIRECT_SIZE;
+
+    if (!needsChunking) {
       try {
         const tempDir = join(tmpdir(), `dur-check-${Date.now()}`);
         await mkdir(tempDir, { recursive: true });
         const tempPath = join(tempDir, "input");
-        const buf = await file.arrayBuffer();
         await writeFile(tempPath, Buffer.from(buf));
         const duration = await getAudioDuration(tempPath);
         await rm(tempDir, { recursive: true, force: true }).catch(() => {});
 
         if (duration !== null && duration > MAX_DIRECT_DURATION_SECS) {
-          // File is small but long — use the chunking pipeline
-          const freshFile = new File([buf], file.name, { type: file.type });
-          return transcribeLargeFile(freshFile);
+          needsChunking = true;
         }
       } catch {
-        // If duration check fails, fall through to direct transcription
+        // ffmpeg not available – use size-based heuristic.
+        // Compressed audio at ~32kbps can fit ~1hr in ~15MB, so if file
+        // is > 5MB it's likely over 5 minutes and should be chunked.
+        if (file.size > 5 * 1024 * 1024) {
+          needsChunking = true;
+        }
       }
-
-      return transcribeSmallFile(file);
     }
 
-    return transcribeLargeFile(file);
+    if (needsChunking) {
+      const freshFile = new File([buf], file.name, { type: file.type });
+      return transcribeLargeFile(freshFile);
+    }
+
+    // Small + short file — direct transcription
+    const smallFile = new File([buf], file.name, { type: file.type });
+    return transcribeSmallFile(smallFile);
   } catch (error) {
     console.error("Transcription error:", error);
     return Response.json(

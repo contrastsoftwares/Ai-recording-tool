@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -13,24 +13,70 @@ import {
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
+  Globe,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { useTranslation } from "@/lib/i18n";
+import { useTranslation, useLanguage } from "@/lib/i18n";
+import type { Language } from "@/lib/i18n";
+import { useNotesStore } from "@/stores/notes-store";
+
+const languageOptions: { key: Language; label: string }[] = [
+  { key: "english", label: "English" },
+  { key: "spanish", label: "Espanol" },
+  { key: "french", label: "Francais" },
+  { key: "german", label: "Deutsch" },
+  { key: "chinese", label: "\u4E2D\u6587" },
+  { key: "japanese", label: "\u65E5\u672C\u8A9E" },
+  { key: "korean", label: "\uD55C\uAD6D\uC5B4" },
+];
 
 const navIcons = [
   { key: "dashboard" as const, href: "/dashboard", icon: LayoutDashboard },
   { key: "myNotes" as const, href: "/notes", icon: FileText },
   { key: "photoSolver" as const, href: "/photo-solver", icon: Camera },
-  { key: "audioRecorder" as const, href: "/recorder", icon: Mic },
-  { key: "screenRecording" as const, href: "/screen-recording", icon: Monitor },
+  { key: "audioRecorder" as const, href: "/recorder?tab=audio", icon: Mic },
+  { key: "screenRecording" as const, href: "/recorder?tab=screen", icon: Monitor },
   { key: "settings" as const, href: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+  const langDropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const t = useTranslation();
+  const [currentLang, setLang] = useLanguage();
+  const notes = useNotesStore((s) => s.notes);
+
+  const recentNotes = useMemo(
+    () =>
+      [...notes]
+        .sort((a, b) => {
+          const aTime = new Date(a.lastAccessedAt || a.updatedAt || a.createdAt).getTime();
+          const bTime = new Date(b.lastAccessedAt || b.updatedAt || b.createdAt).getTime();
+          return bTime - aTime;
+        })
+        .slice(0, 5),
+    [notes]
+  );
+
+  const currentLangLabel =
+    languageOptions.find((l) => l.key === currentLang)?.label || "English";
+
+  // Close language dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (langDropdownRef.current && !langDropdownRef.current.contains(e.target as Node)) {
+        setLangDropdownOpen(false);
+      }
+    }
+    if (langDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [langDropdownOpen]);
 
   return (
     <aside
@@ -71,8 +117,9 @@ export function AppSidebar() {
       <nav className="flex-1 overflow-y-auto px-3 py-4 scrollbar-thin">
         <ul className="flex flex-col gap-1">
           {navIcons.map((item) => {
+            const hrefPath = item.href.split("?")[0];
             const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
+              pathname === hrefPath || pathname.startsWith(hrefPath + "/");
             const Icon = item.icon;
             const label = t.nav[item.key];
 
@@ -99,9 +146,88 @@ export function AppSidebar() {
         </ul>
       </nav>
 
+      {/* Recent Notes */}
+      {!collapsed && recentNotes.length > 0 && (
+        <div className="px-3 pb-2 border-t border-sidebar-border pt-3">
+          <div className="flex items-center gap-1.5 px-3 mb-2">
+            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Recent
+            </span>
+          </div>
+          <ul className="flex flex-col gap-0.5">
+            {recentNotes.map((note) => (
+              <li key={note.id}>
+                <Link
+                  href={`/notes/${note.id}`}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm",
+                    "text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
+                    pathname === `/notes/${note.id}` && "bg-primary/10 text-primary"
+                  )}
+                  title={note.title}
+                >
+                  <FileText className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">
+                    {note.title.length > 24
+                      ? note.title.slice(0, 24) + "..."
+                      : note.title}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Bottom section */}
       <div className="border-t border-sidebar-border px-3 py-3 space-y-1">
         <ThemeToggle collapsed={collapsed} />
+
+        {/* Language switcher */}
+        <div className="relative" ref={langDropdownRef}>
+          <button
+            onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium w-full",
+              "text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
+              collapsed && "justify-center px-0"
+            )}
+            title={collapsed ? currentLangLabel : undefined}
+            aria-label="Change language"
+          >
+            <Globe className="h-5 w-5 shrink-0" />
+            {!collapsed && <span className="truncate">{currentLangLabel}</span>}
+          </button>
+
+          {langDropdownOpen && (
+            <div
+              className={cn(
+                "absolute z-50 rounded-lg border border-border bg-popover shadow-md py-1",
+                collapsed ? "left-full ml-2 bottom-0" : "bottom-full mb-1 left-0 right-0"
+              )}
+            >
+              {languageOptions.map((lang) => (
+                <button
+                  key={lang.key}
+                  onClick={() => {
+                    setLang(lang.key);
+                    setLangDropdownOpen(false);
+                  }}
+                  className={cn(
+                    "flex items-center w-full px-3 py-2 text-sm transition-colors",
+                    "hover:bg-accent hover:text-accent-foreground",
+                    currentLang === lang.key
+                      ? "text-primary font-medium"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <button
           onClick={() => setCollapsed(!collapsed)}

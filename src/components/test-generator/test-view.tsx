@@ -19,8 +19,10 @@ import {
   ListChecks,
   Zap,
   RefreshCw,
+  X,
 } from "lucide-react";
 import { formatDuration } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 interface TestViewProps {
   noteId: string;
@@ -51,6 +53,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export function TestView({ noteId, noteContent }: TestViewProps) {
+  const t = useTranslation();
   // Persist test data in localStorage
   const [test, setTest] = useState<TestData | null>(() => {
     if (typeof window === "undefined") return null;
@@ -93,41 +96,45 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
       return shuffle(test.questions);
     }
 
-    // Quick quiz: exclude short-answer, pick ~30% with 70-80% new + 20-30% old, scrambled
+    // Quick quiz: exclude short-answer, pick ~30% with weighted selection, scrambled
     const nonShortAnswer = test.questions.filter((q) => q.type !== "short-answer");
     const quizSize = Math.max(5, Math.min(10, Math.ceil(nonShortAnswer.length * 0.3)));
 
-    // Get previous quiz question IDs from localStorage
-    let prevQuizIds: Set<string>;
+    // Load question frequency data from localStorage for weighted selection
+    let questionFreq: Record<string, number> = {};
     try {
-      prevQuizIds = new Set<string>(
-        JSON.parse(localStorage.getItem(`prev-quiz-ids-${noteId}`) || "[]")
-      );
+      questionFreq = JSON.parse(localStorage.getItem(`question-freq-${noteId}`) || "{}");
     } catch {
-      prevQuizIds = new Set();
+      questionFreq = {};
     }
 
-    const newPool = nonShortAnswer.filter((q) => !prevQuizIds.has(q.id));
-    const oldPool = nonShortAnswer.filter((q) => prevQuizIds.has(q.id));
+    // Weighted selection: sort by frequency (ascending) so least-shown questions come first
+    // Add jitter to break ties randomly
+    const sortedByFreq = [...nonShortAnswer].sort((a, b) => {
+      const freqA = questionFreq[a.id] || 0;
+      const freqB = questionFreq[b.id] || 0;
+      if (freqA !== freqB) return freqA - freqB;
+      return Math.random() - 0.5; // random tie-breaking
+    });
 
-    const newCount = Math.ceil(quizSize * 0.75); // ~75% new
-    const oldCount = quizSize - newCount; // ~25% old
-
-    const picked: TestQuestion[] = [];
-    picked.push(...shuffle(newPool).slice(0, newCount));
-    picked.push(...shuffle(oldPool).slice(0, oldCount));
-
-    // Fill remaining slots if either pool was too small
-    while (picked.length < quizSize && picked.length < nonShortAnswer.length) {
-      const usedIds = new Set(picked.map((p) => p.id));
-      const remaining = nonShortAnswer.filter((q) => !usedIds.has(q.id));
-      if (remaining.length === 0) break;
-      picked.push(remaining[Math.floor(Math.random() * remaining.length)]);
-    }
+    // Pick the least-shown questions up to quizSize
+    const picked = sortedByFreq.slice(0, quizSize);
 
     return shuffle(picked);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [test, testMode, quizVersion]);
+
+  // Shuffle MCQ options for each question (stable per quiz version)
+  const shuffledOptionsMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const q of activeQuestions) {
+      if (q.type === "multiple-choice" && q.options) {
+        map[q.id] = shuffle(q.options);
+      }
+    }
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeQuestions]);
 
   const handleGenerate = useCallback(async () => {
     if (!noteContent) return;
@@ -190,9 +197,22 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     setTestState("taking");
   }, []);
 
-  // Save quiz question IDs when taking a quick quiz (for 70-80/20-30 split)
+  // Update question frequency tracking when taking a quick quiz
   useEffect(() => {
     if (testState === "taking" && testMode === "short" && activeQuestions.length > 0) {
+      // Update frequency counts
+      let questionFreq: Record<string, number> = {};
+      try {
+        questionFreq = JSON.parse(localStorage.getItem(`question-freq-${noteId}`) || "{}");
+      } catch {
+        questionFreq = {};
+      }
+      for (const q of activeQuestions) {
+        questionFreq[q.id] = (questionFreq[q.id] || 0) + 1;
+      }
+      localStorage.setItem(`question-freq-${noteId}`, JSON.stringify(questionFreq));
+
+      // Also save prev quiz IDs for backward compat
       localStorage.setItem(
         `prev-quiz-ids-${noteId}`,
         JSON.stringify(activeQuestions.map((q) => q.id))
@@ -233,7 +253,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
           grades[question.id] = grade;
           setAiGrades((prev) => ({ ...prev, [question.id]: grade }));
         } catch {
-          grades[question.id] = { score: "incorrect", feedback: "Unable to grade this answer. Please review manually." };
+          grades[question.id] = { score: "incorrect", feedback: t.test.unableToGrade };
           setAiGrades((prev) => ({
             ...prev,
             [question.id]: grades[question.id],
@@ -261,6 +281,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     setElapsedSeconds(0);
     setScore(null);
     setAiGrades({});
+    setQuizVersion((v) => v + 1);
     setTestState("taking");
   }
 
@@ -275,12 +296,12 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
         </div>
         <div className="text-center space-y-2">
           <h3 className="text-lg font-semibold text-foreground">
-            {isGenerating ? "Generating practice test..." : "No Practice Test Yet"}
+            {isGenerating ? t.test.generating : t.test.noPracticeTest}
           </h3>
           <p className="text-sm text-muted-foreground max-w-sm">
             {isGenerating
-              ? "AI is creating a comprehensive test from your content. This may take a moment."
-              : "Generate a practice test to start testing your knowledge."}
+              ? t.test.generatingDesc
+              : t.test.generateDesc}
           </p>
         </div>
         {generateError && <p className="text-sm text-destructive">{generateError}</p>}
@@ -289,7 +310,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
         ) : (
           <Button className="gap-2" onClick={handleGenerate} disabled={!noteContent}>
             <Sparkles className="h-4 w-4" />
-            Generate Practice Test
+            {t.test.generate}
           </Button>
         )}
       </div>
@@ -303,7 +324,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
         <div className="text-center space-y-2">
           <h3 className="text-xl font-bold text-foreground">{test.title}</h3>
           <p className="text-sm text-muted-foreground">
-            {test.questions.length} questions generated. Choose your test mode.
+            {`${test.questions.length} ${t.test.questionsGenerated}`}
           </p>
         </div>
 
@@ -318,35 +339,49 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
               <ListChecks className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="text-base font-semibold text-foreground">Full Test</p>
+              <p className="text-base font-semibold text-foreground">{t.test.fullTest}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                All {test.questions.length} questions
+                {`${t.test.allQuestions} (${test.questions.length})`}
               </p>
               <p className="text-xs text-muted-foreground">
-                Comprehensive coverage
+                {t.test.comprehensive}
               </p>
             </div>
           </button>
 
           {/* Short Test */}
-          <button
-            type="button"
-            onClick={() => startTest("short")}
-            className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 hover:border-primary/50 hover:bg-primary/5 transition-all text-center"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10">
-              <Zap className="h-6 w-6 text-amber-500" />
-            </div>
-            <div>
-              <p className="text-base font-semibold text-foreground">Quick Quiz</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {Math.max(5, Math.min(10, Math.ceil(test.questions.filter((q) => q.type !== "short-answer").length * 0.3)))} questions
-              </p>
-              <p className="text-xs text-muted-foreground">
-                New mix each time
-              </p>
-            </div>
-          </button>
+          <div className="flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={() => startTest("short")}
+              className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 hover:border-primary/50 hover:bg-primary/5 transition-all text-center w-full"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10">
+                <Zap className="h-6 w-6 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-base font-semibold text-foreground">{t.test.quickQuiz}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {Math.max(5, Math.min(10, Math.ceil(test.questions.filter((q) => q.type !== "short-answer").length * 0.3)))} {t.test.allQuestions}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t.test.newMix}
+                </p>
+              </div>
+            </button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                setQuizVersion((v) => v + 1);
+                startTest("short");
+              }}
+            >
+              <RefreshCw className="h-3 w-3" />
+              {t.test.retake}
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -363,16 +398,20 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
         <div className="mb-4 text-center">
           <h2 className="text-xl font-bold text-foreground">{test.title}</h2>
           <div className="flex items-center justify-center gap-2 mt-1">
-            <p className="text-sm text-muted-foreground">Completed in {formatDuration(elapsedSeconds)}</p>
+            <p className="text-sm text-muted-foreground">{t.test.completedIn} {formatDuration(elapsedSeconds)}</p>
             <Badge variant="secondary" className="text-xs">
-              {testMode === "full" ? "Full Test" : "Quick Quiz"}
+              {testMode === "full" ? t.test.fullTest : t.test.quickQuiz}
             </Badge>
           </div>
         </div>
         <TestResults score={score} onRetake={handleRetake} onReview={handleReview} />
         <div className="flex justify-center gap-3 mt-4">
           <Button variant="outline" className="gap-2" onClick={() => setTestState("choosing")}>
-            Choose Different Mode
+            {t.test.chooseDifferentMode}
+          </Button>
+          <Button className="gap-2" onClick={handleRetake}>
+            <RefreshCw className="h-4 w-4" />
+            {t.test.retakeQuiz}
           </Button>
         </div>
       </div>
@@ -410,14 +449,14 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
               <h2 className="text-base font-bold text-foreground">{test.title}</h2>
               <div className="flex items-center gap-3 mt-0.5">
                 <Badge variant="secondary" className="text-xs">
-                  {testMode === "full" ? "Full Test" : "Quick Quiz"}
+                  {testMode === "full" ? t.test.fullTest : t.test.quickQuiz}
                 </Badge>
                 {testState === "review" ? (
-                  <Badge variant="secondary" className="text-xs">Review Mode</Badge>
+                  <Badge variant="secondary" className="text-xs">{t.test.reviewMode}</Badge>
                 ) : (
                   <>
                     <span className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3.5 w-3.5" />{formatDuration(elapsedSeconds)}</span>
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground"><CheckSquare className="h-3.5 w-3.5" />{answeredCount} / {totalQuestions} answered</span>
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground"><CheckSquare className="h-3.5 w-3.5" />{answeredCount} / {totalQuestions} {t.test.answered}</span>
                   </>
                 )}
               </div>
@@ -426,14 +465,23 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
           <div className="flex items-center gap-2">
             {testState === "taking" && (
               <Button onClick={handleSubmit} disabled={!allAnswered} className="gap-2" size="sm">
-                <CheckSquare className="h-4 w-4" />Submit Test
+                <CheckSquare className="h-4 w-4" />{t.test.submitTest}
               </Button>
             )}
             {testState === "review" && (
               <Button variant="outline" size="sm" className="gap-2" onClick={() => setTestState("choosing")}>
-                Back to Modes
+                {t.test.backToModes}
               </Button>
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              onClick={() => setTestState("choosing")}
+              title={t.test.exitQuiz}
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
@@ -447,7 +495,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
                   state === "answered" && "bg-primary text-primary-foreground",
                   state === "correct" && "bg-success text-success-foreground",
                   state === "incorrect" && "bg-destructive text-destructive-foreground"
-                )} title={`Question ${index + 1}`}>{index + 1}</button>
+                )} title={`${t.test.question} ${index + 1}`}>{index + 1}</button>
             );
           })}
         </div>
@@ -461,7 +509,12 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
         {activeQuestions.map((question, index) => (
           <div key={question.id} ref={(el) => { if (el) questionRefs.current.set(question.id, el); }}>
             <QuestionCard
-              question={{ ...question, userAnswer: answers[question.id], aiGrade: aiGrades[question.id] }}
+              question={{
+                ...question,
+                options: shuffledOptionsMap[question.id] || question.options,
+                userAnswer: answers[question.id],
+                aiGrade: aiGrades[question.id],
+              }}
               index={index}
               onAnswer={handleAnswer}
               showResult={testState === "review"}
@@ -473,7 +526,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
       {testState === "taking" && (
         <div className={cn("flex justify-center pb-4", !allAnswered && "opacity-50")}>
           <Button onClick={handleSubmit} disabled={!allAnswered} size="lg" className="gap-2 px-8">
-            <CheckSquare className="h-4 w-4" />Submit Test
+            <CheckSquare className="h-4 w-4" />{t.test.submitTest}
           </Button>
         </div>
       )}

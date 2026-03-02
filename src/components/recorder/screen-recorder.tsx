@@ -198,7 +198,7 @@ export function ScreenRecorder() {
         <div className="flex w-full items-center gap-3 rounded-lg border border-primary/50 bg-primary/10 px-4 py-3">
           <AlertTriangle className="h-5 w-5 shrink-0 text-primary" />
           <p className="text-sm text-foreground">
-            {t.screenRecorder.audioWarning} <span className="font-semibold">&quot;{t.screenRecorder.shareAudio}&quot;</span> when sharing, or your recording may have no sound.
+            {t.screenRecorder.audioWarning} <span className="font-semibold">&quot;{t.screenRecorder.shareAudio}&quot;</span>
           </p>
         </div>
       )}

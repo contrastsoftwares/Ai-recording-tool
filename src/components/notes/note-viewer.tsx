@@ -29,7 +29,7 @@ export function renderInlineFormatting(text: string): React.ReactNode {
     }
     if (match[1]) {
       parts.push(
-        <strong key={match.index} className="font-semibold text-foreground">
+        <strong key={match.index} className="font-bold text-foreground bg-primary/5 px-0.5 rounded">
           {match[2]}
         </strong>
       );
@@ -212,6 +212,21 @@ export function NoteViewer({ content, formats }: NoteViewerProps) {
           <Tag key={`h-${i}`} className={classes[level]} data-heading-id={headingId}>
             {text}
           </Tag>
+        );
+        continue;
+      }
+
+      // Blockquotes
+      if (trimmed.startsWith("> ")) {
+        flushList();
+        flushOrderedList();
+        const quoteText = trimmed.slice(2);
+        elements.push(
+          <blockquote key={`bq-${i}`} className="my-3 border-l-4 border-primary/40 bg-primary/5 px-4 py-2.5 rounded-r-lg">
+            <p className="text-sm text-foreground/90 leading-relaxed italic">
+              {renderInlineFormatting(quoteText)}
+            </p>
+          </blockquote>
         );
         continue;
       }

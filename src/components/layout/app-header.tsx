@@ -23,7 +23,6 @@ export function AppHeader() {
     "/notes": t.nav.myNotes,
     "/photo-solver": t.nav.photoSolver,
     "/recorder": t.nav.audioRecorder,
-    "/screen-recording": t.nav.screenRecording,
     "/settings": t.nav.settings,
   };
 

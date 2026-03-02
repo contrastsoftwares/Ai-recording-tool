@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -39,6 +40,7 @@ interface UploadZoneProps {
 
 export function UploadZone({ onFileSelected, onUrlSubmitted }: UploadZoneProps) {
   const router = useRouter();
+  const t = useTranslation();
   const [isDragging, setIsDragging] = useState(false);
   const [activeMethod, setActiveMethod] = useState<InputMethod>("file");
   const [urlValue, setUrlValue] = useState("");
@@ -91,9 +93,9 @@ export function UploadZone({ onFileSelected, onUrlSubmitted }: UploadZoneProps) 
   }, [urlValue, onUrlSubmitted]);
 
   const inputMethods: { id: InputMethod; label: string; icon: React.ElementType }[] = [
-    { id: "file", label: "File Upload", icon: Upload },
-    { id: "url", label: "Paste URL", icon: Link2 },
-    { id: "record", label: "Record", icon: Mic },
+    { id: "file", label: t.uploadZone.fileUpload, icon: Upload },
+    { id: "url", label: t.uploadZone.pasteUrl, icon: Link2 },
+    { id: "record", label: t.uploadZone.record, icon: Mic },
   ];
 
   return (
@@ -179,10 +181,10 @@ export function UploadZone({ onFileSelected, onUrlSubmitted }: UploadZoneProps) 
                 />
               </div>
               <p className="text-base font-medium text-foreground mb-1">
-                {isDragging ? "Drop your files here" : "Drop files here or click to browse"}
+                {isDragging ? t.uploadZone.dropHere : t.uploadZone.dropOrClick}
               </p>
               <p className="text-sm text-muted-foreground">
-                Videos, PDFs, Audio, Documents, Images
+                {t.uploadZone.supportedFormats}
               </p>
             </div>
           )}
@@ -196,12 +198,12 @@ export function UploadZone({ onFileSelected, onUrlSubmitted }: UploadZoneProps) 
             <Link2 className="h-8 w-8 text-muted-foreground" />
           </div>
           <p className="text-center text-sm text-muted-foreground">
-            Paste a YouTube link, article URL, or any web page
+            {t.uploadZone.urlDesc}
           </p>
           <div className="flex gap-2">
             <Input
               type="url"
-              placeholder="https://youtube.com/watch?v=..."
+              placeholder={t.uploadZone.urlPlaceholder}
               value={urlValue}
               onChange={(e) => setUrlValue(e.target.value)}
               onKeyDown={(e) => {
@@ -212,7 +214,7 @@ export function UploadZone({ onFileSelected, onUrlSubmitted }: UploadZoneProps) 
               className="flex-1"
             />
             <Button disabled={!urlValue.trim()} onClick={handleUrlGenerate}>
-              Generate
+              {t.uploadZone.generate}
             </Button>
           </div>
         </div>
@@ -227,16 +229,16 @@ export function UploadZone({ onFileSelected, onUrlSubmitted }: UploadZoneProps) 
             </div>
             <div>
               <p className="text-base font-medium text-foreground mb-1">
-                Record audio or screen
+                {t.uploadZone.recordDesc}
               </p>
               <p className="text-sm text-muted-foreground">
-                Capture a lecture, meeting, or screen recording
+                {t.uploadZone.recordSubDesc}
               </p>
             </div>
             <Link href="/recorder">
               <Button>
                 <Mic className="h-4 w-4 mr-2" />
-                Open Recorder
+                {t.uploadZone.openRecorder}
               </Button>
             </Link>
           </div>

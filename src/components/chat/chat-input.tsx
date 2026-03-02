@@ -10,20 +10,21 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 
 interface ChatInputProps {
   onSubmit: (message: string) => void;
   disabled?: boolean;
 }
 
-const quickActions = [
-  { label: "Generate Flashcards", icon: Layers },
-  { label: "Create Practice Test", icon: ClipboardCheck },
-  { label: "Summarize", icon: FileText },
-  { label: "Explain Further", icon: HelpCircle },
-];
-
 export function ChatInput({ onSubmit, disabled }: ChatInputProps) {
+  const t = useTranslation();
+  const quickActions = [
+    { label: t.chat.generateFlashcards, icon: Layers },
+    { label: t.chat.createPracticeTest, icon: ClipboardCheck },
+    { label: t.chat.summarize, icon: FileText },
+    { label: t.chat.explainFurther, icon: HelpCircle },
+  ];
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -84,7 +85,7 @@ export function ChatInput({ onSubmit, disabled }: ChatInputProps) {
           value={input}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
-          placeholder="Ask about your notes..."
+          placeholder={t.chat.askPlaceholder}
           rows={1}
           className={cn(
             "flex-1 resize-none rounded-xl border border-border bg-muted/50 px-4 py-2.5",

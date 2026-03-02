@@ -17,8 +17,8 @@ const navIcons = [
   { key: "home" as const, href: "/dashboard", icon: LayoutDashboard },
   { key: "notes" as const, href: "/notes", icon: FileText },
   { key: "photo" as const, href: "/photo-solver", icon: Camera },
-  { key: "audio" as const, href: "/recorder", icon: Mic },
-  { key: "screen" as const, href: "/screen-recording", icon: Monitor },
+  { key: "audio" as const, href: "/recorder?tab=audio", icon: Mic },
+  { key: "screen" as const, href: "/recorder?tab=screen", icon: Monitor },
   { key: "settings" as const, href: "/settings", icon: Settings },
 ];
 
@@ -36,8 +36,9 @@ export function MobileNav() {
     >
       <div className="flex w-full items-center justify-around px-1 pb-[env(safe-area-inset-bottom)]">
         {navIcons.map((item) => {
+          const hrefPath = item.href.split("?")[0];
           const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+            pathname === hrefPath || pathname.startsWith(hrefPath + "/");
           const Icon = item.icon;
           const label = t.nav[item.key];
 

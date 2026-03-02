@@ -44,6 +44,7 @@ function NewNoteContent() {
   const [error, setError] = useState<string | null>(null);
   const [selectedFormats, setSelectedFormats] = useState<NoteFormat[]>([]);
   const [selectedLength, setSelectedLength] = useState<NoteLength>("medium");
+  const [customTitle, setCustomTitle] = useState("");
 
   // Read language preference from settings
   const getLanguage = () => {
@@ -211,7 +212,7 @@ function NewNoteContent() {
       // Store raw content; transcript is generated on-demand from the Transcript tab
       const newNote: Note = {
         id: `note-${Date.now()}`,
-        title: notesResult.title || title || "Untitled Notes",
+        title: customTitle.trim() || notesResult.title || title || "Untitled Notes",
         content: notesResult.content,
         formats: selectedFormats,
         sourceType,
@@ -357,6 +358,23 @@ function NewNoteContent() {
               <p className="text-sm text-foreground">
                 <span className="font-medium">{t.newNote.source} </span>
                 {selectedFile ? selectedFile.name : selectedUrl}
+              </p>
+            </div>
+
+            {/* Note title input */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                {t.newNote.noteTitle}
+              </label>
+              <input
+                type="text"
+                value={customTitle}
+                onChange={(e) => setCustomTitle(e.target.value)}
+                placeholder={t.newNote.noteTitlePlaceholder}
+                className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <p className="text-xs text-muted-foreground">
+                {t.newNote.noteTitleDesc}
               </p>
             </div>
 

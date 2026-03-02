@@ -15,7 +15,8 @@ export function RecentNotes() {
       [...notes]
         .sort(
           (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            new Date(b.lastAccessedAt || b.createdAt).getTime() -
+            new Date(a.lastAccessedAt || a.createdAt).getTime()
         )
         .slice(0, 6),
     [notes]

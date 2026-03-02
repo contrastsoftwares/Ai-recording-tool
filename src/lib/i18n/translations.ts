@@ -102,6 +102,145 @@ export interface Translations {
     backToDashboard: string;
     addToFavorites: string;
     removeFromFavorites: string;
+    view: string;
+    edit: string;
+    loadingEditor: string;
+    lastAccessed: string;
+  };
+  // Chat
+  chat: {
+    askPlaceholder: string;
+    generateFlashcards: string;
+    createPracticeTest: string;
+    summarize: string;
+    explainFurther: string;
+    suggestSummarize: string;
+    suggestExplain: string;
+    suggestExamQuestions: string;
+    suggestStudyPlan: string;
+    welcome: string;
+    welcomeSub: string;
+    thinking: string;
+    error: string;
+  };
+  // Flashcards
+  flashcards: {
+    generating: string;
+    noFlashcardsYet: string;
+    generatingDesc: string;
+    generateDesc: string;
+    generate: string;
+    noTroubleCards: string;
+    noTroubleDesc: string;
+    showAllCards: string;
+    title: string;
+    troubleCount: string;
+    showAll: string;
+    troubleOnly: string;
+    troubleCards: string;
+    markedAsTrouble: string;
+    markAsTrouble: string;
+    flip: string;
+    spaceToFlip: string;
+    arrowsToNavigate: string;
+    tForTrouble: string;
+  };
+  // Test/Quiz
+  test: {
+    generating: string;
+    noPracticeTest: string;
+    generatingDesc: string;
+    generateDesc: string;
+    generate: string;
+    questionsGenerated: string;
+    fullTest: string;
+    allQuestions: string;
+    comprehensive: string;
+    quickQuiz: string;
+    newMix: string;
+    retake: string;
+    completedIn: string;
+    chooseDifferentMode: string;
+    retakeQuiz: string;
+    reviewMode: string;
+    answered: string;
+    submitTest: string;
+    backToModes: string;
+    exitQuiz: string;
+    question: string;
+    unableToGrade: string;
+  };
+  // Transcript
+  transcript: {
+    generating: string;
+    title: string;
+    generateDesc: string;
+    generate: string;
+    noContent: string;
+    failed: string;
+    searchPlaceholder: string;
+    noMatching: string;
+    noTranscript: string;
+  };
+  // Format selector
+  formatSelector: {
+    noteLength: string;
+    lengthDesc: string;
+    short: string;
+    shortDesc: string;
+    medium: string;
+    mediumDesc: string;
+    long: string;
+    longDesc: string;
+    chooseFormat: string;
+    formatDesc: string;
+    bulletPoints: string;
+    bulletPointsDesc: string;
+    sentences: string;
+    sentencesDesc: string;
+    cornellNotes: string;
+    cornellNotesDesc: string;
+    outline: string;
+    outlineDesc: string;
+    keyConcepts: string;
+    keyConceptsDesc: string;
+    summary: string;
+    summaryDesc: string;
+    timeline: string;
+    timelineDesc: string;
+    qaFormat: string;
+    qaFormatDesc: string;
+  };
+  // Upload zone
+  uploadZone: {
+    fileUpload: string;
+    pasteUrl: string;
+    record: string;
+    dropOrClick: string;
+    dropHere: string;
+    supportedFormats: string;
+    urlDesc: string;
+    urlPlaceholder: string;
+    generate: string;
+    recordDesc: string;
+    recordSubDesc: string;
+    openRecorder: string;
+  };
+  // Language names
+  languageNames: {
+    english: string;
+    spanish: string;
+    french: string;
+    german: string;
+    chinese: string;
+    japanese: string;
+    korean: string;
+  };
+  // Confirm dialog
+  confirmDialog: {
+    deleteTitle: string;
+    deleteDescription: string;
+    confirm: string;
   };
   // Create new note
   newNote: {
@@ -125,6 +264,9 @@ export interface Translations {
     readingDocument: string;
     generatingAiNotes: string;
     finalizingNotes: string;
+    noteTitle: string;
+    noteTitlePlaceholder: string;
+    noteTitleDesc: string;
   };
   // Settings
   settings: {
@@ -217,7 +359,7 @@ const en: Translations = {
     myNotes: "My Notes",
     photoSolver: "Photo Solver",
     audioRecorder: "Audio Recorder",
-    screenRecording: "Screen Recording",
+    screenRecording: "Screen Recorder",
     settings: "Settings",
     home: "Home",
     notes: "Notes",
@@ -307,6 +449,137 @@ const en: Translations = {
     backToDashboard: "Back to Dashboard",
     addToFavorites: "Add to favorites",
     removeFromFavorites: "Remove from favorites",
+    view: "View",
+    edit: "Edit",
+    loadingEditor: "Loading editor...",
+    lastAccessed: "Last accessed",
+  },
+  chat: {
+    askPlaceholder: "Ask about your notes...",
+    generateFlashcards: "Generate Flashcards",
+    createPracticeTest: "Create Practice Test",
+    summarize: "Summarize",
+    explainFurther: "Explain Further",
+    suggestSummarize: "Summarize the key points from this note",
+    suggestExplain: "Explain the most important concept",
+    suggestExamQuestions: "What are common exam questions on this topic?",
+    suggestStudyPlan: "Create a study plan for this material",
+    welcome: "Ask me anything about your notes",
+    welcomeSub: "I can summarize, explain, quiz you, or help you study. Just ask!",
+    thinking: "Thinking...",
+    error: "I apologize, but I encountered an error processing your request. Please try again.",
+  },
+  flashcards: {
+    generating: "Generating flashcards...",
+    noFlashcardsYet: "No flashcards yet",
+    generatingDesc: "AI is creating flashcards from your content. This may take a moment.",
+    generateDesc: "Generate flashcards from your content to start studying.",
+    generate: "Generate Flashcards",
+    noTroubleCards: "No trouble cards",
+    noTroubleDesc: "You haven't marked any cards as trouble yet. Mark cards you find difficult to review them here.",
+    showAllCards: "Show All Cards",
+    title: "Flashcards",
+    troubleCount: "marked as trouble",
+    showAll: "Show All",
+    troubleOnly: "Trouble Only",
+    troubleCards: "Trouble Cards",
+    markedAsTrouble: "Marked as Trouble",
+    markAsTrouble: "Mark as Trouble",
+    flip: "Flip",
+    spaceToFlip: "Space to flip",
+    arrowsToNavigate: "Arrows to navigate",
+    tForTrouble: "T for trouble",
+  },
+  test: {
+    generating: "Generating practice test...",
+    noPracticeTest: "No Practice Test Yet",
+    generatingDesc: "AI is creating a comprehensive test from your content. This may take a moment.",
+    generateDesc: "Generate a practice test to start testing your knowledge.",
+    generate: "Generate Practice Test",
+    questionsGenerated: "questions generated. Choose your test mode.",
+    fullTest: "Full Test",
+    allQuestions: "All questions",
+    comprehensive: "Comprehensive coverage",
+    quickQuiz: "Quick Quiz",
+    newMix: "New mix each time",
+    retake: "Retake",
+    completedIn: "Completed in",
+    chooseDifferentMode: "Choose Different Mode",
+    retakeQuiz: "Retake Quiz",
+    reviewMode: "Review Mode",
+    answered: "answered",
+    submitTest: "Submit Test",
+    backToModes: "Back to Modes",
+    exitQuiz: "Exit quiz",
+    question: "Question",
+    unableToGrade: "Unable to grade this answer. Please review manually.",
+  },
+  transcript: {
+    generating: "Generating transcript...",
+    title: "Transcript",
+    generateDesc: "Generate a formatted transcript view from the source content.",
+    generate: "Generate Transcript",
+    noContent: "No content available to generate transcript.",
+    failed: "Failed to generate transcript.",
+    searchPlaceholder: "Search transcript...",
+    noMatching: "No matching segments found",
+    noTranscript: "No transcript available",
+  },
+  formatSelector: {
+    noteLength: "Note Length",
+    lengthDesc: "Choose how detailed your notes should be",
+    short: "Short",
+    shortDesc: "Brief and concise notes",
+    medium: "Medium",
+    mediumDesc: "Balanced detail level",
+    long: "Long",
+    longDesc: "Full detailed notes",
+    chooseFormat: "Choose Note Format",
+    formatDesc: "Select one or more formats — AI will blend them intelligently",
+    bulletPoints: "Bullet Points",
+    bulletPointsDesc: "Concise bullet point summaries",
+    sentences: "Sentences",
+    sentencesDesc: "Full paragraph explanations",
+    cornellNotes: "Cornell Notes",
+    cornellNotesDesc: "Two-column: cues + notes + summary",
+    outline: "Outline",
+    outlineDesc: "Hierarchical numbered structure",
+    keyConcepts: "Key Concepts",
+    keyConceptsDesc: "Terms and definitions",
+    summary: "Summary",
+    summaryDesc: "Brief overview of main points",
+    timeline: "Timeline",
+    timelineDesc: "Chronological event sequence",
+    qaFormat: "Q&A Format",
+    qaFormatDesc: "Question and answer pairs",
+  },
+  uploadZone: {
+    fileUpload: "File Upload",
+    pasteUrl: "Paste URL",
+    record: "Record",
+    dropOrClick: "Drop files here or click to browse",
+    dropHere: "Drop your files here",
+    supportedFormats: "Videos, PDFs, Audio, Documents, Images",
+    urlDesc: "Paste a YouTube link, article URL, or any web page",
+    urlPlaceholder: "https://youtube.com/watch?v=...",
+    generate: "Generate",
+    recordDesc: "Record audio or screen",
+    recordSubDesc: "Capture a lecture, meeting, or screen recording",
+    openRecorder: "Open Recorder",
+  },
+  languageNames: {
+    english: "English",
+    spanish: "Spanish",
+    french: "French",
+    german: "German",
+    chinese: "Chinese",
+    japanese: "Japanese",
+    korean: "Korean",
+  },
+  confirmDialog: {
+    deleteTitle: "Delete Note",
+    deleteDescription: "Are you sure you want to delete this note? This action cannot be undone.",
+    confirm: "Delete",
   },
   newNote: {
     title: "Create New Notes",
@@ -329,6 +602,9 @@ const en: Translations = {
     readingDocument: "Reading document...",
     generatingAiNotes: "Generating AI-powered notes...",
     finalizingNotes: "Finalizing your notes...",
+    noteTitle: "Note Title",
+    noteTitlePlaceholder: "Enter a title for your notes (optional)",
+    noteTitleDesc: "Leave empty to let AI generate a title automatically.",
   },
   settings: {
     title: "Settings",
@@ -384,7 +660,7 @@ const en: Translations = {
     microphoneReady: "Microphone ready",
   },
   screenRecorder: {
-    title: "Screen Recording",
+    title: "Screen Recorder",
     subtitle: "Record your screen and generate AI-powered notes from the recording.",
     audioWarning: "Remember to check",
     shareAudio: "Share audio",
@@ -504,6 +780,137 @@ const es: Translations = {
     backToDashboard: "Volver al Panel",
     addToFavorites: "Añadir a favoritos",
     removeFromFavorites: "Quitar de favoritos",
+    view: "Ver",
+    edit: "Editar",
+    loadingEditor: "Cargando editor...",
+    lastAccessed: "Último acceso",
+  },
+  chat: {
+    askPlaceholder: "Pregunta sobre tus notas...",
+    generateFlashcards: "Generar Tarjetas",
+    createPracticeTest: "Crear Examen",
+    summarize: "Resumir",
+    explainFurther: "Explicar más",
+    suggestSummarize: "Resume los puntos clave de esta nota",
+    suggestExplain: "Explica el concepto más importante",
+    suggestExamQuestions: "¿Cuáles son las preguntas comunes de examen sobre este tema?",
+    suggestStudyPlan: "Crea un plan de estudio para este material",
+    welcome: "Pregúntame lo que quieras sobre tus notas",
+    welcomeSub: "Puedo resumir, explicar, hacer preguntas o ayudarte a estudiar. ¡Solo pregunta!",
+    thinking: "Pensando...",
+    error: "Lo siento, ocurrió un error al procesar tu solicitud. Por favor, inténtalo de nuevo.",
+  },
+  flashcards: {
+    generating: "Generando tarjetas...",
+    noFlashcardsYet: "Aún no hay tarjetas",
+    generatingDesc: "La IA está creando tarjetas de tu contenido. Esto puede tardar un momento.",
+    generateDesc: "Genera tarjetas de tu contenido para empezar a estudiar.",
+    generate: "Generar Tarjetas",
+    noTroubleCards: "Sin tarjetas difíciles",
+    noTroubleDesc: "No has marcado ninguna tarjeta como difícil. Marca las tarjetas que te resulten difíciles para revisarlas aquí.",
+    showAllCards: "Mostrar Todas",
+    title: "Tarjetas",
+    troubleCount: "marcadas como difíciles",
+    showAll: "Todas",
+    troubleOnly: "Solo Difíciles",
+    troubleCards: "Tarjetas Difíciles",
+    markedAsTrouble: "Marcada como difícil",
+    markAsTrouble: "Marcar como difícil",
+    flip: "Voltear",
+    spaceToFlip: "Espacio para voltear",
+    arrowsToNavigate: "Flechas para navegar",
+    tForTrouble: "T para difícil",
+  },
+  test: {
+    generating: "Generando examen...",
+    noPracticeTest: "Aún no hay examen",
+    generatingDesc: "La IA está creando un examen completo de tu contenido. Esto puede tardar un momento.",
+    generateDesc: "Genera un examen para poner a prueba tus conocimientos.",
+    generate: "Generar Examen",
+    questionsGenerated: "preguntas generadas. Elige tu modo de examen.",
+    fullTest: "Examen Completo",
+    allQuestions: "Todas las preguntas",
+    comprehensive: "Cobertura completa",
+    quickQuiz: "Examen Rápido",
+    newMix: "Nueva mezcla cada vez",
+    retake: "Repetir",
+    completedIn: "Completado en",
+    chooseDifferentMode: "Elegir Otro Modo",
+    retakeQuiz: "Repetir Examen",
+    reviewMode: "Modo Revisión",
+    answered: "respondidas",
+    submitTest: "Enviar Examen",
+    backToModes: "Volver a Modos",
+    exitQuiz: "Salir del examen",
+    question: "Pregunta",
+    unableToGrade: "No se pudo calificar esta respuesta. Revísala manualmente.",
+  },
+  transcript: {
+    generating: "Generando transcripción...",
+    title: "Transcripción",
+    generateDesc: "Genera una vista de transcripción formateada del contenido fuente.",
+    generate: "Generar Transcripción",
+    noContent: "No hay contenido disponible para generar transcripción.",
+    failed: "Error al generar la transcripción.",
+    searchPlaceholder: "Buscar en transcripción...",
+    noMatching: "No se encontraron segmentos",
+    noTranscript: "No hay transcripción disponible",
+  },
+  formatSelector: {
+    noteLength: "Extensión",
+    lengthDesc: "Elige qué tan detalladas deben ser tus notas",
+    short: "Corto",
+    shortDesc: "Notas breves y concisas",
+    medium: "Medio",
+    mediumDesc: "Nivel de detalle equilibrado",
+    long: "Largo",
+    longDesc: "Notas completas y detalladas",
+    chooseFormat: "Elige el Formato",
+    formatDesc: "Selecciona uno o más formatos — la IA los combinará inteligentemente",
+    bulletPoints: "Puntos Clave",
+    bulletPointsDesc: "Resúmenes en puntos concisos",
+    sentences: "Oraciones",
+    sentencesDesc: "Explicaciones en párrafos completos",
+    cornellNotes: "Notas Cornell",
+    cornellNotesDesc: "Dos columnas: pistas + notas + resumen",
+    outline: "Esquema",
+    outlineDesc: "Estructura jerárquica numerada",
+    keyConcepts: "Conceptos Clave",
+    keyConceptsDesc: "Términos y definiciones",
+    summary: "Resumen",
+    summaryDesc: "Vista general de puntos principales",
+    timeline: "Línea de Tiempo",
+    timelineDesc: "Secuencia cronológica de eventos",
+    qaFormat: "Preguntas y Respuestas",
+    qaFormatDesc: "Pares de preguntas y respuestas",
+  },
+  uploadZone: {
+    fileUpload: "Subir Archivo",
+    pasteUrl: "Pegar URL",
+    record: "Grabar",
+    dropOrClick: "Arrastra archivos aquí o haz clic para buscar",
+    dropHere: "Suelta tus archivos aquí",
+    supportedFormats: "Videos, PDFs, Audio, Documentos, Imágenes",
+    urlDesc: "Pega un enlace de YouTube, URL de artículo o cualquier página web",
+    urlPlaceholder: "https://youtube.com/watch?v=...",
+    generate: "Generar",
+    recordDesc: "Grabar audio o pantalla",
+    recordSubDesc: "Captura una clase, reunión o grabación de pantalla",
+    openRecorder: "Abrir Grabadora",
+  },
+  languageNames: {
+    english: "Inglés",
+    spanish: "Español",
+    french: "Francés",
+    german: "Alemán",
+    chinese: "Chino",
+    japanese: "Japonés",
+    korean: "Coreano",
+  },
+  confirmDialog: {
+    deleteTitle: "Eliminar Nota",
+    deleteDescription: "¿Estás seguro de que quieres eliminar esta nota? Esta acción no se puede deshacer.",
+    confirm: "Eliminar",
   },
   newNote: {
     title: "Crear Nuevas Notas",
@@ -526,6 +933,9 @@ const es: Translations = {
     readingDocument: "Leyendo documento...",
     generatingAiNotes: "Generando notas con IA...",
     finalizingNotes: "Finalizando tus notas...",
+    noteTitle: "Título de la Nota",
+    noteTitlePlaceholder: "Introduce un título para tus notas (opcional)",
+    noteTitleDesc: "Déjalo vacío para que la IA genere un título automáticamente.",
   },
   settings: {
     title: "Ajustes",
@@ -701,6 +1111,137 @@ const fr: Translations = {
     backToDashboard: "Retour au Tableau de bord",
     addToFavorites: "Ajouter aux favoris",
     removeFromFavorites: "Retirer des favoris",
+    view: "Voir",
+    edit: "Modifier",
+    loadingEditor: "Chargement de l'éditeur...",
+    lastAccessed: "Dernier accès",
+  },
+  chat: {
+    askPlaceholder: "Posez une question sur vos notes...",
+    generateFlashcards: "Générer des Cartes",
+    createPracticeTest: "Créer un Test",
+    summarize: "Résumer",
+    explainFurther: "Expliquer davantage",
+    suggestSummarize: "Résumez les points clés de cette note",
+    suggestExplain: "Expliquez le concept le plus important",
+    suggestExamQuestions: "Quelles sont les questions d'examen courantes sur ce sujet ?",
+    suggestStudyPlan: "Créez un plan d'étude pour ce matériel",
+    welcome: "Posez-moi n'importe quelle question sur vos notes",
+    welcomeSub: "Je peux résumer, expliquer, vous interroger ou vous aider à étudier. Demandez !",
+    thinking: "Réflexion...",
+    error: "Désolé, une erreur est survenue lors du traitement de votre demande. Veuillez réessayer.",
+  },
+  flashcards: {
+    generating: "Génération des cartes...",
+    noFlashcardsYet: "Pas encore de cartes",
+    generatingDesc: "L'IA crée des cartes à partir de votre contenu. Cela peut prendre un moment.",
+    generateDesc: "Générez des cartes à partir de votre contenu pour commencer à étudier.",
+    generate: "Générer des Cartes",
+    noTroubleCards: "Pas de cartes difficiles",
+    noTroubleDesc: "Vous n'avez pas encore marqué de cartes comme difficiles. Marquez les cartes difficiles pour les revoir ici.",
+    showAllCards: "Afficher Toutes",
+    title: "Cartes Mémoire",
+    troubleCount: "marquées comme difficiles",
+    showAll: "Toutes",
+    troubleOnly: "Difficiles",
+    troubleCards: "Cartes Difficiles",
+    markedAsTrouble: "Marquée comme difficile",
+    markAsTrouble: "Marquer comme difficile",
+    flip: "Retourner",
+    spaceToFlip: "Espace pour retourner",
+    arrowsToNavigate: "Flèches pour naviguer",
+    tForTrouble: "T pour difficile",
+  },
+  test: {
+    generating: "Génération du test...",
+    noPracticeTest: "Pas encore de test",
+    generatingDesc: "L'IA crée un test complet à partir de votre contenu. Cela peut prendre un moment.",
+    generateDesc: "Générez un test pour évaluer vos connaissances.",
+    generate: "Générer un Test",
+    questionsGenerated: "questions générées. Choisissez votre mode de test.",
+    fullTest: "Test Complet",
+    allQuestions: "Toutes les questions",
+    comprehensive: "Couverture complète",
+    quickQuiz: "Quiz Rapide",
+    newMix: "Nouveau mélange à chaque fois",
+    retake: "Refaire",
+    completedIn: "Terminé en",
+    chooseDifferentMode: "Choisir un Autre Mode",
+    retakeQuiz: "Refaire le Quiz",
+    reviewMode: "Mode Révision",
+    answered: "répondues",
+    submitTest: "Soumettre le Test",
+    backToModes: "Retour aux Modes",
+    exitQuiz: "Quitter le quiz",
+    question: "Question",
+    unableToGrade: "Impossible de noter cette réponse. Veuillez la vérifier manuellement.",
+  },
+  transcript: {
+    generating: "Génération de la transcription...",
+    title: "Transcription",
+    generateDesc: "Générez une transcription formatée à partir du contenu source.",
+    generate: "Générer la Transcription",
+    noContent: "Aucun contenu disponible pour générer une transcription.",
+    failed: "Échec de la génération de la transcription.",
+    searchPlaceholder: "Rechercher dans la transcription...",
+    noMatching: "Aucun segment correspondant",
+    noTranscript: "Pas de transcription disponible",
+  },
+  formatSelector: {
+    noteLength: "Longueur",
+    lengthDesc: "Choisissez le niveau de détail de vos notes",
+    short: "Court",
+    shortDesc: "Notes brèves et concises",
+    medium: "Moyen",
+    mediumDesc: "Niveau de détail équilibré",
+    long: "Long",
+    longDesc: "Notes complètes et détaillées",
+    chooseFormat: "Choisir le Format",
+    formatDesc: "Sélectionnez un ou plusieurs formats — l'IA les combinera intelligemment",
+    bulletPoints: "Points Clés",
+    bulletPointsDesc: "Résumés en puces concises",
+    sentences: "Phrases",
+    sentencesDesc: "Explications en paragraphes complets",
+    cornellNotes: "Notes Cornell",
+    cornellNotesDesc: "Deux colonnes : indices + notes + résumé",
+    outline: "Plan",
+    outlineDesc: "Structure hiérarchique numérotée",
+    keyConcepts: "Concepts Clés",
+    keyConceptsDesc: "Termes et définitions",
+    summary: "Résumé",
+    summaryDesc: "Aperçu des points principaux",
+    timeline: "Chronologie",
+    timelineDesc: "Séquence chronologique d'événements",
+    qaFormat: "Questions-Réponses",
+    qaFormatDesc: "Paires de questions et réponses",
+  },
+  uploadZone: {
+    fileUpload: "Télécharger",
+    pasteUrl: "Coller URL",
+    record: "Enregistrer",
+    dropOrClick: "Déposez les fichiers ici ou cliquez pour parcourir",
+    dropHere: "Déposez vos fichiers ici",
+    supportedFormats: "Vidéos, PDFs, Audio, Documents, Images",
+    urlDesc: "Collez un lien YouTube, une URL d'article ou n'importe quelle page web",
+    urlPlaceholder: "https://youtube.com/watch?v=...",
+    generate: "Générer",
+    recordDesc: "Enregistrer audio ou écran",
+    recordSubDesc: "Capturez un cours, une réunion ou un enregistrement d'écran",
+    openRecorder: "Ouvrir l'Enregistreur",
+  },
+  languageNames: {
+    english: "Anglais",
+    spanish: "Espagnol",
+    french: "Français",
+    german: "Allemand",
+    chinese: "Chinois",
+    japanese: "Japonais",
+    korean: "Coréen",
+  },
+  confirmDialog: {
+    deleteTitle: "Supprimer la Note",
+    deleteDescription: "Êtes-vous sûr de vouloir supprimer cette note ? Cette action est irréversible.",
+    confirm: "Supprimer",
   },
   newNote: {
     title: "Créer de Nouvelles Notes",
@@ -723,6 +1264,9 @@ const fr: Translations = {
     readingDocument: "Lecture du document...",
     generatingAiNotes: "Génération de notes IA...",
     finalizingNotes: "Finalisation de vos notes...",
+    noteTitle: "Titre de la Note",
+    noteTitlePlaceholder: "Entrez un titre pour vos notes (optionnel)",
+    noteTitleDesc: "Laissez vide pour laisser l'IA générer un titre automatiquement.",
   },
   settings: {
     title: "Paramètres",
@@ -898,6 +1442,137 @@ const de: Translations = {
     backToDashboard: "Zurück zum Dashboard",
     addToFavorites: "Zu Favoriten hinzufügen",
     removeFromFavorites: "Aus Favoriten entfernen",
+    view: "Ansicht",
+    edit: "Bearbeiten",
+    loadingEditor: "Editor wird geladen...",
+    lastAccessed: "Zuletzt geöffnet",
+  },
+  chat: {
+    askPlaceholder: "Frage zu deinen Notizen...",
+    generateFlashcards: "Karteikarten erstellen",
+    createPracticeTest: "Test erstellen",
+    summarize: "Zusammenfassen",
+    explainFurther: "Weiter erklären",
+    suggestSummarize: "Fasse die wichtigsten Punkte dieser Notiz zusammen",
+    suggestExplain: "Erkläre das wichtigste Konzept",
+    suggestExamQuestions: "Welche typischen Prüfungsfragen gibt es zu diesem Thema?",
+    suggestStudyPlan: "Erstelle einen Lernplan für dieses Material",
+    welcome: "Frag mich alles über deine Notizen",
+    welcomeSub: "Ich kann zusammenfassen, erklären, abfragen oder beim Lernen helfen. Frag einfach!",
+    thinking: "Denke nach...",
+    error: "Entschuldigung, bei der Verarbeitung ist ein Fehler aufgetreten. Bitte versuche es erneut.",
+  },
+  flashcards: {
+    generating: "Karteikarten werden erstellt...",
+    noFlashcardsYet: "Noch keine Karteikarten",
+    generatingDesc: "KI erstellt Karteikarten aus deinem Inhalt. Dies kann einen Moment dauern.",
+    generateDesc: "Erstelle Karteikarten aus deinem Inhalt, um mit dem Lernen zu beginnen.",
+    generate: "Karteikarten erstellen",
+    noTroubleCards: "Keine schwierigen Karten",
+    noTroubleDesc: "Du hast noch keine Karten als schwierig markiert. Markiere schwierige Karten, um sie hier zu üben.",
+    showAllCards: "Alle anzeigen",
+    title: "Karteikarten",
+    troubleCount: "als schwierig markiert",
+    showAll: "Alle",
+    troubleOnly: "Nur Schwierige",
+    troubleCards: "Schwierige Karten",
+    markedAsTrouble: "Als schwierig markiert",
+    markAsTrouble: "Als schwierig markieren",
+    flip: "Umdrehen",
+    spaceToFlip: "Leertaste zum Umdrehen",
+    arrowsToNavigate: "Pfeiltasten zum Navigieren",
+    tForTrouble: "T für schwierig",
+  },
+  test: {
+    generating: "Test wird erstellt...",
+    noPracticeTest: "Noch kein Test",
+    generatingDesc: "KI erstellt einen umfassenden Test aus deinem Inhalt. Dies kann einen Moment dauern.",
+    generateDesc: "Erstelle einen Test, um dein Wissen zu prüfen.",
+    generate: "Test erstellen",
+    questionsGenerated: "Fragen erstellt. Wähle deinen Testmodus.",
+    fullTest: "Vollständiger Test",
+    allQuestions: "Alle Fragen",
+    comprehensive: "Umfassende Abdeckung",
+    quickQuiz: "Schnellquiz",
+    newMix: "Jedes Mal neue Mischung",
+    retake: "Wiederholen",
+    completedIn: "Abgeschlossen in",
+    chooseDifferentMode: "Anderen Modus wählen",
+    retakeQuiz: "Quiz wiederholen",
+    reviewMode: "Überprüfungsmodus",
+    answered: "beantwortet",
+    submitTest: "Test abgeben",
+    backToModes: "Zurück zur Auswahl",
+    exitQuiz: "Quiz beenden",
+    question: "Frage",
+    unableToGrade: "Diese Antwort konnte nicht bewertet werden. Bitte manuell überprüfen.",
+  },
+  transcript: {
+    generating: "Transkript wird erstellt...",
+    title: "Transkript",
+    generateDesc: "Erstelle eine formatierte Transkriptansicht aus dem Quellinhalt.",
+    generate: "Transkript erstellen",
+    noContent: "Kein Inhalt verfügbar, um ein Transkript zu erstellen.",
+    failed: "Transkript konnte nicht erstellt werden.",
+    searchPlaceholder: "Transkript durchsuchen...",
+    noMatching: "Keine passenden Abschnitte gefunden",
+    noTranscript: "Kein Transkript verfügbar",
+  },
+  formatSelector: {
+    noteLength: "Länge",
+    lengthDesc: "Wähle, wie detailliert deine Notizen sein sollen",
+    short: "Kurz",
+    shortDesc: "Kurze und knappe Notizen",
+    medium: "Mittel",
+    mediumDesc: "Ausgewogenes Detailniveau",
+    long: "Lang",
+    longDesc: "Vollständig detaillierte Notizen",
+    chooseFormat: "Format wählen",
+    formatDesc: "Wähle ein oder mehrere Formate — die KI kombiniert sie intelligent",
+    bulletPoints: "Stichpunkte",
+    bulletPointsDesc: "Knappe Zusammenfassungen in Stichpunkten",
+    sentences: "Fließtext",
+    sentencesDesc: "Vollständige Absatzerklärungen",
+    cornellNotes: "Cornell-Notizen",
+    cornellNotesDesc: "Zwei Spalten: Stichworte + Notizen + Zusammenfassung",
+    outline: "Gliederung",
+    outlineDesc: "Hierarchisch nummerierte Struktur",
+    keyConcepts: "Schlüsselkonzepte",
+    keyConceptsDesc: "Begriffe und Definitionen",
+    summary: "Zusammenfassung",
+    summaryDesc: "Überblick der Hauptpunkte",
+    timeline: "Zeitstrahl",
+    timelineDesc: "Chronologische Ereignisfolge",
+    qaFormat: "Fragen & Antworten",
+    qaFormatDesc: "Frage-Antwort-Paare",
+  },
+  uploadZone: {
+    fileUpload: "Datei hochladen",
+    pasteUrl: "URL einfügen",
+    record: "Aufnehmen",
+    dropOrClick: "Dateien hier ablegen oder klicken zum Durchsuchen",
+    dropHere: "Dateien hier ablegen",
+    supportedFormats: "Videos, PDFs, Audio, Dokumente, Bilder",
+    urlDesc: "Füge einen YouTube-Link, Artikel-URL oder eine beliebige Webseite ein",
+    urlPlaceholder: "https://youtube.com/watch?v=...",
+    generate: "Generieren",
+    recordDesc: "Audio oder Bildschirm aufnehmen",
+    recordSubDesc: "Nimm eine Vorlesung, ein Meeting oder eine Bildschirmaufnahme auf",
+    openRecorder: "Rekorder öffnen",
+  },
+  languageNames: {
+    english: "Englisch",
+    spanish: "Spanisch",
+    french: "Französisch",
+    german: "Deutsch",
+    chinese: "Chinesisch",
+    japanese: "Japanisch",
+    korean: "Koreanisch",
+  },
+  confirmDialog: {
+    deleteTitle: "Notiz löschen",
+    deleteDescription: "Bist du sicher, dass du diese Notiz löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
+    confirm: "Löschen",
   },
   newNote: {
     title: "Neue Notizen Erstellen",
@@ -920,6 +1595,9 @@ const de: Translations = {
     readingDocument: "Dokument wird gelesen...",
     generatingAiNotes: "KI-Notizen werden erstellt...",
     finalizingNotes: "Notizen werden finalisiert...",
+    noteTitle: "Notiz-Titel",
+    noteTitlePlaceholder: "Gib einen Titel für deine Notizen ein (optional)",
+    noteTitleDesc: "Lass es leer, damit die KI automatisch einen Titel erstellt.",
   },
   settings: {
     title: "Einstellungen",
@@ -1034,7 +1712,7 @@ const zh: Translations = {
     subtitle: "这是你的学习动态",
     totalNotes: "总笔记数",
     favorites: "收藏",
-    withFlashcards: "含闪卡",
+    withFlashcards: "含速记卡",
     withTests: "含测试",
     quickActions: "快捷操作",
     recentNotes: "最近的笔记",
@@ -1076,7 +1754,7 @@ const zh: Translations = {
   noteDetail: {
     notes: "笔记",
     chat: "对话",
-    flashcards: "闪卡",
+    flashcards: "快速回顾",
     test: "测试",
     transcript: "转录",
     noteInfo: "笔记信息",
@@ -1095,6 +1773,137 @@ const zh: Translations = {
     backToDashboard: "返回仪表盘",
     addToFavorites: "添加到收藏",
     removeFromFavorites: "取消收藏",
+    view: "查看",
+    edit: "编辑",
+    loadingEditor: "正在加载编辑器...",
+    lastAccessed: "最近访问",
+  },
+  chat: {
+    askPlaceholder: "询问关于笔记的问题...",
+    generateFlashcards: "生成速记卡",
+    createPracticeTest: "创建测试",
+    summarize: "总结",
+    explainFurther: "深入解释",
+    suggestSummarize: "总结这篇笔记的要点",
+    suggestExplain: "解释最重要的概念",
+    suggestExamQuestions: "这个主题常见的考试题目有哪些？",
+    suggestStudyPlan: "为这份材料制定一个学习计划",
+    welcome: "随时向我提问关于笔记的任何问题",
+    welcomeSub: "我可以帮你总结、解释、出题或辅助学习。尽管问吧！",
+    thinking: "思考中...",
+    error: "抱歉，处理你的请求时出现了错误。请重试。",
+  },
+  flashcards: {
+    generating: "正在生成速记卡...",
+    noFlashcardsYet: "还没有速记卡",
+    generatingDesc: "AI正在根据你的内容创建速记卡，请稍候。",
+    generateDesc: "从你的内容生成速记卡，开始学习吧。",
+    generate: "生成速记卡",
+    noTroubleCards: "没有难点卡片",
+    noTroubleDesc: "你还没有标记任何卡片为难点。标记你觉得困难的卡片，可以在这里集中复习。",
+    showAllCards: "显示全部",
+    title: "快速回顾",
+    troubleCount: "标记为难点",
+    showAll: "全部",
+    troubleOnly: "仅难点",
+    troubleCards: "难点卡片",
+    markedAsTrouble: "已标记为难点",
+    markAsTrouble: "标记为难点",
+    flip: "翻转",
+    spaceToFlip: "空格键翻转",
+    arrowsToNavigate: "方向键导航",
+    tForTrouble: "T键标记难点",
+  },
+  test: {
+    generating: "正在生成测试...",
+    noPracticeTest: "还没有测试",
+    generatingDesc: "AI正在根据你的内容创建全面的测试，请稍候。",
+    generateDesc: "生成测试来检验你的知识掌握程度。",
+    generate: "生成测试",
+    questionsGenerated: "道题目已生成。选择测试模式。",
+    fullTest: "完整测试",
+    allQuestions: "所有题目",
+    comprehensive: "全面覆盖",
+    quickQuiz: "快速测验",
+    newMix: "每次随机组合",
+    retake: "重做",
+    completedIn: "用时",
+    chooseDifferentMode: "选择其他模式",
+    retakeQuiz: "重新测试",
+    reviewMode: "回顾模式",
+    answered: "已作答",
+    submitTest: "提交测试",
+    backToModes: "返回模式选择",
+    exitQuiz: "退出测试",
+    question: "第",
+    unableToGrade: "无法自动评分，请手动检查。",
+  },
+  transcript: {
+    generating: "正在生成转录...",
+    title: "转录",
+    generateDesc: "从源内容生成格式化的转录视图。",
+    generate: "生成转录",
+    noContent: "没有可用内容来生成转录。",
+    failed: "转录生成失败。",
+    searchPlaceholder: "搜索转录内容...",
+    noMatching: "未找到匹配内容",
+    noTranscript: "暂无转录内容",
+  },
+  formatSelector: {
+    noteLength: "笔记长度",
+    lengthDesc: "选择笔记的详细程度",
+    short: "简短",
+    shortDesc: "简洁扼要的笔记",
+    medium: "适中",
+    mediumDesc: "平衡的详细程度",
+    long: "详细",
+    longDesc: "完整详尽的笔记",
+    chooseFormat: "选择笔记格式",
+    formatDesc: "选择一个或多个格式——AI会智能融合它们",
+    bulletPoints: "要点列表",
+    bulletPointsDesc: "简洁的要点摘要",
+    sentences: "段落形式",
+    sentencesDesc: "完整的段落解释",
+    cornellNotes: "康奈尔笔记",
+    cornellNotesDesc: "两栏式：线索+笔记+摘要",
+    outline: "大纲",
+    outlineDesc: "层级编号结构",
+    keyConcepts: "核心概念",
+    keyConceptsDesc: "术语和定义",
+    summary: "摘要",
+    summaryDesc: "主要内容概览",
+    timeline: "时间线",
+    timelineDesc: "按时间顺序排列",
+    qaFormat: "问答形式",
+    qaFormatDesc: "问题与回答配对",
+  },
+  uploadZone: {
+    fileUpload: "上传文件",
+    pasteUrl: "粘贴链接",
+    record: "录制",
+    dropOrClick: "拖放文件到这里或点击浏览",
+    dropHere: "将文件拖放到这里",
+    supportedFormats: "视频、PDF、音频、文档、图片",
+    urlDesc: "粘贴YouTube链接、文章URL或任何网页",
+    urlPlaceholder: "https://youtube.com/watch?v=...",
+    generate: "生成",
+    recordDesc: "录制音频或屏幕",
+    recordSubDesc: "录制讲座、会议或屏幕",
+    openRecorder: "打开录制器",
+  },
+  languageNames: {
+    english: "英语",
+    spanish: "西班牙语",
+    french: "法语",
+    german: "德语",
+    chinese: "中文",
+    japanese: "日语",
+    korean: "韩语",
+  },
+  confirmDialog: {
+    deleteTitle: "删除笔记",
+    deleteDescription: "确定要删除这条笔记吗？此操作无法撤销。",
+    confirm: "删除",
   },
   newNote: {
     title: "创建新笔记",
@@ -1117,6 +1926,9 @@ const zh: Translations = {
     readingDocument: "正在读取文档...",
     generatingAiNotes: "正在生成AI笔记...",
     finalizingNotes: "正在完成你的笔记...",
+    noteTitle: "笔记标题",
+    noteTitlePlaceholder: "输入笔记标题（可选）",
+    noteTitleDesc: "留空则由AI自动生成标题。",
   },
   settings: {
     title: "设置",
@@ -1136,8 +1948,8 @@ const zh: Translations = {
     notePreferencesDesc: "配置AI生成笔记的方式。",
     defaultLanguage: "默认语言",
     defaultLanguageDesc: "生成笔记和摘要的语言。",
-    autoFlashcards: "自动生成闪卡",
-    autoFlashcardsDesc: "生成笔记时自动创建闪卡。",
+    autoFlashcards: "自动生成速记卡",
+    autoFlashcardsDesc: "生成笔记时自动创建速记卡。",
     autoPracticeTests: "自动生成练习测试",
     autoPracticeTestsDesc: "生成笔记时自动创建练习测试。",
     account: "账户",
@@ -1292,6 +2104,137 @@ const ja: Translations = {
     backToDashboard: "ダッシュボードに戻る",
     addToFavorites: "お気に入りに追加",
     removeFromFavorites: "お気に入りから削除",
+    view: "表示",
+    edit: "編集",
+    loadingEditor: "エディターを読み込み中...",
+    lastAccessed: "最終アクセス",
+  },
+  chat: {
+    askPlaceholder: "ノートについて質問...",
+    generateFlashcards: "フラッシュカード生成",
+    createPracticeTest: "テスト作成",
+    summarize: "要約",
+    explainFurther: "詳しく説明",
+    suggestSummarize: "このノートの要点をまとめてください",
+    suggestExplain: "最も重要な概念を説明してください",
+    suggestExamQuestions: "このトピックの典型的な試験問題は？",
+    suggestStudyPlan: "この教材の学習計画を作成してください",
+    welcome: "ノートについて何でも聞いてください",
+    welcomeSub: "要約、説明、クイズ、学習のお手伝いができます。お気軽にどうぞ！",
+    thinking: "考え中...",
+    error: "申し訳ございません。リクエストの処理中にエラーが発生しました。もう一度お試しください。",
+  },
+  flashcards: {
+    generating: "フラッシュカードを生成中...",
+    noFlashcardsYet: "フラッシュカードはまだありません",
+    generatingDesc: "AIがコンテンツからフラッシュカードを作成中です。少々お待ちください。",
+    generateDesc: "コンテンツからフラッシュカードを生成して学習を始めましょう。",
+    generate: "フラッシュカード生成",
+    noTroubleCards: "苦手カードなし",
+    noTroubleDesc: "まだ苦手マークを付けたカードがありません。難しいと思ったカードにマークを付けて、ここで復習しましょう。",
+    showAllCards: "すべて表示",
+    title: "フラッシュカード",
+    troubleCount: "苦手マーク付き",
+    showAll: "すべて",
+    troubleOnly: "苦手のみ",
+    troubleCards: "苦手カード",
+    markedAsTrouble: "苦手マーク済み",
+    markAsTrouble: "苦手マークを付ける",
+    flip: "めくる",
+    spaceToFlip: "スペースでめくる",
+    arrowsToNavigate: "矢印で移動",
+    tForTrouble: "Tで苦手マーク",
+  },
+  test: {
+    generating: "テストを生成中...",
+    noPracticeTest: "テストはまだありません",
+    generatingDesc: "AIがコンテンツから総合テストを作成中です。少々お待ちください。",
+    generateDesc: "テストを生成して知識を確認しましょう。",
+    generate: "テスト生成",
+    questionsGenerated: "問生成されました。テストモードを選択してください。",
+    fullTest: "フルテスト",
+    allQuestions: "全問題",
+    comprehensive: "総合的な出題",
+    quickQuiz: "クイックテスト",
+    newMix: "毎回新しい組み合わせ",
+    retake: "やり直し",
+    completedIn: "所要時間",
+    chooseDifferentMode: "別のモードを選択",
+    retakeQuiz: "テストをやり直す",
+    reviewMode: "復習モード",
+    answered: "回答済み",
+    submitTest: "テストを提出",
+    backToModes: "モード選択に戻る",
+    exitQuiz: "テストを終了",
+    question: "問",
+    unableToGrade: "この回答を採点できませんでした。手動で確認してください。",
+  },
+  transcript: {
+    generating: "文字起こしを生成中...",
+    title: "文字起こし",
+    generateDesc: "ソースコンテンツからフォーマットされた文字起こしビューを生成します。",
+    generate: "文字起こし生成",
+    noContent: "文字起こしを生成するコンテンツがありません。",
+    failed: "文字起こしの生成に失敗しました。",
+    searchPlaceholder: "文字起こしを検索...",
+    noMatching: "一致するセグメントが見つかりません",
+    noTranscript: "文字起こしがありません",
+  },
+  formatSelector: {
+    noteLength: "ノートの長さ",
+    lengthDesc: "ノートの詳細度を選択してください",
+    short: "短い",
+    shortDesc: "簡潔なノート",
+    medium: "標準",
+    mediumDesc: "バランスの取れた詳細度",
+    long: "詳細",
+    longDesc: "完全な詳細ノート",
+    chooseFormat: "ノート形式を選択",
+    formatDesc: "1つ以上の形式を選択 — AIがインテリジェントに組み合わせます",
+    bulletPoints: "箇条書き",
+    bulletPointsDesc: "簡潔な箇条書きのまとめ",
+    sentences: "文章形式",
+    sentencesDesc: "段落による詳細な説明",
+    cornellNotes: "コーネルノート",
+    cornellNotesDesc: "2列：キュー＋ノート＋要約",
+    outline: "アウトライン",
+    outlineDesc: "階層的な番号付き構造",
+    keyConcepts: "重要概念",
+    keyConceptsDesc: "用語と定義",
+    summary: "要約",
+    summaryDesc: "主要ポイントの概要",
+    timeline: "タイムライン",
+    timelineDesc: "時系列のイベント",
+    qaFormat: "質疑応答",
+    qaFormatDesc: "質問と回答のペア",
+  },
+  uploadZone: {
+    fileUpload: "ファイルアップロード",
+    pasteUrl: "URL貼り付け",
+    record: "録音",
+    dropOrClick: "ファイルをドラッグ＆ドロップまたはクリックで参照",
+    dropHere: "ファイルをここにドロップ",
+    supportedFormats: "動画、PDF、音声、ドキュメント、画像",
+    urlDesc: "YouTubeリンク、記事URL、またはウェブページを貼り付け",
+    urlPlaceholder: "https://youtube.com/watch?v=...",
+    generate: "生成",
+    recordDesc: "音声または画面を録音",
+    recordSubDesc: "講義、会議、または画面録画をキャプチャ",
+    openRecorder: "レコーダーを開く",
+  },
+  languageNames: {
+    english: "英語",
+    spanish: "スペイン語",
+    french: "フランス語",
+    german: "ドイツ語",
+    chinese: "中国語",
+    japanese: "日本語",
+    korean: "韓国語",
+  },
+  confirmDialog: {
+    deleteTitle: "ノートを削除",
+    deleteDescription: "このノートを削除してもよろしいですか？この操作は取り消せません。",
+    confirm: "削除",
   },
   newNote: {
     title: "新しいノートを作成",
@@ -1314,6 +2257,9 @@ const ja: Translations = {
     readingDocument: "ドキュメントを読み取り中...",
     generatingAiNotes: "AIノートを生成中...",
     finalizingNotes: "ノートを仕上げ中...",
+    noteTitle: "ノートタイトル",
+    noteTitlePlaceholder: "ノートのタイトルを入力（任意）",
+    noteTitleDesc: "空欄にするとAIが自動的にタイトルを生成します。",
   },
   settings: {
     title: "設定",
@@ -1489,6 +2435,137 @@ const ko: Translations = {
     backToDashboard: "대시보드로 돌아가기",
     addToFavorites: "즐겨찾기에 추가",
     removeFromFavorites: "즐겨찾기에서 제거",
+    view: "보기",
+    edit: "편집",
+    loadingEditor: "에디터 로딩 중...",
+    lastAccessed: "마지막 접근",
+  },
+  chat: {
+    askPlaceholder: "노트에 대해 질문하세요...",
+    generateFlashcards: "플래시카드 생성",
+    createPracticeTest: "테스트 만들기",
+    summarize: "요약",
+    explainFurther: "자세히 설명",
+    suggestSummarize: "이 노트의 핵심 포인트를 요약해 주세요",
+    suggestExplain: "가장 중요한 개념을 설명해 주세요",
+    suggestExamQuestions: "이 주제의 일반적인 시험 문제는?",
+    suggestStudyPlan: "이 자료에 대한 학습 계획을 세워 주세요",
+    welcome: "노트에 대해 무엇이든 물어보세요",
+    welcomeSub: "요약, 설명, 퀴즈 출제, 학습 도움을 해드릴 수 있어요. 편하게 질문하세요!",
+    thinking: "생각하는 중...",
+    error: "죄송합니다. 요청을 처리하는 중 오류가 발생했습니다. 다시 시도해 주세요.",
+  },
+  flashcards: {
+    generating: "플래시카드 생성 중...",
+    noFlashcardsYet: "아직 플래시카드가 없습니다",
+    generatingDesc: "AI가 콘텐츠에서 플래시카드를 만들고 있습니다. 잠시만 기다려 주세요.",
+    generateDesc: "콘텐츠에서 플래시카드를 생성하여 학습을 시작하세요.",
+    generate: "플래시카드 생성",
+    noTroubleCards: "어려운 카드 없음",
+    noTroubleDesc: "아직 어려운 카드로 표시한 카드가 없습니다. 어려운 카드를 표시하면 여기서 집중 복습할 수 있습니다.",
+    showAllCards: "전체 보기",
+    title: "플래시카드",
+    troubleCount: "어려운 카드로 표시됨",
+    showAll: "전체",
+    troubleOnly: "어려운 것만",
+    troubleCards: "어려운 카드",
+    markedAsTrouble: "어려운 카드로 표시됨",
+    markAsTrouble: "어려운 카드로 표시",
+    flip: "뒤집기",
+    spaceToFlip: "스페이스로 뒤집기",
+    arrowsToNavigate: "화살표로 이동",
+    tForTrouble: "T로 어려운 표시",
+  },
+  test: {
+    generating: "테스트 생성 중...",
+    noPracticeTest: "아직 테스트가 없습니다",
+    generatingDesc: "AI가 콘텐츠에서 종합 테스트를 만들고 있습니다. 잠시만 기다려 주세요.",
+    generateDesc: "테스트를 생성하여 지식을 확인해 보세요.",
+    generate: "테스트 생성",
+    questionsGenerated: "개 문제가 생성되었습니다. 테스트 모드를 선택하세요.",
+    fullTest: "전체 테스트",
+    allQuestions: "전체 문제",
+    comprehensive: "종합적인 출제",
+    quickQuiz: "빠른 퀴즈",
+    newMix: "매번 새로운 조합",
+    retake: "다시 풀기",
+    completedIn: "소요 시간",
+    chooseDifferentMode: "다른 모드 선택",
+    retakeQuiz: "테스트 다시 풀기",
+    reviewMode: "복습 모드",
+    answered: "답변 완료",
+    submitTest: "테스트 제출",
+    backToModes: "모드 선택으로 돌아가기",
+    exitQuiz: "테스트 종료",
+    question: "문제",
+    unableToGrade: "이 답변을 채점할 수 없습니다. 직접 확인해 주세요.",
+  },
+  transcript: {
+    generating: "녹취록 생성 중...",
+    title: "녹취록",
+    generateDesc: "소스 콘텐츠에서 포맷된 녹취록 뷰를 생성합니다.",
+    generate: "녹취록 생성",
+    noContent: "녹취록을 생성할 콘텐츠가 없습니다.",
+    failed: "녹취록 생성에 실패했습니다.",
+    searchPlaceholder: "녹취록 검색...",
+    noMatching: "일치하는 구간이 없습니다",
+    noTranscript: "녹취록이 없습니다",
+  },
+  formatSelector: {
+    noteLength: "노트 길이",
+    lengthDesc: "노트의 상세 정도를 선택하세요",
+    short: "짧게",
+    shortDesc: "간결한 노트",
+    medium: "보통",
+    mediumDesc: "균형 잡힌 상세도",
+    long: "길게",
+    longDesc: "완전히 상세한 노트",
+    chooseFormat: "노트 형식 선택",
+    formatDesc: "하나 이상의 형식을 선택하세요 — AI가 지능적으로 조합합니다",
+    bulletPoints: "글머리 기호",
+    bulletPointsDesc: "간결한 요점 요약",
+    sentences: "문장 형식",
+    sentencesDesc: "완전한 단락 설명",
+    cornellNotes: "코넬 노트",
+    cornellNotesDesc: "2열: 키워드 + 노트 + 요약",
+    outline: "개요",
+    outlineDesc: "계층적 번호 구조",
+    keyConcepts: "핵심 개념",
+    keyConceptsDesc: "용어와 정의",
+    summary: "요약",
+    summaryDesc: "주요 포인트 개요",
+    timeline: "타임라인",
+    timelineDesc: "시간순 이벤트 정리",
+    qaFormat: "질의응답",
+    qaFormatDesc: "질문과 답변 쌍",
+  },
+  uploadZone: {
+    fileUpload: "파일 업로드",
+    pasteUrl: "URL 붙여넣기",
+    record: "녹음",
+    dropOrClick: "파일을 드래그하거나 클릭하여 찾아보기",
+    dropHere: "여기에 파일을 놓으세요",
+    supportedFormats: "동영상, PDF, 오디오, 문서, 이미지",
+    urlDesc: "YouTube 링크, 기사 URL 또는 웹페이지를 붙여넣기",
+    urlPlaceholder: "https://youtube.com/watch?v=...",
+    generate: "생성",
+    recordDesc: "오디오 또는 화면 녹음",
+    recordSubDesc: "강의, 회의 또는 화면 녹화를 캡처",
+    openRecorder: "녹음기 열기",
+  },
+  languageNames: {
+    english: "영어",
+    spanish: "스페인어",
+    french: "프랑스어",
+    german: "독일어",
+    chinese: "중국어",
+    japanese: "일본어",
+    korean: "한국어",
+  },
+  confirmDialog: {
+    deleteTitle: "노트 삭제",
+    deleteDescription: "이 노트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+    confirm: "삭제",
   },
   newNote: {
     title: "새 노트 만들기",
@@ -1511,6 +2588,9 @@ const ko: Translations = {
     readingDocument: "문서 읽는 중...",
     generatingAiNotes: "AI 노트 생성 중...",
     finalizingNotes: "노트 마무리 중...",
+    noteTitle: "노트 제목",
+    noteTitlePlaceholder: "노트 제목을 입력하세요 (선택사항)",
+    noteTitleDesc: "비워두면 AI가 자동으로 제목을 생성합니다.",
   },
   settings: {
     title: "설정",
