@@ -24,9 +24,11 @@ import {
   Pencil,
   Check,
   X,
+  Info,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { formatDate } from "@/lib/utils";
+import { cn, formatDate, getLocaleCode } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -46,7 +48,7 @@ import { ChatInterface } from "@/components/chat/chat-interface";
 import { FlashcardDeck } from "@/components/flashcards/flashcard-deck";
 import { TestView } from "@/components/test-generator/test-view";
 
-import { useTranslation } from "@/lib/i18n";
+import { useTranslation, useLanguage } from "@/lib/i18n";
 import { useNotesStore } from "@/stores/notes-store";
 import type { UploadType, NoteFormat } from "@/types/note";
 
@@ -75,13 +77,14 @@ type TabId = "notes" | "chat" | "flashcards" | "test" | "transcript";
 
 export default function NoteWorkspacePage() {
   const t = useTranslation();
+  const [lang] = useLanguage();
   const params = useParams();
   const router = useRouter();
   const noteId = params.id as string;
 
-  const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
+  const tabs: { id: TabId; label: string; icon: React.ElementType; mobileOnly?: boolean }[] = [
     { id: "notes", label: t.noteDetail.notes, icon: FileText },
-    { id: "chat", label: t.noteDetail.chat, icon: MessageSquare },
+    { id: "chat", label: t.noteDetail.chat, icon: MessageSquare, mobileOnly: true },
     { id: "flashcards", label: t.noteDetail.flashcards, icon: Layers },
     { id: "test", label: t.noteDetail.test, icon: ClipboardCheck },
     { id: "transcript", label: t.noteDetail.transcript, icon: ScrollText },
@@ -91,6 +94,8 @@ export default function NoteWorkspacePage() {
   const [editedTitle, setEditedTitle] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [showChat, setShowChat] = useState(true);
+  const [showNoteInfo, setShowNoteInfo] = useState(false);
   const updateNote = useNotesStore((s) => s.updateNote);
   const { toggleFavorite, deleteNote, accessNote } = useNotesStore();
   const notes = useNotesStore((s) => s.notes);
@@ -257,7 +262,7 @@ export default function NoteWorkspacePage() {
             </span>
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               <Calendar className="h-3 w-3" />
-              {formatDate(note.createdAt)}
+              {formatDate(note.createdAt, lang)}
             </span>
             <span className="text-xs text-muted-foreground">{wordCount} {t.noteDetail.words}</span>
             {note.tags.map((tag) => (
@@ -271,6 +276,94 @@ export default function NoteWorkspacePage() {
         {/* Action buttons */}
         <div className="flex items-center gap-1 shrink-0">
           <AiStatusIndicator noteId={noteId} />
+          {/* Note info hover */}
+          <div
+            className="relative"
+            onMouseEnter={() => setShowNoteInfo(true)}
+            onMouseLeave={() => setShowNoteInfo(false)}
+          >
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <Info className="h-4 w-4 text-muted-foreground" />
+            </Button>
+            {showNoteInfo && (
+              <div className="absolute right-0 top-full mt-1 z-50 w-72 rounded-xl border border-border bg-card shadow-lg p-4 space-y-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.noteDetail.source}</label>
+                  <div className="flex items-center gap-2">
+                    <div className={cn("flex h-6 w-6 items-center justify-center rounded-md", sourceColors[note.sourceType].split(" ")[1])}>
+                      <SourceIcon className={cn("h-3 w-3", sourceColors[note.sourceType].split(" ")[0])} />
+                    </div>
+                    <span className="text-sm text-foreground capitalize">{note.sourceType}</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.noteDetail.created}</label>
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-sm text-foreground">{new Date(note.createdAt).toLocaleDateString(getLocaleCode(lang), { month: "long", day: "numeric", year: "numeric" })}</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.noteDetail.stats}</label>
+                  <p className="text-sm text-foreground">{wordCount} {t.noteDetail.words}</p>
+                </div>
+                {note.tags.length > 0 && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.noteDetail.tags}</label>
+                    <div className="flex flex-wrap gap-1">
+                      {note.tags.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-[10px]">
+                          <Tag className="h-2.5 w-2.5 mr-0.5" />
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.noteDetail.formats}</label>
+                  <div className="flex flex-wrap gap-1">
+                    {note.formats.map((format) => {
+                      const formatLabels: Record<string, string> = {
+                        "bullet-points": t.formatSelector.bulletPoints,
+                        sentences: t.formatSelector.sentences,
+                        cornell: t.formatSelector.cornellNotes,
+                        outline: t.formatSelector.outline,
+                        "key-concepts": t.formatSelector.keyConcepts,
+                        summary: t.formatSelector.summary,
+                        timeline: t.formatSelector.timeline,
+                        "qa-format": t.formatSelector.qaFormat,
+                      };
+                      return (
+                        <span key={format} className="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                          {formatLabels[format] || format.replace("-", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleExport} title={t.noteDetail.export}>
+            <Download className="h-4 w-4 text-muted-foreground" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleShare} title={t.noteDetail.share}>
+            <Share2 className="h-4 w-4 text-muted-foreground" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => setShowDeleteConfirm(true)} title={t.noteDetail.delete}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+          <div className="w-px h-6 bg-border mx-1" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={() => setShowChat(!showChat)}
+            title={t.noteDetail.chat}
+          >
+            {showChat ? <PanelRightClose className="h-4 w-4 text-muted-foreground" /> : <PanelRightOpen className="h-4 w-4 text-muted-foreground" />}
+          </Button>
         </div>
       </div>
 
@@ -284,6 +377,23 @@ export default function NoteWorkspacePage() {
               const Icon = tab.icon;
               // Only show transcript tab for audio/video sources
               if (tab.id === "transcript" && !mediaSourceTypes.has(note.sourceType)) return null;
+              // Chat tab only shown on mobile (desktop has persistent sidebar)
+              if (tab.mobileOnly) return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => handleTabChange(tab.id)}
+                  className={cn(
+                    "lg:hidden flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all whitespace-nowrap",
+                    activeTab === tab.id
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </button>
+              );
               return (
                 <button
                   key={tab.id}
@@ -343,7 +453,8 @@ export default function NoteWorkspacePage() {
               </div>
             </div>
 
-            <div className={activeTab === "chat" ? "h-full" : "hidden"}>
+            {/* Mobile chat (full-width, shares same memory as sidebar chat) */}
+            <div className={cn("lg:hidden", activeTab === "chat" ? "h-full" : "hidden")}>
               <div className="rounded-xl border border-border bg-card overflow-hidden h-[calc(100vh-16rem)]">
                 <ChatInterface noteId={noteId} noteContent={note.content} />
               </div>
@@ -367,151 +478,23 @@ export default function NoteWorkspacePage() {
           </div>
         </div>
 
-        {/* Right panel: Note info sidebar (desktop only) */}
-        <div className="hidden lg:flex flex-col w-80 shrink-0 rounded-xl border border-border bg-card overflow-hidden">
-          <div className="px-4 py-3 border-b border-border">
-            <span className="text-sm font-medium text-foreground">
-              {t.noteDetail.noteInfo}
-            </span>
-          </div>
-          <ScrollArea className="flex-1">
-            <div className="p-4 space-y-5">
-              {/* Source type */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t.noteDetail.source}
-                </label>
-                <div className="flex items-center gap-2">
-                  <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg", sourceColors[note.sourceType].split(" ")[1])}>
-                    <SourceIcon className={cn("h-4 w-4", sourceColors[note.sourceType].split(" ")[0])} />
-                  </div>
-                  <span className="text-sm text-foreground capitalize">
-                    {note.sourceType}
-                  </span>
-                </div>
-                {note.sourceUrl && (
-                  <a
-                    href={note.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-primary hover:underline truncate block"
-                  >
-                    {note.sourceUrl}
-                  </a>
-                )}
+        {/* Right panel: Persistent AI Chat sidebar */}
+        {showChat && (
+          <div className="hidden lg:flex flex-col w-96 shrink-0 rounded-xl border border-border bg-card overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">{t.noteDetail.chat}</span>
               </div>
-
-              {/* Date */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t.noteDetail.created}
-                </label>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-foreground">
-                    {new Date(note.createdAt).toLocaleDateString(undefined, {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </span>
-                </div>
-              </div>
-
-              {/* Word count */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t.noteDetail.stats}
-                </label>
-                <p className="text-sm text-foreground">{wordCount} {t.noteDetail.words}</p>
-              </div>
-
-              {/* Tags */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t.noteDetail.tags}
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {note.tags.map((tag) => (
-                    <Badge
-                      key={tag}
-                      variant="secondary"
-                      className="text-xs"
-                    >
-                      <Tag className="h-3 w-3 mr-1" />
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Formats used */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t.noteDetail.formats}
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {note.formats.map((format) => {
-                    const formatLabels: Record<string, string> = {
-                      "bullet-points": t.formatSelector.bulletPoints,
-                      sentences: t.formatSelector.sentences,
-                      cornell: t.formatSelector.cornellNotes,
-                      outline: t.formatSelector.outline,
-                      "key-concepts": t.formatSelector.keyConcepts,
-                      summary: t.formatSelector.summary,
-                      timeline: t.formatSelector.timeline,
-                      "qa-format": t.formatSelector.qaFormat,
-                    };
-                    return (
-                      <span
-                        key={format}
-                        className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
-                      >
-                        {formatLabels[format] || format.replace("-", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="space-y-2 pt-2 border-t border-border">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t.noteDetail.actions}
-                </label>
-                <div className="space-y-1.5">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start gap-2 text-sm"
-                    size="sm"
-                    onClick={handleExport}
-                  >
-                    <Download className="h-4 w-4" />
-                    {t.noteDetail.export}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start gap-2 text-sm"
-                    size="sm"
-                    onClick={handleShare}
-                  >
-                    <Share2 className="h-4 w-4" />
-                    {t.noteDetail.share}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start gap-2 text-sm text-destructive hover:text-destructive"
-                    size="sm"
-                    onClick={() => setShowDeleteConfirm(true)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    {t.noteDetail.delete}
-                  </Button>
-                </div>
-              </div>
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setShowChat(false)}>
+                <X className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
             </div>
-          </ScrollArea>
-        </div>
+            <div className="flex-1 overflow-hidden">
+              <ChatInterface noteId={noteId} noteContent={note.content} />
+            </div>
+          </div>
+        )}
       </div>
 
       <ConfirmDialog

@@ -121,6 +121,19 @@
   }
 }
 
+/* CJK language font overrides — prioritise the loaded Noto Sans CJK
+   font for the active language so every glyph (including Latin) uses it,
+   giving a consistent look rather than mixing Inter + fallback CJK. */
+html[data-lang="chinese"] body {
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Inter", system-ui, sans-serif;
+}
+html[data-lang="japanese"] body {
+  font-family: "Noto Sans JP", "Hiragino Sans", "Meiryo", "Inter", system-ui, sans-serif;
+}
+html[data-lang="korean"] body {
+  font-family: "Noto Sans KR", "Malgun Gothic", "Inter", system-ui, sans-serif;
+}
+
 /* Smooth transitions for theme switching */
 html {
   transition: color-scheme 0.3s;

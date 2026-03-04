@@ -1,8 +1,8 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { formatDate } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
+import { useLanguage } from "@/lib/i18n";
 import { renderInlineFormatting } from "@/components/notes/note-viewer";
 import type { Message } from "@/types/chat";
 
@@ -133,6 +133,7 @@ export function renderMessageContent(content: string): React.ReactNode {
 }
 
 export function ChatMessage({ message, isLast = false }: ChatMessageProps) {
+  const [currentLang] = useLanguage();
   const isUser = message.role === "user";
 
   return (
@@ -174,7 +175,7 @@ export function ChatMessage({ message, isLast = false }: ChatMessageProps) {
 
         {/* Timestamp */}
         <span className="px-1 text-[11px] text-muted-foreground">
-          {formatDate(message.timestamp)}
+          {formatDate(message.timestamp, currentLang)}
         </span>
       </div>
     </div>

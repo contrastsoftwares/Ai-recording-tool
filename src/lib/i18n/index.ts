@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { translations, type Language, type Translations } from "./translations";
 
 function getStoredLanguage(): Language {
@@ -34,43 +34,56 @@ if (typeof window !== "undefined") {
 }
 
 /**
- * Returns translations for the current language.
- * Always starts with "english" on the server and first client render
- * to avoid hydration mismatch, then syncs to the stored language.
+ * Hook that returns the current language, using a mounted-state pattern
+ * to avoid hydration mismatches.
+ *
+ * On the server and during the first client render, returns "english"
+ * so SSR HTML and the initial hydration pass produce identical markup.
+ * After mount, reads the real language from localStorage and subscribes
+ * to changes.
  */
-export function useTranslation(): Translations {
-  // Always start with english to match server render
+function useCurrentLanguage(): Language {
   const [lang, setLang] = useState<Language>("english");
 
   useEffect(() => {
-    // After mount, read the real language from localStorage
+    // After mount, read the stored language
     setLang(getStoredLanguage());
-    const handler = () => setLang(getStoredLanguage());
-    listeners.add(handler);
-    return () => { listeners.delete(handler); };
+
+    // Subscribe to language changes (e.g. from Settings page)
+    const listener = () => setLang(getStoredLanguage());
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
   }, []);
 
+  return lang;
+}
+
+/**
+ * Returns translations for the current language.
+ *
+ * Uses a mounted-state pattern: the first render always returns English
+ * translations (matching SSR), then updates to the user's stored language
+ * after mount. This guarantees no hydration mismatch.
+ */
+export function useTranslation(): Translations {
+  const lang = useCurrentLanguage();
   return translations[lang];
 }
 
 export function useLanguage(): [Language, (lang: Language) => void] {
-  const [lang, setLangState] = useState<Language>("english");
+  const lang = useCurrentLanguage();
 
-  useEffect(() => {
-    setLangState(getStoredLanguage());
-    const handler = () => setLangState(getStoredLanguage());
-    listeners.add(handler);
-    return () => { listeners.delete(handler); };
-  }, []);
-
-  const setLang = useCallback((newLang: Language) => {
+  const setLangFn = useCallback((newLang: Language) => {
     if (typeof window !== "undefined") {
       localStorage.setItem("setting-language", JSON.stringify(newLang));
     }
-    setLangState(newLang);
+    // notifyListeners is called automatically by the patched localStorage.setItem
   }, []);
 
-  return [lang, setLang];
+  return [lang, setLangFn];
 }
 
+export { useCurrentLanguage };
 export type { Language, Translations };

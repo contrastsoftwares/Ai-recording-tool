@@ -42,6 +42,14 @@ interface AiGrade {
   feedback: string;
 }
 
+interface SavedResults {
+  score: { correct: number; total: number; percentage: number };
+  answers: Record<string, string>;
+  aiGrades: Record<string, AiGrade>;
+  elapsedSeconds: number;
+  testMode: TestMode;
+}
+
 // Fisher-Yates shuffle
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -79,6 +87,8 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
   const questionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   // Track quiz version to allow re-generating quick quiz questions
   const [quizVersion, setQuizVersion] = useState(0);
+  // Saved results so user can return to them from mode chooser
+  const [savedResults, setSavedResults] = useState<SavedResults | null>(null);
 
   // Persist test data
   useEffect(() => {
@@ -149,12 +159,30 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
       setElapsedSeconds(0);
       setScore(null);
       setAiGrades({});
+      setSavedResults(null);
     } catch (err) {
       setGenerateError(err instanceof Error ? err.message : "Failed to generate test.");
     } finally {
       setIsGenerating(false);
     }
   }, [noteContent]);
+
+  const handleRegenerate = useCallback(async () => {
+    if (!noteContent) return;
+    // Clear existing test data from localStorage
+    localStorage.removeItem(`test-data-${noteId}`);
+    localStorage.removeItem(`test-answers-${noteId}-full`);
+    localStorage.removeItem(`test-answers-${noteId}-short`);
+    localStorage.removeItem(`question-freq-${noteId}`);
+    localStorage.removeItem(`prev-quiz-ids-${noteId}`);
+    setTest(null);
+    setSavedResults(null);
+    setScore(null);
+    setAiGrades({});
+    setAnswers({});
+    // Now generate fresh
+    await handleGenerate();
+  }, [noteContent, noteId, handleGenerate]);
 
   // Restore answers from localStorage
   useEffect(() => {
@@ -277,6 +305,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
   }
 
   function handleRetake() {
+    setSavedResults(null);
     setAnswers({});
     setElapsedSeconds(0);
     setScore(null);
@@ -286,6 +315,32 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
   }
 
   function handleReview() { setTestState("review"); }
+
+  // Save current results and go to mode chooser
+  function handleGoToChooser() {
+    if (score) {
+      setSavedResults({
+        score,
+        answers,
+        aiGrades,
+        elapsedSeconds,
+        testMode,
+      });
+    }
+    setTestState("choosing");
+  }
+
+  // Restore saved results
+  function handleRestoreResults() {
+    if (savedResults) {
+      setScore(savedResults.score);
+      setAnswers(savedResults.answers);
+      setAiGrades(savedResults.aiGrades);
+      setElapsedSeconds(savedResults.elapsedSeconds);
+      setTestMode(savedResults.testMode);
+      setTestState("results");
+    }
+  }
 
   // No test yet - show generate button
   if (!test) {
@@ -383,6 +438,34 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
             </Button>
           </div>
         </div>
+
+        {/* View Last Results / Remake Quiz actions */}
+        <div className="flex flex-col items-center gap-3">
+          {savedResults && (
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={handleRestoreResults}
+            >
+              <CheckSquare className="h-4 w-4" />
+              {t.test.viewLastResults}
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            onClick={handleRegenerate}
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Sparkles className="h-3 w-3" />
+            )}
+            {t.test.remakeQuiz}
+          </Button>
+        </div>
       </div>
     );
   }
@@ -406,12 +489,8 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
         </div>
         <TestResults score={score} onRetake={handleRetake} onReview={handleReview} />
         <div className="flex justify-center gap-3 mt-4">
-          <Button variant="outline" className="gap-2" onClick={() => setTestState("choosing")}>
+          <Button variant="outline" className="gap-2" onClick={handleGoToChooser}>
             {t.test.chooseDifferentMode}
-          </Button>
-          <Button className="gap-2" onClick={handleRetake}>
-            <RefreshCw className="h-4 w-4" />
-            {t.test.retakeQuiz}
           </Button>
         </div>
       </div>

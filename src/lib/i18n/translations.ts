@@ -290,6 +290,8 @@ export interface Translations {
     score: string;
     reviewAnswers: string;
     chooseDifferentMode: string;
+    viewLastResults: string;
+    remakeQuiz: string;
     correct: string;
     incorrect: string;
     yourAnswer: string;
@@ -643,6 +645,8 @@ const en: Translations = {
     score: "Score",
     reviewAnswers: "Review Answers",
     chooseDifferentMode: "Choose Different Mode",
+    viewLastResults: "View Last Results",
+    remakeQuiz: "Remake Quiz",
     correct: "Correct",
     incorrect: "Incorrect",
     yourAnswer: "Your Answer",
@@ -1003,6 +1007,8 @@ const es: Translations = {
     score: "Puntuación",
     reviewAnswers: "Revisar Respuestas",
     chooseDifferentMode: "Elegir Otro Modo",
+    viewLastResults: "Ver Últimos Resultados",
+    remakeQuiz: "Regenerar Quiz",
     correct: "Correcto",
     incorrect: "Incorrecto",
     yourAnswer: "Tu Respuesta",
@@ -1363,6 +1369,8 @@ const fr: Translations = {
     score: "Score",
     reviewAnswers: "Revoir les Réponses",
     chooseDifferentMode: "Choisir un Autre Mode",
+    viewLastResults: "Voir Derniers Résultats",
+    remakeQuiz: "Régénérer le Quiz",
     correct: "Correct",
     incorrect: "Incorrect",
     yourAnswer: "Votre Réponse",
@@ -1723,6 +1731,8 @@ const de: Translations = {
     score: "Punktzahl",
     reviewAnswers: "Antworten Überprüfen",
     chooseDifferentMode: "Anderen Modus Wählen",
+    viewLastResults: "Letzte Ergebnisse Anzeigen",
+    remakeQuiz: "Quiz Neu Erstellen",
     correct: "Richtig",
     incorrect: "Falsch",
     yourAnswer: "Deine Antwort",
@@ -2083,6 +2093,8 @@ const zh: Translations = {
     score: "得分",
     reviewAnswers: "查看答案",
     chooseDifferentMode: "选择其他模式",
+    viewLastResults: "查看上次结果",
+    remakeQuiz: "重新生成测验",
     correct: "正确",
     incorrect: "错误",
     yourAnswer: "你的答案",
@@ -2443,6 +2455,8 @@ const ja: Translations = {
     score: "スコア",
     reviewAnswers: "回答を確認",
     chooseDifferentMode: "別のモードを選択",
+    viewLastResults: "前回の結果を表示",
+    remakeQuiz: "クイズを再生成",
     correct: "正解",
     incorrect: "不正解",
     yourAnswer: "あなたの回答",
@@ -2803,6 +2817,8 @@ const ko: Translations = {
     score: "점수",
     reviewAnswers: "답안 확인",
     chooseDifferentMode: "다른 모드 선택",
+    viewLastResults: "지난 결과 보기",
+    remakeQuiz: "퀴즈 재생성",
     correct: "정답",
     incorrect: "오답",
     yourAnswer: "내 답안",

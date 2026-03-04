@@ -3,78 +3,259 @@ import openai from "@/lib/openai";
 
 const formatDescriptions: Record<string, string> = {
   "bullet-points": `## Bullet-Point Notes
-Create detailed bullet-point notes organized by topic/theme. Each main topic should be a heading (##) with multiple bullet points beneath it. Include:
-- Main ideas as top-level bullets
-- Supporting details, examples, and evidence as sub-bullets (indented with spaces)
-- Bold (**key terms**) throughout
-- Aim for thorough coverage — at least 5-8 main topic sections, each with 3-6 bullets`,
+Create detailed, multi-layered bullet-point notes organized by topic/theme. Structure:
+
+### [Topic Name]
+- **Main idea or key point** — elaboration on why it matters and its significance in context
+  - Supporting detail, example, or evidence with specific information (names, dates, figures)
+  - Additional context: how this relates to the broader subject or real-world applications
+  - Connection to other concepts discussed elsewhere in the material
+  - Implication or consequence of this point
+- **Another main point** — thorough explanation with cause-and-effect reasoning
+  - Sub-detail with specifics (names, dates, figures, locations, etc.)
+  - Further elaboration: why this matters or what it led to
+  - Example or case study illustrating this point
+- **A third main point** — analysis or deeper insight
+  - Evidence from the source material
+  - Comparison or contrast with related ideas
+
+Requirements:
+- At least 6-10 main topic sections, each with its own ### heading
+- Each topic must have 4-8 top-level bullets MINIMUM
+- Every top-level bullet MUST have 3-5 indented sub-bullets with specific, non-redundant details
+- **Bold** all key terms, names, important concepts, and critical facts at the top-level bullet
+- Use --- dividers between topic sections
+- Sub-bullets must add NEW information (evidence, examples, context, implications) — NEVER just rephrase the parent bullet
+- Include at least one "So what?" insight per topic explaining why the topic matters in the bigger picture`,
 
   sentences: `## Detailed Notes
-Write thorough paragraph-style notes organized by topic. Each section should have a heading (##) followed by well-developed paragraphs (3-5 sentences each). Include:
-- Bold (**key terms and concepts**) for easy scanning
-- Multiple paragraphs per section covering all aspects
-- Clear transitions between ideas
-- Include examples, explanations, and context
-- Aim for at least 5-8 sections with substantial content in each`,
+Write thorough paragraph-style notes organized by topic. Structure:
+
+### [Topic Name]
+Well-developed opening paragraph with **bolded key terms** explaining the topic in depth. Each paragraph should be 4-6 sentences covering what happened, why it matters, and how it connects to other topics. Include specific details like **names**, **dates**, **statistics**, and **locations**. Do not be vague — anchor every claim in a concrete detail from the source.
+
+A second paragraph expanding on a different aspect of this topic, providing examples, evidence, or deeper analysis. Explain **cause-and-effect** relationships and the **significance** of what is described. Draw connections to other sections of the material.
+
+A third paragraph (where appropriate) offering broader context, implications, or a synthesis of the key takeaways from this topic. What should the reader remember most?
+
+> Key insight or memorable quote from this section, if applicable.
+
+Requirements:
+- At least 6-10 topic sections, each with its own ### heading
+- Each section must have 3-5 well-developed paragraphs (4-6 sentences each) — NEVER just 1-2 sentences
+- **Bold** key terms, names, concepts, dates, and figures LIBERALLY throughout — when scanning, the bolded terms should give a reader a quick overview
+- Include specific examples, evidence, and context — not vague generalities
+- Use --- dividers between sections
+- Use > blockquotes for standout insights, key definitions, or memorable quotes
+- Explain WHY things matter, not just WHAT they are — every section needs a "significance" element`,
 
   cornell: `## Cornell Notes
-Create a Cornell-style notes table formatted as:
+Create a comprehensive Cornell-style notes table:
 
 | Cue / Question | Notes |
 |---|---|
-| Key question or cue word | Detailed answer or explanation covering the topic fully |
+| **Key concept or question** | Detailed explanation covering the topic thoroughly. Include specific **facts**, **examples**, and **context**. Explain significance and connections to other topics. Must be 4-6 sentences with concrete details — never vague or surface-level. |
+| **Another key topic** | Thorough notes with supporting details, evidence, and real-world relevance. Include **who**, **what**, **when**, **where**, **why**, and **how** as applicable. (4-6 sentences per cell) |
+| **Why does [X] matter?** | Analytical response that explains the significance, implications, and connections to broader themes. Include evidence from the source. (4-6 sentences) |
 
-Create at least 8-12 rows covering all major topics. Each "Notes" cell should be detailed (2-3 sentences minimum). After the table, add a "## Summary" section with a comprehensive paragraph summarizing the entire content.`,
+Requirements:
+- At least 12-20 rows covering ALL major topics from the entire source material
+- Each "Cue" cell should be a meaningful question or concept name in **bold** — mix factual cues ("What is X?") with analytical cues ("Why does X matter?", "How does X relate to Y?")
+- Each "Notes" cell must be detailed: 4-6 sentences minimum with specific, concrete information — no single-sentence cells
+- Cover topics from the beginning, middle, AND end of the source material proportionally
+- After the table, add:
+  ### Summary
+  3-4 comprehensive paragraphs synthesizing the key themes, arguments, and insights from the entire source. The summary should connect ideas across topics and highlight the most important takeaways. **Bold** key terms throughout.
+- The summary must add analytical value — synthesize and connect ideas, do not just repeat table contents`,
 
   outline: `## Outline
-Create a detailed hierarchical outline using proper numbering:
-I. Main Topic
-   A. Subtopic
-      1. Detail
-         a. Sub-detail
-   B. Another subtopic
-      1. Detail
+Create a detailed hierarchical outline with real depth:
 
-Cover all major topics with at least 3 levels of depth. Aim for at least 5-8 main sections (Roman numerals) with detailed sub-points.`,
+I. **Main Topic — Brief Description of This Section's Focus**
+   A. Subtopic with clear description and context
+      1. Specific detail, fact, or example with concrete information
+         a. Further elaboration, evidence, or supporting data
+         b. Additional context, connection to other topics, or significance
+      2. Another specific detail with names/dates/figures
+      3. Implication or consequence of this subtopic
+   B. Another subtopic — what it covers and why it matters
+      1. Detail with supporting evidence from the source
+      2. Another detail with specific examples
+      3. How this subtopic connects to the broader theme
+   C. Significance or implications of this entire topic
+      1. Why this matters in the bigger picture
+      2. Key takeaway for this section
+
+---
+
+II. **Next Main Topic — Description**
+   (Same depth as above...)
+
+Requirements:
+- At least 6-10 main sections (Roman numerals), more for longer content
+- Each main section must have at least 3-4 subtopics (A, B, C, D...)
+- Each subtopic must have at least 2-3 specific details (1, 2, 3...)
+- Go at least 3-4 levels deep throughout — shallow outlines are unacceptable
+- Use **bold** for main topic names (Roman numeral level) with a brief description after the em dash
+- Cover ALL topics from the entire source material — beginning through end
+- Use --- dividers between main sections (between each Roman numeral group)
+- The last subtopic under each main section should address significance/implications`,
 
   "key-concepts": `## Key Concepts
-Create a comprehensive list of key concepts formatted as:
+Create a comprehensive glossary of key concepts:
 
-**Concept Name**: Detailed definition and explanation (2-3 sentences minimum). Include context, significance, and examples where relevant.
+---
 
-Cover at least 10-15 key concepts. Bold the concept name and provide thorough explanations.`,
+### **Concept Name**
+**Definition:** Clear, precise definition of the concept in 1-2 sentences.
+
+**Explanation:** Why this concept matters and how it fits into the broader subject. What role does it play? What are its key characteristics? (2-3 sentences with specific details)
+
+**Example:** A concrete example or application from the source material that illustrates this concept. (1-2 sentences)
+
+**Connections:** How this concept relates to other key concepts in the material. (1 sentence)
+
+---
+
+### **Another Concept**
+(Same structured depth as above...)
+
+---
+
+Requirements:
+- At least 12-20 key concepts, more for longer content
+- Each concept gets its own ### heading in **bold**
+- Each concept entry must include all four parts: Definition, Explanation, Example, and Connections
+- Total per concept should be 5-8 sentences — not just a dictionary definition
+- **Bold** the sub-labels (Definition, Explanation, Example, Connections) within each entry
+- Use --- dividers between concepts
+- Cover concepts from the ENTIRE source — beginning, middle, and end
+- Order concepts logically (by topic or by order of appearance), not randomly`,
 
   summary: `## Summary
-Write a thorough, comprehensive summary that captures ALL main points, key arguments, supporting evidence, and conclusions. The summary should:
-- Be proportional to the source length (longer content = longer summary)
-- Cover every major topic discussed
-- Include key facts, figures, and examples
-- Be organized in logical paragraphs (at least 3-5 paragraphs for substantial content)
-- Highlight **key terms** in bold`,
+Write a thorough, comprehensive summary organized into clear subsections:
+
+### Overview
+Concise 3-4 sentence overview of the entire topic/content — what is it about, who/what is involved, and what is the central argument or narrative? **Bold** the most critical terms.
+
+### Main Themes and Arguments
+Detailed paragraphs covering every major theme. Each theme gets its own well-developed paragraph (4-6 sentences) with **bolded key terms**. Explain not just what each theme is, but why it matters and how it connects to the overall subject. Cover themes from the entire source.
+
+### Key Evidence and Examples
+The most important supporting details, data points, examples, and evidence. Organize by theme or topic. **Bold** specific facts, names, dates, and figures. Each piece of evidence should be tied to why it matters.
+
+### Implications and Significance
+What are the broader implications? What should the reader take away? How does this material connect to larger issues, trends, or ideas? What are the most important conclusions?
+
+> **Key Takeaway:** One sentence capturing the single most important insight from the entire source.
+
+Requirements:
+- Be proportional to the source length (longer content = longer, more detailed summary)
+- At least 5-8 substantial paragraphs organized under ### subheadings
+- Cover every major topic discussed across the ENTIRE source — beginning to end
+- Include specific key facts, figures, names, and examples — not vague generalities
+- **Bold** key terms and important concepts HEAVILY throughout — a reader skimming the bold text alone should get the main ideas
+- Explain significance and connections, not just surface-level facts
+- End with a > blockquote "Key Takeaway" capturing the most important insight
+- Use --- dividers between subsections`,
 
   timeline: `## Timeline
-Create a detailed chronological timeline of events, processes, or developments mentioned in the content. Format as:
+Create a detailed chronological timeline covering the ENTIRE source material:
 
-**[Date/Time/Period/Stage]** — Detailed description of what happened, its significance, and relevant context (2-3 sentences).
+---
 
-Include at least 8-12 timeline entries. If exact dates aren't available, use relative sequencing (Stage 1, Phase 2, First, Next, etc.) with detailed descriptions.`,
+### **[Date/Time/Period/Stage 1]**
+Detailed description of what happened during this period. Include **who** was involved, **what** specifically occurred, and **where** it took place. Explain **why** this event or development matters in the broader context. Provide connections to what came before and what follows. (3-5 sentences)
+
+---
+
+### **[Date/Time/Period/Stage 2]**
+Next event or development with similar detail. Include the key players, specific actions, and outcomes. Explain how this builds on the previous stage and sets up what comes next. (3-5 sentences)
+
+---
+
+### **[Date/Time/Period/Stage 3]**
+Continue with same depth...
+
+---
+
+(Continue for ALL major events/stages throughout the entire source)
+
+Requirements:
+- At least 10-15 timeline entries MINIMUM (more for longer content — aim for 15-25 for substantial sources like documentaries, lectures, or long articles)
+- Each entry MUST have 3-5 sentences of description — entries with only 1-2 sentences are unacceptable
+- Use ### headings with **bold** for each time marker so they visually stand out
+- Use --- dividers between each timeline entry for visual clarity
+- If exact dates are mentioned, use them; otherwise use descriptive sequencing (**Early period**, **Phase 1**, **Meanwhile**, **Following this**, **By mid-point**, **In the final stage**, etc.)
+- Cover events from the ENTIRE source — beginning, middle, AND end, with roughly equal coverage across all portions
+- Every entry must address: what happened, who was involved, and why it matters
+- **Bold** key names, places, and critical terms within descriptions
+- The timeline must tell a coherent story — each entry should connect to the narrative arc`,
 
   "qa-format": `## Questions & Answers
-Create comprehensive Q&A pairs for active recall study. Format as:
+Create comprehensive Q&A pairs that test deep understanding:
 
-**Q: [Thoughtful question that tests understanding]**
-A: [Detailed answer with full explanation, examples, and context — 2-4 sentences minimum]
+---
 
-Create at least 10-15 Q&A pairs covering all major topics. Mix different question types: factual recall, conceptual understanding, application, and analysis.`,
+**Q: [Thoughtful question that requires understanding, not just recall]**
+
+**A:** Detailed answer with full explanation — 4-6 sentences. Start with a direct answer to the question. Then provide supporting **evidence** or **examples** from the source. Explain the context for why this matters. Connect to other topics where relevant. End with a broader insight or implication.
+
+---
+
+**Q: [Another question covering a different topic from a different part of the source]**
+
+**A:** Similarly detailed answer with the same depth and structure...
+
+---
+
+Requirements:
+- At least 15-25 Q&A pairs covering ALL major topics from the entire source
+- Use --- dividers between each Q&A pair
+- Mix question types across these categories (aim for at least 2-3 of each):
+  - **Factual recall:** "What are the key characteristics of...?"
+  - **Cause and effect:** "Why does X lead to Y?"
+  - **Compare/contrast:** "How does X compare to Y?"
+  - **Application:** "What would happen if...?" or "How could X be applied to...?"
+  - **Synthesis:** "What is the relationship between X and Y?"
+  - **Evaluation:** "What is the significance of...?" or "Why is X considered important?"
+- Every answer must be 4-6 sentences with specific details — short answers are unacceptable
+- **Bold** the "A:" label and **bold** key terms in both questions and answers
+- Cover topics from the ENTIRE source material proportionally — beginning, middle, AND end
+- Questions should progress from foundational to more analytical/complex as they go`,
 };
 
 const lengthInstructions: Record<string, string> = {
-  short:
-    "Keep notes concise but still informative. Cover the most important points with enough detail to be useful for revision. Aim for roughly 30-40% of what comprehensive notes would be. Even in short mode, each section should have meaningful content — never write just 1-2 sentences for a section.",
-  medium:
-    "Create well-developed notes with good detail. Cover all important topics with supporting details and examples. This is the standard level — thorough enough for effective studying. Each section should be substantial.",
-  long:
-    "Create exhaustive, fully comprehensive notes. Cover EVERY topic in detail with examples, explanations, context, and connections. Include supporting evidence, edge cases, and nuances. This should serve as a complete study reference — leave nothing important out.",
+  short: `**Length: Short (Concise but Informative)**
+Cover the most important points with enough detail to be genuinely useful for revision. Aim for roughly 40-50% of what comprehensive notes would be.
+- Bullet points: 4-6 topic groups, each with 3-4 bullets and 2-3 sub-bullets
+- Timeline: 5-8 entries, each with 2-3 sentences
+- Cornell: 8-12 rows with 3-4 sentence notes per cell
+- Q&A: 10-15 pairs with 3-4 sentence answers
+- Key concepts: 8-12 entries with 3-4 sentences each
+- Summary: 3-5 paragraphs
+- Outline: 4-6 main sections, 3 levels deep
+CRITICAL: Even in short mode, every section must have meaningful, substantive content. A "short" note that is vague or surface-level is useless. Be concise but SPECIFIC — cut wordiness, not information.`,
+  medium: `**Length: Medium (Substantial and Thorough)**
+Cover all important topics with supporting details, examples, and analysis. This is the standard level — thorough enough for effective studying.
+- Bullet points: 6-10 topic groups, each with 4-6 bullets and 3-4 sub-bullets
+- Timeline: 10-15 entries, each with 3-5 sentences
+- Cornell: 12-18 rows with 4-5 sentence notes per cell
+- Q&A: 15-20 pairs with 4-5 sentence answers
+- Key concepts: 12-18 entries with 5-7 sentences each
+- Summary: 5-8 paragraphs under clear subheadings
+- Outline: 6-8 main sections, 3-4 levels deep
+Each section should feel complete — a reader who only reads one section should still learn something substantial.`,
+  long: `**Length: Long (Exhaustive and Comprehensive)**
+Cover EVERY topic in full detail with examples, explanations, context, connections, and analysis. This should serve as a complete study reference — leave nothing important out.
+- Bullet points: 8-12+ topic groups, each with 5-8 bullets and 4-5 sub-bullets
+- Timeline: 15-25 entries, each with 4-6 sentences
+- Cornell: 18-25 rows with 5-6 sentence notes per cell, plus extensive summary
+- Q&A: 20-30 pairs with 5-6 sentence answers covering all question types
+- Key concepts: 15-25 entries with 6-8 sentences each (Definition, Explanation, Example, Connections)
+- Summary: 8-12 paragraphs with detailed subheadings
+- Outline: 8-12 main sections, 4+ levels deep
+Include supporting evidence, edge cases, nuances, counterarguments, and implications. Every major AND minor topic deserves coverage.`,
 };
 
 export async function POST(request: NextRequest) {
@@ -109,7 +290,13 @@ export async function POST(request: NextRequest) {
       ? `\n\nCRITICAL: Generate ALL notes entirely in ${languageName.charAt(0).toUpperCase() + languageName.slice(1)}. Every heading, bullet point, sentence, question, answer, table cell, and summary must be in ${languageName.charAt(0).toUpperCase() + languageName.slice(1)}. Do NOT mix languages.`
       : "";
 
-    const systemPrompt = `You are an expert academic note-taker and study assistant. Your notes are known for being thorough, well-organized, and genuinely useful for studying.
+    const isLongContent = content.length > 100000;
+    const longContentNote = isLongContent
+      ? `\n\n## Important: Long Source Material
+The source material is very lengthy. You MUST still cover ALL major topics and themes throughout the ENTIRE transcript/content — from beginning to end. Do not stop partway through or only cover the first portion. To manage length, be more concise in your explanations while ensuring every major topic, event, argument, and theme across the full duration is represented. Prioritize breadth of coverage across the entire source over extreme depth on any single point.`
+      : "";
+
+    const systemPrompt = `You are an expert academic note-taker and study assistant. You produce notes that are thorough, visually impressive, well-organized, and genuinely useful for studying. Your notes are known for their depth — readers consistently say they feel like they truly understand the material after reading your notes.
 
 Generate high-quality study notes from the provided content. The notes must be structured using the format(s) specified below.
 
@@ -117,24 +304,73 @@ Generate high-quality study notes from the provided content. The notes must be s
 ${formatSections}
 
 ## Length Requirement
-${noteLengthGuide}
+${noteLengthGuide}${longContentNote}
 
 ## Quality Standards
-1. **Thoroughness**: Cover ALL significant topics, concepts, and details from the source material. Do not skip or gloss over content.
-2. **Rich formatting**: Use Markdown effectively:
-   - Headings (## and ###) for clear structure
-   - **Bold** for key terms, names, and important concepts (make them visually distinct)
-   - Bullet points and numbered lists for organization
-   - Tables where data comparison is useful
-   - > Blockquotes for important quotes or definitions
-3. **Depth**: Every section must have substantial content. A section with just 1-2 lines is unacceptable. Expand with explanations, examples, and context.
-4. **Readability**: Use varied sentence structures. Break up dense information into digestible chunks. Add spacing between sections.
-5. **Accuracy**: Stay faithful to the source material. Do not invent information.
-6. **Single summary rule**: If multiple formats are requested and one of them is "Summary" or "Cornell" (which includes a summary), include ONLY ONE summary section total in the entire document. Never duplicate summaries.
-7. **If content is a transcript**: Clean up filler words (um, uh, like), organize by topic rather than chronologically, and extract the core educational content.
+
+### 1. Complete Coverage (CRITICAL)
+Cover ALL significant topics, concepts, and details from the source material FROM START TO FINISH. Do not skip sections or stop partway. The notes must reflect the ENTIRE source proportionally — if the source has 10 major topics, all 10 must appear. Allocate roughly equal attention to the beginning, middle, and end of the source.
+
+### 2. Rich Visual Formatting
+Use Markdown aggressively to make notes visually impressive and scannable:
+- Use ## for major section headers and ### for sub-section headers — EVERY section needs a clear header
+- **Bold** LIBERALLY — key terms, important names, dates, figures, locations, and crucial concepts should ALL be bolded. A reader skimming just the bold text should get the main ideas
+- Use bullet points and numbered lists for organization — avoid walls of unbroken text
+- Use \`code-style\` for technical terms, formulas, or specific values where appropriate
+- Use --- horizontal rules between EVERY major section for clear visual separation
+- Use > blockquotes for important quotes, key definitions, standout insights, or "key takeaway" callouts
+- Use tables where data comparison or structured information would help the reader
+- Use ### sub-headings within sections to break up long content into scannable chunks
+
+### 3. Depth Over Superficiality (CRITICAL)
+Every section must have substantial, meaningful content. NEVER write just 1-2 lines for any section — this is the #1 complaint from users. Expand EVERY point with:
+- **What**: Clear description of the topic, concept, or event
+- **Why it matters**: Significance, implications, or real-world relevance
+- **Evidence**: Concrete examples, data, quotes, or facts from the source
+- **Connections**: How this relates to other topics in the material
+- **Context**: Background information that helps the reader understand
+- **Cause and effect**: What led to this and what resulted from it
+
+### 4. Meaningful Insights and Analysis
+Go FAR beyond listing surface-level facts. Your notes should demonstrate understanding:
+- Identify patterns and themes that run across the source material
+- Draw connections between different topics — show how ideas relate
+- Highlight implications — what does this mean for the reader or the field?
+- Explain the significance of key points — why should anyone care?
+- Note contrasts, contradictions, or tensions in the material
+- Provide the "so what?" for every major point
+
+### 5. Readability and Structure
+- Use varied sentence structures — avoid repetitive phrasing
+- Break up dense information into digestible chunks with clear headers
+- Add clear spacing between sections using --- dividers
+- Use transitional phrases between sections to create narrative flow
+- Front-load important information within each section
+
+### 6. Accuracy
+Stay faithful to the source material. Do not invent information or add speculation not supported by the source.
+
+### 7. Single Summary Rule
+If multiple formats are requested and one of them is "Summary" or "Cornell" (which includes a summary), include ONLY ONE summary section total. Never duplicate summaries.
+
+### 8. Transcript Handling
+If the content is a transcript: clean up filler words (um, uh, like, you know), organize by topic rather than strictly chronologically where it makes sense, and extract the core educational content. Ensure coverage spans the ENTIRE transcript duration — beginning, middle, and end.
+
+## Section Minimum Standards (Non-Negotiable)
+These are absolute minimums — exceeding them is encouraged:
+- Every section heading (## or ###) must have at least 4-6 substantive bullet points or 3-4 well-developed paragraphs beneath it
+- Timeline: at least 10-15 entries, each with 3-5 sentences (NOT 1-2 sentences)
+- Q&A: at least 15-20 pairs with 4-6 sentence answers
+- Cornell: at least 12-18 table rows with 4-6 sentence notes per cell
+- Key concepts: at least 12-20 entries with 5-8 sentences each
+- Bullet points: at least 6-10 major topic groups, each with 4-6 top-level bullets and 3-5 sub-bullets per bullet
+- Outline: at least 6-10 Roman numeral sections, 3-4 levels deep
+- Summary: at least 5-8 paragraphs under clear subheadings
+
+**If your output for any section falls below these minimums, you MUST expand it before finishing.**
 
 ## Multi-Format Blending
-When multiple formats are requested, create a single cohesive document with clear section headings for each format. Each format section should stand on its own with full content — do not create one format and skimp on another.${languageInstruction}`;
+When multiple formats are requested, create a single cohesive document with clear section headings (##) for each format, separated by --- dividers. Each format section must stand on its own with FULL content — do not create one format thoroughly and then skimp on another. Every format deserves equal effort and depth.${languageInstruction}`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -142,7 +378,7 @@ When multiple formats are requested, create a single cohesive document with clea
         { role: "system", content: systemPrompt },
         {
           role: "user",
-          content: `Generate comprehensive study notes from the following content${title ? ` (Topic: "${title}")` : ""}:\n\n${content.slice(0, 100000)}`,
+          content: `Generate comprehensive study notes from the following content${title ? ` (Topic: "${title}")` : ""}:\n\n${content.slice(0, 500000)}`,
         },
       ],
       temperature: 0.3,

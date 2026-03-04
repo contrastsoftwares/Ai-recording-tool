@@ -1,10 +1,10 @@
 "use client";
 
 import { Plus, MessageSquare } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { formatDate, truncate } from "@/lib/utils";
+import { cn, formatDate, truncate } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/lib/i18n";
 import type { Conversation } from "@/types/chat";
 
 interface ChatSidebarProps {
@@ -60,6 +60,7 @@ export function ChatSidebar({
   onSelect,
   onNewChat,
 }: ChatSidebarProps) {
+  const [currentLang] = useLanguage();
   const groups = groupConversations(conversations);
 
   return (
@@ -125,7 +126,7 @@ export function ChatSidebar({
                         </span>
                       </div>
                       <span className="shrink-0 text-[10px] text-muted-foreground">
-                        {formatDate(conv.updatedAt)}
+                        {formatDate(conv.updatedAt, currentLang)}
                       </span>
                     </div>
                     {lastMessage && (

@@ -17,7 +17,7 @@ import { formatDate, truncate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useNotesStore } from "@/stores/notes-store";
-import { useTranslation } from "@/lib/i18n";
+import { useTranslation, useLanguage } from "@/lib/i18n";
 import type { Note, UploadType } from "@/types/note";
 
 const sourceConfig: Record<
@@ -38,6 +38,7 @@ interface NoteCardProps {
 
 export function NoteCard({ note }: NoteCardProps) {
   const t = useTranslation();
+  const [lang] = useLanguage();
   const toggleFavorite = useNotesStore((s) => s.toggleFavorite);
   const deleteNote = useNotesStore((s) => s.deleteNote);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -128,7 +129,7 @@ export function NoteCard({ note }: NoteCardProps) {
         {/* Date */}
         <div className="mt-auto pt-2 border-t border-border">
           <p className="text-xs text-muted-foreground">
-            {formatDate(note.createdAt)}
+            {formatDate(note.createdAt, lang)}
           </p>
         </div>
 
