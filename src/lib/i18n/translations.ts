@@ -171,6 +171,8 @@ export interface Translations {
     takeOrUpload: string;
     ofAnyProblem: string;
     uploadImage: string;
+    uploadImages: string;
+    uploadUpTo: string;
     takePhoto: string;
     imageUploaded: string;
     analyzing: string;
@@ -180,6 +182,13 @@ export interface Translations {
     askFollowUp: string;
     followUpPlaceholder: string;
     thinking: string;
+    newSession: string;
+    addMore: string;
+    removeImage: string;
+    imagesLabel: string;
+    solveNow: string;
+    readyToSolve: string;
+    clickSolve: string;
   };
   // Audio recorder
   audioRecorder: {
@@ -543,10 +552,12 @@ const en: Translations = {
   },
   photoSolver: {
     title: "Photo Solver",
-    subtitle: "Take a photo or upload an image of any problem and get step-by-step solutions",
-    takeOrUpload: "Take a photo or upload an image",
+    subtitle: "Take a photo or upload images of any problem and get step-by-step solutions",
+    takeOrUpload: "Take a photo or upload images",
     ofAnyProblem: "of any math, science, or academic problem",
     uploadImage: "Upload Image",
+    uploadImages: "Upload Images",
+    uploadUpTo: "Upload up to 20 images per session",
     takePhoto: "Take Photo",
     imageUploaded: "Problem image uploaded",
     analyzing: "Analyzing your problem...",
@@ -556,6 +567,13 @@ const en: Translations = {
     askFollowUp: "Ask a Follow-up Question",
     followUpPlaceholder: "e.g., Can you explain step 2 in more detail?",
     thinking: "Thinking...",
+    newSession: "New Session",
+    addMore: "Add more",
+    removeImage: "Remove image",
+    imagesLabel: "images",
+    solveNow: "Solve",
+    readyToSolve: "Ready to solve",
+    clickSolve: "Click Solve to analyze your images",
   },
   audioRecorder: {
     title: "Audio Recorder",
