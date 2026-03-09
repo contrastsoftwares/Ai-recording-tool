@@ -4,6 +4,7 @@ export interface Translations {
     dashboard: string;
     myNotes: string;
     photoSolver: string;
+    recorder: string;
     audioRecorder: string;
     screenRecording: string;
     settings: string;
@@ -389,6 +390,7 @@ const en: Translations = {
     dashboard: "Dashboard",
     myNotes: "My Notes",
     photoSolver: "Photo Solver",
+    recorder: "Recorder",
     audioRecorder: "Audio Recorder",
     screenRecording: "Screen Recorder",
     settings: "Settings",
@@ -751,6 +753,7 @@ const es: Translations = {
     dashboard: "Panel",
     myNotes: "Mis Notas",
     photoSolver: "Resolver Foto",
+    recorder: "Grabadora",
     audioRecorder: "Grabadora",
     screenRecording: "Grabar Pantalla",
     settings: "Ajustes",
@@ -1113,6 +1116,7 @@ const fr: Translations = {
     dashboard: "Tableau de bord",
     myNotes: "Mes Notes",
     photoSolver: "Résolveur Photo",
+    recorder: "Enregistreur",
     audioRecorder: "Enregistreur Audio",
     screenRecording: "Enregistrement Écran",
     settings: "Paramètres",
@@ -1475,6 +1479,7 @@ const de: Translations = {
     dashboard: "Dashboard",
     myNotes: "Meine Notizen",
     photoSolver: "Foto-Löser",
+    recorder: "Rekorder",
     audioRecorder: "Audiorekorder",
     screenRecording: "Bildschirmaufnahme",
     settings: "Einstellungen",
@@ -1837,6 +1842,7 @@ const zh: Translations = {
     dashboard: "仪表盘",
     myNotes: "我的笔记",
     photoSolver: "拍照解题",
+    recorder: "录音录屏",
     audioRecorder: "录音机",
     screenRecording: "屏幕录制",
     settings: "设置",
@@ -2199,6 +2205,7 @@ const ja: Translations = {
     dashboard: "ダッシュボード",
     myNotes: "マイノート",
     photoSolver: "写真ソルバー",
+    recorder: "レコーダー",
     audioRecorder: "音声レコーダー",
     screenRecording: "画面録画",
     settings: "設定",
@@ -2561,6 +2568,7 @@ const ko: Translations = {
     dashboard: "대시보드",
     myNotes: "내 노트",
     photoSolver: "사진 풀이",
+    recorder: "녹음/녹화",
     audioRecorder: "오디오 녹음",
     screenRecording: "화면 녹화",
     settings: "설정",

@@ -19,7 +19,8 @@ interface TocItem {
 
 export function renderInlineFormatting(text: string): React.ReactNode {
   const parts: React.ReactNode[] = [];
-  const regex = /(\*\*(.+?)\*\*)|(`(.+?)`)|(\*(.+?)\*)/g;
+  // Handle: **bold**, `code`, *italic*, ~~strikethrough~~, [links](url), __underline__
+  const regex = /(\*\*(.+?)\*\*)|(`(.+?)`)|(\*(.+?)\*)|(__(.+?)__)|(~~(.+?)~~)|\[([^\]]+)\]\(([^)]+)\)/g;
   let lastIndex = 0;
   let match;
 
@@ -28,25 +29,50 @@ export function renderInlineFormatting(text: string): React.ReactNode {
       parts.push(text.slice(lastIndex, match.index));
     }
     if (match[1]) {
+      // **bold** - more prominent
       parts.push(
-        <strong key={match.index} className="font-bold text-foreground bg-primary/5 px-0.5 rounded">
+        <strong key={match.index} className="font-semibold text-foreground">
           {match[2]}
         </strong>
       );
     } else if (match[3]) {
+      // `code`
       parts.push(
         <code
           key={match.index}
-          className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-foreground"
+          className="rounded bg-muted px-1.5 py-0.5 text-[0.85em] font-mono text-foreground"
         >
           {match[4]}
         </code>
       );
     } else if (match[5]) {
+      // *italic*
       parts.push(
-        <em key={match.index} className="italic">
+        <em key={match.index} className="italic text-foreground/80">
           {match[6]}
         </em>
+      );
+    } else if (match[7]) {
+      // __underline__
+      parts.push(
+        <span key={match.index} className="underline decoration-primary/40 underline-offset-2">
+          {match[8]}
+        </span>
+      );
+    } else if (match[9]) {
+      // ~~strikethrough~~
+      parts.push(
+        <span key={match.index} className="line-through text-muted-foreground">
+          {match[10]}
+        </span>
+      );
+    } else if (match[11]) {
+      // [link](url)
+      parts.push(
+        <a key={match.index} href={match[12]} target="_blank" rel="noopener noreferrer"
+          className="text-primary underline underline-offset-2 hover:text-primary/80">
+          {match[11]}
+        </a>
       );
     }
     lastIndex = match.index + match[0].length;
@@ -98,19 +124,37 @@ export function NoteViewer({ content, formats }: NoteViewerProps) {
   const renderContent = () => {
     const lines = content.split("\n");
     const elements: React.ReactNode[] = [];
-    let listItems: string[] = [];
+    let listItems: { text: string; indent: number }[] = [];
     let orderedItems: string[] = [];
     let inTable = false;
     let tableRows: string[][] = [];
     let headingCounter = 0;
+    let blockquoteLines: string[] = [];
+
+    const flushBlockquote = () => {
+      if (blockquoteLines.length > 0) {
+        elements.push(
+          <blockquote key={`bq-${elements.length}`} className="my-5 border-l-4 border-primary/50 bg-primary/5 dark:bg-primary/10 px-5 py-3.5 rounded-r-xl">
+            {blockquoteLines.map((line, i) => (
+              <p key={i} className="text-sm text-foreground/90 leading-relaxed italic">
+                {renderInlineFormatting(line)}
+              </p>
+            ))}
+          </blockquote>
+        );
+        blockquoteLines = [];
+      }
+    };
 
     const flushList = () => {
       if (listItems.length > 0) {
         elements.push(
-          <ul key={`ul-${elements.length}`} className="space-y-1.5 my-3 ml-4">
+          <ul key={`ul-${elements.length}`} className="space-y-2 my-4 ml-1">
             {listItems.map((item, i) => (
-              <li key={i} className="text-sm text-foreground leading-relaxed list-disc pl-1">
-                {renderInlineFormatting(item)}
+              <li key={i} className="flex items-start gap-2.5 text-sm text-foreground/90 leading-relaxed"
+                style={{ paddingLeft: `${item.indent * 16}px` }}>
+                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary/60 shrink-0" />
+                <span>{renderInlineFormatting(item.text)}</span>
               </li>
             ))}
           </ul>
@@ -122,10 +166,13 @@ export function NoteViewer({ content, formats }: NoteViewerProps) {
     const flushOrderedList = () => {
       if (orderedItems.length > 0) {
         elements.push(
-          <ol key={`ol-${elements.length}`} className="space-y-1.5 my-3 ml-4">
+          <ol key={`ol-${elements.length}`} className="space-y-2 my-4 ml-1 counter-reset-list">
             {orderedItems.map((item, i) => (
-              <li key={i} className="text-sm text-foreground leading-relaxed list-decimal pl-1">
-                {renderInlineFormatting(item)}
+              <li key={i} className="flex items-start gap-2.5 text-sm text-foreground/90 leading-relaxed">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">
+                  {i + 1}
+                </span>
+                <span>{renderInlineFormatting(item)}</span>
               </li>
             ))}
           </ol>
@@ -139,23 +186,26 @@ export function NoteViewer({ content, formats }: NoteViewerProps) {
         const headerRow = tableRows[0];
         const bodyRows = tableRows.slice(1);
         elements.push(
-          <div key={`table-${elements.length}`} className="my-4 overflow-x-auto rounded-lg border border-border">
+          <div key={`table-${elements.length}`} className="my-6 overflow-x-auto rounded-xl border border-border shadow-sm">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-muted/50">
+                <tr className="border-b-2 border-border bg-primary/5 dark:bg-primary/10">
                   {headerRow.map((cell, i) => (
-                    <th key={i} className="px-4 py-2 text-left font-medium text-foreground">
-                      {cell.trim()}
+                    <th key={i} className="px-4 py-3 text-left font-semibold text-primary text-xs uppercase tracking-wider">
+                      {renderInlineFormatting(cell.trim())}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {bodyRows.map((row, i) => (
-                  <tr key={i} className="border-b border-border last:border-0">
+                  <tr key={i} className={cn(
+                    "border-b border-border last:border-0 transition-colors",
+                    i % 2 === 0 ? "bg-background" : "bg-muted/30"
+                  )}>
                     {row.map((cell, j) => (
-                      <td key={j} className="px-4 py-2 text-muted-foreground">
-                        {cell.trim()}
+                      <td key={j} className="px-4 py-2.5 text-foreground/80">
+                        {renderInlineFormatting(cell.trim())}
                       </td>
                     ))}
                   </tr>
@@ -173,7 +223,22 @@ export function NoteViewer({ content, formats }: NoteViewerProps) {
       const line = lines[i];
       const trimmed = line.trim();
 
+      // Horizontal rules
+      if (/^(-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
+        flushList();
+        flushOrderedList();
+        flushBlockquote();
+        elements.push(
+          <hr key={`hr-${i}`} className="my-8 border-border" />
+        );
+        continue;
+      }
+
+      // Tables
       if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
+        flushList();
+        flushOrderedList();
+        flushBlockquote();
         if (/^\|[\s\-:|]+\|$/.test(trimmed)) {
           inTable = true;
           continue;
@@ -186,9 +251,11 @@ export function NoteViewer({ content, formats }: NoteViewerProps) {
         flushTable();
       }
 
+      // Empty lines
       if (trimmed === "") {
         flushList();
         flushOrderedList();
+        flushBlockquote();
         continue;
       }
 
@@ -197,22 +264,38 @@ export function NoteViewer({ content, formats }: NoteViewerProps) {
       if (headingMatch) {
         flushList();
         flushOrderedList();
+        flushBlockquote();
         const level = headingMatch[1].length;
         const text = headingMatch[2];
         const headingId = `heading-${headingCounter}`;
         headingCounter++;
-        const classes: Record<number, string> = {
-          1: "text-2xl font-bold text-foreground mt-6 mb-3",
-          2: "text-xl font-bold text-foreground mt-6 mb-3",
-          3: "text-base font-semibold text-foreground mt-6 mb-2",
-          4: "text-sm font-semibold text-foreground mt-5 mb-2",
-        };
-        const Tag = `h${level}` as "h1" | "h2" | "h3" | "h4";
-        elements.push(
-          <Tag key={`h-${i}`} className={classes[level]} data-heading-id={headingId}>
-            {text}
-          </Tag>
-        );
+
+        if (level === 1) {
+          elements.push(
+            <h1 key={`h-${i}`} className="text-2xl font-bold text-foreground mt-8 mb-4 pb-2 border-b-2 border-primary/20" data-heading-id={headingId}>
+              {renderInlineFormatting(text)}
+            </h1>
+          );
+        } else if (level === 2) {
+          elements.push(
+            <h2 key={`h-${i}`} className="text-xl font-bold text-primary mt-8 mb-3 flex items-center gap-2" data-heading-id={headingId}>
+              <span className="h-5 w-1 bg-primary rounded-full" />
+              {renderInlineFormatting(text)}
+            </h2>
+          );
+        } else if (level === 3) {
+          elements.push(
+            <h3 key={`h-${i}`} className="text-base font-semibold text-foreground mt-5 mb-2" data-heading-id={headingId}>
+              {renderInlineFormatting(text)}
+            </h3>
+          );
+        } else {
+          elements.push(
+            <h4 key={`h-${i}`} className="text-sm font-semibold text-foreground/80 mt-4 mb-1.5 uppercase tracking-wide" data-heading-id={headingId}>
+              {renderInlineFormatting(text)}
+            </h4>
+          );
+        }
         continue;
       }
 
@@ -220,28 +303,25 @@ export function NoteViewer({ content, formats }: NoteViewerProps) {
       if (trimmed.startsWith("> ")) {
         flushList();
         flushOrderedList();
-        const quoteText = trimmed.slice(2);
-        elements.push(
-          <blockquote key={`bq-${i}`} className="my-3 border-l-4 border-primary/40 bg-primary/5 px-4 py-2.5 rounded-r-lg">
-            <p className="text-sm text-foreground/90 leading-relaxed italic">
-              {renderInlineFormatting(quoteText)}
-            </p>
-          </blockquote>
-        );
+        blockquoteLines.push(trimmed.slice(2));
         continue;
+      } else {
+        flushBlockquote();
       }
 
       // Unordered list items
       if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
         flushOrderedList();
-        listItems.push(trimmed.slice(2));
+        flushBlockquote();
+        listItems.push({ text: trimmed.slice(2), indent: 0 });
         continue;
       }
 
-      // Sub-list items
+      // Sub-list items (indented)
       if (/^\s+[-*]\s/.test(line)) {
+        const indent = Math.floor((line.length - line.trimStart().length) / 2);
         const subItem = line.replace(/^\s+[-*]\s/, "");
-        listItems.push(subItem);
+        listItems.push({ text: subItem, indent: Math.min(indent, 3) });
         continue;
       }
 
@@ -249,14 +329,16 @@ export function NoteViewer({ content, formats }: NoteViewerProps) {
       const orderedMatch = trimmed.match(/^(\d+)\.\s+(.+)/);
       if (orderedMatch) {
         flushList();
+        flushBlockquote();
         orderedItems.push(orderedMatch[2]);
         continue;
       }
 
       flushList();
       flushOrderedList();
+      flushBlockquote();
       elements.push(
-        <p key={`p-${i}`} className="text-sm text-foreground/90 leading-relaxed my-2">
+        <p key={`p-${i}`} className="text-sm text-foreground/85 leading-[1.75] my-2">
           {renderInlineFormatting(trimmed)}
         </p>
       );
@@ -264,6 +346,7 @@ export function NoteViewer({ content, formats }: NoteViewerProps) {
 
     flushList();
     flushOrderedList();
+    flushBlockquote();
     flushTable();
 
     return elements;
@@ -342,7 +425,7 @@ export function NoteViewer({ content, formats }: NoteViewerProps) {
           </nav>
         )}
 
-        <div ref={contentRef} className="flex-1 min-w-0">
+        <div ref={contentRef} className="flex-1 min-w-0 note-content">
           {renderContent()}
         </div>
       </div>

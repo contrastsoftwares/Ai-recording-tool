@@ -82,9 +82,9 @@ export default function NoteWorkspacePage() {
   const router = useRouter();
   const noteId = params.id as string;
 
-  const tabs: { id: TabId; label: string; icon: React.ElementType; mobileOnly?: boolean }[] = [
+  const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
     { id: "notes", label: t.noteDetail.notes, icon: FileText },
-    { id: "chat", label: t.noteDetail.chat, icon: MessageSquare, mobileOnly: true },
+    { id: "chat", label: t.noteDetail.chat, icon: MessageSquare },
     { id: "flashcards", label: t.noteDetail.flashcards, icon: Layers },
     { id: "test", label: t.noteDetail.test, icon: ClipboardCheck },
     { id: "transcript", label: t.noteDetail.transcript, icon: ScrollText },
@@ -145,19 +145,81 @@ export default function NoteWorkspacePage() {
     setEditedTitle("");
   }, []);
 
-  const handleExport = useCallback(() => {
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const handleExport = useCallback((format: "txt" | "md" | "html" | "pdf") => {
     if (!note) return;
-    const content = `# ${note.title}\n\n${note.content}`;
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const safeTitle = note.title.replace(/[^a-z0-9\u4e00-\u9fff\uac00-\ud7af\u3040-\u309f\u30a0-\u30ff]/gi, "_");
+
+    if (format === "txt") {
+      // Plain text: strip markdown
+      const plain = note.content
+        .replace(/#{1,6}\s/g, "")
+        .replace(/\*\*(.*?)\*\*/g, "$1")
+        .replace(/\*(.*?)\*/g, "$1")
+        .replace(/~~(.*?)~~/g, "$1")
+        .replace(/`(.*?)`/g, "$1")
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+      const blob = new Blob([`${note.title}\n${"=".repeat(note.title.length)}\n\n${plain}`], { type: "text/plain;charset=utf-8" });
+      downloadBlob(blob, `${safeTitle}.txt`);
+    } else if (format === "md") {
+      // Markdown
+      const blob = new Blob([`# ${note.title}\n\n${note.content}`], { type: "text/markdown;charset=utf-8" });
+      downloadBlob(blob, `${safeTitle}.md`);
+    } else if (format === "html") {
+      // HTML with styling
+      const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${note.title}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; line-height: 1.6; color: #1a1a1a; }
+    h1 { border-bottom: 2px solid #e5e5e5; padding-bottom: 0.5rem; }
+    h2 { color: #2563eb; margin-top: 2rem; }
+    h3 { color: #4b5563; }
+    ul, ol { padding-left: 1.5rem; }
+    li { margin-bottom: 0.25rem; }
+    blockquote { border-left: 4px solid #3b82f6; margin: 1rem 0; padding: 0.5rem 1rem; background: #eff6ff; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #d1d5db; padding: 0.5rem; text-align: left; }
+    th { background: #f3f4f6; font-weight: 600; }
+    code { background: #f3f4f6; padding: 0.2em 0.4em; border-radius: 3px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>${note.title}</h1>
+  ${note.content}
+</body>
+</html>`;
+      const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+      downloadBlob(blob, `${safeTitle}.html`);
+    } else if (format === "pdf") {
+      // Open HTML in new window for browser Print > Save as PDF
+      const htmlContent = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>${note.title}</title>
+<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;max-width:800px;margin:0 auto;padding:2rem;line-height:1.6;color:#1a1a1a;}h1{border-bottom:2px solid #e5e5e5;padding-bottom:.5rem;}h2{color:#2563eb;margin-top:2rem;}h3{color:#4b5563;}ul,ol{padding-left:1.5rem;}li{margin-bottom:.25rem;}blockquote{border-left:4px solid #3b82f6;margin:1rem 0;padding:.5rem 1rem;background:#eff6ff;}table{border-collapse:collapse;width:100%;margin:1rem 0;}th,td{border:1px solid #d1d5db;padding:.5rem;text-align:left;}th{background:#f3f4f6;font-weight:600;}</style>
+</head><body><h1>${note.title}</h1>${note.content}
+<script>window.onload=function(){window.print();}</script></body></html>`;
+      const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+    setShowExportMenu(false);
+  }, [note]);
+
+  const downloadBlob = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${note.title.replace(/[^a-z0-9]/gi, "_")}.txt`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [note]);
+  };
 
   const handleShare = useCallback(() => {
     const url = window.location.href;
@@ -168,6 +230,16 @@ export default function NoteWorkspacePage() {
     deleteNote(noteId);
     router.push("/notes");
   }, [noteId, deleteNote, router]);
+
+  // Handle chatbot note edits
+  const handleChatEditNote = useCallback((action: "append" | "replace", content: string) => {
+    if (!note) return;
+    if (action === "append") {
+      updateNote(noteId, { content: note.content + "\n\n" + content });
+    } else {
+      updateNote(noteId, { content });
+    }
+  }, [note, noteId, updateNote]);
 
   // Raw content for on-demand transcript generation
   const transcriptContent = note?.rawContent || note?.transcript || "";
@@ -345,9 +417,19 @@ export default function NoteWorkspacePage() {
               </div>
             )}
           </div>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleExport} title={t.noteDetail.export}>
-            <Download className="h-4 w-4 text-muted-foreground" />
-          </Button>
+          <div className="relative">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowExportMenu(!showExportMenu)} title={t.noteDetail.export}>
+              <Download className="h-4 w-4 text-muted-foreground" />
+            </Button>
+            {showExportMenu && (
+              <div className="absolute right-0 top-full mt-1 z-50 w-44 rounded-lg border border-border bg-card shadow-lg py-1">
+                <button onClick={() => handleExport("txt")} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">.txt (Plain Text)</button>
+                <button onClick={() => handleExport("md")} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">.md (Markdown)</button>
+                <button onClick={() => handleExport("html")} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">.html (Web Page)</button>
+                <button onClick={() => handleExport("pdf")} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">.pdf (Print to PDF)</button>
+              </div>
+            )}
+          </div>
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleShare} title={t.noteDetail.share}>
             <Share2 className="h-4 w-4 text-muted-foreground" />
           </Button>
@@ -356,13 +438,16 @@ export default function NoteWorkspacePage() {
           </Button>
           <div className="w-px h-6 bg-border mx-1" />
           <Button
-            variant="ghost"
+            variant={showChat ? "ghost" : "default"}
             size="sm"
-            className="h-8 w-8 p-0"
+            className={cn(
+              "gap-1.5 text-xs",
+              !showChat && "animate-pulse"
+            )}
             onClick={() => setShowChat(!showChat)}
-            title={t.noteDetail.chat}
           >
-            {showChat ? <PanelRightClose className="h-4 w-4 text-muted-foreground" /> : <PanelRightOpen className="h-4 w-4 text-muted-foreground" />}
+            <MessageSquare className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{showChat ? "✕" : t.noteDetail.chat}</span>
           </Button>
         </div>
       </div>
@@ -377,23 +462,6 @@ export default function NoteWorkspacePage() {
               const Icon = tab.icon;
               // Only show transcript tab for audio/video sources
               if (tab.id === "transcript" && !mediaSourceTypes.has(note.sourceType)) return null;
-              // Chat tab only shown on mobile (desktop has persistent sidebar)
-              if (tab.mobileOnly) return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => handleTabChange(tab.id)}
-                  className={cn(
-                    "lg:hidden flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all whitespace-nowrap",
-                    activeTab === tab.id
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </button>
-              );
               return (
                 <button
                   key={tab.id}
@@ -418,24 +486,29 @@ export default function NoteWorkspacePage() {
             <div className={activeTab === "notes" ? "" : "hidden"}>
               <div className="rounded-xl border border-border bg-card overflow-hidden">
                 {/* Edit/View toggle */}
-                <div className="flex items-center justify-end px-4 py-2 border-b border-border bg-muted/30">
-                  <div className="inline-flex rounded-md bg-muted p-0.5">
+                <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/30">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {isEditing ? t.noteDetail.edit : t.noteDetail.view} {t.noteDetail.notes.toLowerCase()}
+                  </span>
+                  <div className="inline-flex rounded-lg border border-border bg-background p-0.5 shadow-sm">
                     <button
                       onClick={() => setIsEditing(false)}
                       className={cn(
-                        "px-3 py-1 text-xs font-medium rounded-md transition-colors",
-                        !isEditing ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                        "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                        !isEditing ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                       )}
                     >
+                      <FileText className="h-3 w-3" />
                       {t.noteDetail.view}
                     </button>
                     <button
                       onClick={() => setIsEditing(true)}
                       className={cn(
-                        "px-3 py-1 text-xs font-medium rounded-md transition-colors",
-                        isEditing ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                        "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                        isEditing ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                       )}
                     >
+                      <Pencil className="h-3 w-3" />
                       {t.noteDetail.edit}
                     </button>
                   </div>
@@ -453,10 +526,10 @@ export default function NoteWorkspacePage() {
               </div>
             </div>
 
-            {/* Mobile chat (full-width, shares same memory as sidebar chat) */}
-            <div className={cn("lg:hidden", activeTab === "chat" ? "h-full" : "hidden")}>
+            {/* Chat tab (full-width, shares same memory as sidebar chat via localStorage) */}
+            <div className={activeTab === "chat" ? "h-full" : "hidden"}>
               <div className="rounded-xl border border-border bg-card overflow-hidden h-[calc(100vh-16rem)]">
-                <ChatInterface noteId={noteId} noteContent={note.content} />
+                <ChatInterface noteId={noteId} noteContent={note.content} onEditNote={handleChatEditNote} />
               </div>
             </div>
 
@@ -491,7 +564,7 @@ export default function NoteWorkspacePage() {
               </Button>
             </div>
             <div className="flex-1 overflow-hidden">
-              <ChatInterface noteId={noteId} noteContent={note.content} />
+              <ChatInterface noteId={noteId} noteContent={note.content} onEditNote={handleChatEditNote} />
             </div>
           </div>
         )}

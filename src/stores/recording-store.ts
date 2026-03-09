@@ -1,56 +1,63 @@
 "use client";
 
 import { create } from "zustand";
-import type { Recording, RecordingType, RecordingStatus } from "@/types/recording";
 
-interface ActiveRecording {
-  type: RecordingType;
-  status: RecordingStatus;
+interface SavedRecording {
+  blob: Blob;
+  url: string;
   duration: number;
+  mimeType: string;
 }
 
 interface RecordingState {
-  recordings: Recording[];
-  activeRecording: ActiveRecording | null;
-  startRecording: (type: RecordingType) => void;
-  pauseRecording: () => void;
-  resumeRecording: () => void;
-  stopRecording: () => void;
-  tick: () => void;
+  audioRecording: SavedRecording | null;
+  screenRecording: SavedRecording | null;
+
+  saveAudioRecording: (blob: Blob, duration: number) => void;
+  saveScreenRecording: (blob: Blob, duration: number) => void;
+  clearAudioRecording: () => void;
+  clearScreenRecording: () => void;
 }
 
-export const useRecordingStore = create<RecordingState>((set) => ({
-  recordings: [],
-  activeRecording: null,
-  startRecording: (type) =>
-    set({ activeRecording: { type, status: "recording", duration: 0 } }),
-  pauseRecording: () =>
-    set((state) =>
-      state.activeRecording
-        ? { activeRecording: { ...state.activeRecording, status: "paused" } }
-        : state
-    ),
-  resumeRecording: () =>
-    set((state) =>
-      state.activeRecording
-        ? { activeRecording: { ...state.activeRecording, status: "recording" } }
-        : state
-    ),
-  stopRecording: () =>
-    set((state) =>
-      state.activeRecording
-        ? { activeRecording: { ...state.activeRecording, status: "stopped" } }
-        : state
-    ),
-  tick: () =>
-    set((state) =>
-      state.activeRecording?.status === "recording"
-        ? {
-            activeRecording: {
-              ...state.activeRecording,
-              duration: state.activeRecording.duration + 1,
-            },
-          }
-        : state
-    ),
+export const useRecordingStore = create<RecordingState>((set, get) => ({
+  audioRecording: null,
+  screenRecording: null,
+
+  saveAudioRecording: (blob: Blob, duration: number) => {
+    const prev = get().audioRecording;
+    if (prev) {
+      URL.revokeObjectURL(prev.url);
+    }
+    const url = URL.createObjectURL(blob);
+    set({
+      audioRecording: { blob, url, duration, mimeType: blob.type },
+    });
+  },
+
+  saveScreenRecording: (blob: Blob, duration: number) => {
+    const prev = get().screenRecording;
+    if (prev) {
+      URL.revokeObjectURL(prev.url);
+    }
+    const url = URL.createObjectURL(blob);
+    set({
+      screenRecording: { blob, url, duration, mimeType: blob.type },
+    });
+  },
+
+  clearAudioRecording: () => {
+    const prev = get().audioRecording;
+    if (prev) {
+      URL.revokeObjectURL(prev.url);
+    }
+    set({ audioRecording: null });
+  },
+
+  clearScreenRecording: () => {
+    const prev = get().screenRecording;
+    if (prev) {
+      URL.revokeObjectURL(prev.url);
+    }
+    set({ screenRecording: null });
+  },
 }));

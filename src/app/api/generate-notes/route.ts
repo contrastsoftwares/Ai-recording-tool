@@ -388,13 +388,16 @@ When multiple formats are requested, create a single cohesive document with clea
     const notesContent = response.choices[0]?.message?.content ?? "";
 
     // Generate a title and tags with a cheaper model
+    const metaLanguageInstruction = languageName !== "english"
+      ? ` The title and tags MUST be written in ${languageName.charAt(0).toUpperCase() + languageName.slice(1)}.`
+      : "";
     const metaResponse = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
           content:
-            'Given the following notes, provide a JSON object with "title" (short descriptive title, max 60 chars) and "tags" (array of 2-5 short topic tags). Respond ONLY with valid JSON.',
+            `Given the following notes, provide a JSON object with "title" (short descriptive title, max 60 chars) and "tags" (array of 2-5 short topic tags). Respond ONLY with valid JSON.${metaLanguageInstruction}`,
         },
         { role: "user", content: notesContent.slice(0, 3000) },
       ],

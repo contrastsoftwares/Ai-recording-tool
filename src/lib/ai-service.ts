@@ -175,7 +175,7 @@ export const aiService = {
   async chat(
     noteContent: string,
     messages: Array<{ role: string; content: string }>
-  ): Promise<string> {
+  ): Promise<{ content: string; noteEdit?: { action: "append" | "replace"; content: string } }> {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -188,13 +188,16 @@ export const aiService = {
     }
 
     const data = await res.json();
-    return data.content;
+    return { content: data.content, noteEdit: data.noteEdit || undefined };
   },
 
-  /** Solve a problem from an image */
-  async solvePhoto(image: File): Promise<SolvePhotoResult> {
+  /** Solve a problem from one or more images */
+  async solvePhoto(images: File | File[]): Promise<SolvePhotoResult> {
     const formData = new FormData();
-    formData.append("image", image);
+    const files = Array.isArray(images) ? images : [images];
+    for (const file of files) {
+      formData.append("images", file);
+    }
 
     const res = await fetch("/api/solve-photo", {
       method: "POST",

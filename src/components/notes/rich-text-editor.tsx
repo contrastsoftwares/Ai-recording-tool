@@ -309,9 +309,9 @@ export function RichTextEditor({
   const isExternalUpdate = useRef(false);
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
-        // Disable the built-in heading to avoid conflicts (we use StarterKit's)
         // StarterKit includes: bold, italic, strike, code, heading, bulletList, orderedList, etc.
       }),
       Underline,

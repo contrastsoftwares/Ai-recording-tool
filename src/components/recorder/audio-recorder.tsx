@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RecordingControls } from "./recording-controls";
 import { useRouter } from "next/navigation";
 import { useUploadStore } from "@/stores/upload-store";
+import { useRecordingStore } from "@/stores/recording-store";
 import { useTranslation } from "@/lib/i18n";
 
 type RecordingStatus = "idle" | "recording" | "paused" | "stopped";
@@ -32,15 +33,29 @@ function WaveformBar({ index, isRecording }: { index: number; isRecording: boole
 export function AudioRecorder() {
   const router = useRouter();
   const t = useTranslation();
-  const [status, setStatus] = useState<RecordingStatus>("idle");
-  const [duration, setDuration] = useState(0);
+  const savedRecording = useRecordingStore((s) => s.audioRecording);
+  const saveAudioRecording = useRecordingStore((s) => s.saveAudioRecording);
+  const clearAudioRecording = useRecordingStore((s) => s.clearAudioRecording);
+
+  // If there's a saved recording, start in "stopped" state so it's shown
+  const [status, setStatus] = useState<RecordingStatus>(
+    savedRecording ? "stopped" : "idle"
+  );
+  const [duration, setDuration] = useState(savedRecording?.duration ?? 0);
   const [error, setError] = useState<string | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
-  const blobRef = useRef<Blob | null>(null);
+
+  // Derive audioUrl and blob from store when in stopped state
+  const audioUrl = status === "stopped" && savedRecording ? savedRecording.url : null;
+  const blobRef = useRef<Blob | null>(savedRecording?.blob ?? null);
+
+  // Keep blobRef in sync with store
+  useEffect(() => {
+    blobRef.current = savedRecording?.blob ?? null;
+  }, [savedRecording]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -50,20 +65,21 @@ export function AudioRecorder() {
     return () => { if (interval) clearInterval(interval); };
   }, [status]);
 
+  // Cleanup active streams on unmount (but NOT the store data)
   useEffect(() => {
     return () => {
       if (streamRef.current) streamRef.current.getTracks().forEach((track) => track.stop());
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
     };
-  }, [audioUrl]);
+  }, []);
 
   const handleStart = useCallback(async () => {
     setError(null);
     setDuration(0);
     chunksRef.current = [];
-    blobRef.current = null;
 
-    if (audioUrl) { URL.revokeObjectURL(audioUrl); setAudioUrl(null); }
+    // Clean up previous recording from store
+    clearAudioRecording();
+    blobRef.current = null;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -79,7 +95,8 @@ export function AudioRecorder() {
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         blobRef.current = blob;
-        setAudioUrl(URL.createObjectURL(blob));
+        // Save to store so it persists across navigation
+        saveAudioRecording(blob, durationRef.current);
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((track) => track.stop());
           streamRef.current = null;
@@ -101,7 +118,13 @@ export function AudioRecorder() {
         setError("An unexpected error occurred while accessing the microphone.");
       }
     }
-  }, [audioUrl]);
+  }, [clearAudioRecording, saveAudioRecording]);
+
+  // Track duration in a ref so the onstop callback has the latest value
+  const durationRef = useRef(duration);
+  useEffect(() => {
+    durationRef.current = duration;
+  }, [duration]);
 
   const handlePause = useCallback(() => {
     if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.pause();
@@ -120,14 +143,14 @@ export function AudioRecorder() {
 
   const handleReset = useCallback(() => {
     if (streamRef.current) { streamRef.current.getTracks().forEach((track) => track.stop()); streamRef.current = null; }
-    if (audioUrl) { URL.revokeObjectURL(audioUrl); setAudioUrl(null); }
+    clearAudioRecording();
     mediaRecorderRef.current = null;
     chunksRef.current = [];
     blobRef.current = null;
     setStatus("idle");
     setDuration(0);
     setError(null);
-  }, [audioUrl]);
+  }, [clearAudioRecording]);
 
   const handleDownload = useCallback(() => {
     if (!audioUrl) return;

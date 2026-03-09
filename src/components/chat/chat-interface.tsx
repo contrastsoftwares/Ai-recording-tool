@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChatMessage } from "@/components/chat/chat-message";
 import { ChatInput } from "@/components/chat/chat-input";
@@ -12,9 +12,10 @@ import type { Message } from "@/types/chat";
 interface ChatInterfaceProps {
   noteId: string;
   noteContent?: string;
+  onEditNote?: (action: "append" | "replace", content: string) => void;
 }
 
-export function ChatInterface({ noteId, noteContent }: ChatInterfaceProps) {
+export function ChatInterface({ noteId, noteContent, onEditNote }: ChatInterfaceProps) {
   const t = useTranslation();
   const suggestedQuestions = [
     t.chat.suggestSummarize,
@@ -44,12 +45,34 @@ export function ChatInterface({ noteId, noteContent }: ChatInterfaceProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const readFileAsText = async (file: File): Promise<string> => {
+    if (file.type.startsWith("image/")) {
+      return `[Attached image: ${file.name}]`;
+    }
+    try {
+      const text = await file.text();
+      return `[File: ${file.name}]\n${text.slice(0, 10000)}`;
+    } catch {
+      return `[File: ${file.name}] (unable to read content)`;
+    }
+  };
+
   const handleSend = useCallback(
-    async (content: string) => {
+    async (content: string, files?: File[]) => {
+      let fullContent = content;
+      if (files && files.length > 0) {
+        const fileTexts = await Promise.all(files.map(readFileAsText));
+        fullContent = content + "\n\n--- Attached Files ---\n" + fileTexts.join("\n\n");
+      }
+
+      const displayContent = files && files.length > 0
+        ? `${content}\n\n📎 ${files.map(f => f.name).join(", ")}`
+        : content;
+
       const userMessage: Message = {
         id: `msg-${Date.now()}`,
         role: "user",
-        content,
+        content: displayContent,
         timestamp: new Date().toISOString(),
       };
 
@@ -57,17 +80,26 @@ export function ChatInterface({ noteId, noteContent }: ChatInterfaceProps) {
       setIsLoading(true);
 
       try {
-        const allMessages = [...messages, userMessage].map((m) => ({
+        const allMessages = [...messages, { ...userMessage, content: fullContent }].map((m) => ({
           role: m.role,
           content: m.content,
         }));
 
         const response = await aiService.chat(noteContent || "", allMessages);
 
+        // Handle note edit if the AI returned one
+        if (response.noteEdit && onEditNote) {
+          onEditNote(response.noteEdit.action, response.noteEdit.content);
+        }
+
+        const displayContent = response.noteEdit
+          ? `${response.content}\n\n✅ *Notes updated successfully.*`
+          : response.content;
+
         const aiMessage: Message = {
           id: `msg-${Date.now()}-ai`,
           role: "assistant",
-          content: response,
+          content: displayContent,
           timestamp: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, aiMessage]);
@@ -83,7 +115,7 @@ export function ChatInterface({ noteId, noteContent }: ChatInterfaceProps) {
         setIsLoading(false);
       }
     },
-    [messages, noteContent, t]
+    [messages, noteContent, t, onEditNote]
   );
 
   const handleSuggestedQuestion = (question: string) => {
@@ -109,6 +141,16 @@ export function ChatInterface({ noteId, noteContent }: ChatInterfaceProps) {
             <p className="mb-6 max-w-sm text-center text-sm text-muted-foreground">
               {t.chat.welcomeSub}
             </p>
+
+            {/* Note editing hint */}
+            {onEditNote && (
+              <div className="mb-4 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+                <Pencil className="h-4 w-4 text-primary shrink-0" />
+                <span className="text-xs text-muted-foreground">
+  {"You can ask me to add or change content in your notes!"}
+                </span>
+              </div>
+            )}
 
             {/* Suggested questions */}
             <div className="flex max-w-lg flex-wrap justify-center gap-2">

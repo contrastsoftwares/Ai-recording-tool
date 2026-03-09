@@ -92,7 +92,7 @@ export default function PhotoSolverPage() {
       const assistantMessage: FollowUpMessage = {
         id: `msg-${Date.now()}-ai`,
         role: "assistant",
-        content: response,
+        content: response.content,
       };
       setFollowUpMessages((prev) => [...prev, assistantMessage]);
     } catch {

@@ -7,7 +7,6 @@ import {
   FileText,
   Camera,
   Mic,
-  Monitor,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,8 +16,7 @@ const navIcons = [
   { key: "home" as const, href: "/dashboard", icon: LayoutDashboard },
   { key: "notes" as const, href: "/notes", icon: FileText },
   { key: "photo" as const, href: "/photo-solver", icon: Camera },
-  { key: "audio" as const, href: "/recorder?tab=audio", icon: Mic },
-  { key: "screen" as const, href: "/recorder?tab=screen", icon: Monitor },
+  { key: "audio" as const, href: "/recorder", icon: Mic },
   { key: "settings" as const, href: "/settings", icon: Settings },
 ];
 

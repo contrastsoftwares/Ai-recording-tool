@@ -11,7 +11,7 @@ const execFileAsync = promisify(execFile);
 const MAX_DIRECT_SIZE = 24 * 1024 * 1024; // 24MB (margin below 25MB Whisper limit)
 const CHUNK_DURATION_SECS = 600; // 10 minutes per chunk
 
-export const maxDuration = 300; // 5 min timeout (for Vercel deployments)
+export const maxDuration = 3600; // 60 min timeout – supports transcription of files up to ~90 min
 
 /**
  * Resolve the ffmpeg binary path.

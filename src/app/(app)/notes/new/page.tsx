@@ -118,7 +118,7 @@ function NewNoteContent() {
 
       // Step 1: Extract content
       if (selectedUrl) {
-        setProcessingMessage("Extracting content from URL...");
+        setProcessingMessage(t.newNote.extractingUrl);
         setProgress(10);
 
         const extracted = await aiService.extractContent({ url: selectedUrl });
@@ -130,7 +130,7 @@ function NewNoteContent() {
         const fileType = selectedFile.type;
 
         if (fileType.startsWith("audio/") || fileType.startsWith("video/")) {
-          setProcessingMessage("Transcribing your recording...");
+          setProcessingMessage(t.newNote.transcribing);
           setProgress(10);
 
           const transcribeResult = await aiService.transcribe(
@@ -145,7 +145,7 @@ function NewNoteContent() {
           sourceType = fileType.startsWith("audio/") ? "audio" : "video";
           setProgress(40);
         } else if (fileType === "application/pdf") {
-          setProcessingMessage("Extracting text from PDF...");
+          setProcessingMessage(t.newNote.extractingPdf);
           setProgress(10);
 
           const extracted = await aiService.extractContent(
@@ -157,7 +157,7 @@ function NewNoteContent() {
           sourceType = "pdf";
           setProgress(30);
         } else if (fileType.startsWith("image/")) {
-          setProcessingMessage("Analyzing image...");
+          setProcessingMessage(t.newNote.analyzingImage);
           setProgress(10);
 
           const solution = await aiService.solvePhoto(selectedFile);
@@ -166,7 +166,7 @@ function NewNoteContent() {
           sourceType = "image";
           setProgress(30);
         } else {
-          setProcessingMessage("Reading document...");
+          setProcessingMessage(t.newNote.readingDocument);
           setProgress(10);
 
           const extracted = await aiService.extractContent({
@@ -194,7 +194,7 @@ function NewNoteContent() {
       }
 
       // Step 2: Generate notes (with length parameter)
-      setProcessingMessage("Generating AI-powered notes...");
+      setProcessingMessage(t.newNote.generatingAiNotes);
       setProgress(50);
 
       const notesResult = await aiService.generateNotes(
@@ -206,7 +206,7 @@ function NewNoteContent() {
       );
 
       setProgress(80);
-      setProcessingMessage("Finalizing your notes...");
+      setProcessingMessage(t.newNote.finalizingNotes);
 
       // Step 3: Create note and save to store
       // Store raw content; transcript is generated on-demand from the Transcript tab
@@ -243,7 +243,7 @@ function NewNoteContent() {
     } finally {
       processingRef.current = false;
     }
-  }, [selectedFormats, selectedLength, selectedUrl, selectedFile, addNote, router, uploadStore]);
+  }, [selectedFormats, selectedLength, selectedUrl, selectedFile, addNote, router, uploadStore, t, customTitle]);
 
   const hasContent = selectedFile !== null || selectedUrl !== null;
   const stepIndex = steps.findIndex((s) => s.id === currentStep);

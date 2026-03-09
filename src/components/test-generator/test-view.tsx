@@ -220,10 +220,12 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     setElapsedSeconds(0);
     setScore(null);
     setAiGrades({});
+    // Clear saved answers so stale answers don't get restored by the useEffect
+    localStorage.removeItem(`test-answers-${noteId}-${mode}`);
     // Force re-compute of quiz questions when starting (for scramble)
     setQuizVersion((v) => v + 1);
     setTestState("taking");
-  }, []);
+  }, [noteId]);
 
   // Update question frequency tracking when taking a quick quiz
   useEffect(() => {
@@ -302,16 +304,6 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
         percentage: totalQuestions > 0 ? Math.round((updatedCorrect / totalQuestions) * 100) : 0,
       });
     }
-  }
-
-  function handleRetake() {
-    setSavedResults(null);
-    setAnswers({});
-    setElapsedSeconds(0);
-    setScore(null);
-    setAiGrades({});
-    setQuizVersion((v) => v + 1);
-    setTestState("taking");
   }
 
   function handleReview() { setTestState("review"); }
@@ -471,7 +463,8 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
   }
 
   const totalQuestions = activeQuestions.length;
-  const answeredCount = Object.keys(answers).filter((key) => answers[key]?.trim().length > 0).length;
+  const activeQuestionIds = new Set(activeQuestions.map((q) => q.id));
+  const answeredCount = Object.keys(answers).filter((key) => activeQuestionIds.has(key) && answers[key]?.trim().length > 0).length;
   const allAnswered = answeredCount === totalQuestions;
 
   // Results
@@ -487,7 +480,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
             </Badge>
           </div>
         </div>
-        <TestResults score={score} onRetake={handleRetake} onReview={handleReview} />
+        <TestResults score={score} onRemake={handleRegenerate} onReview={handleReview} />
         <div className="flex justify-center gap-3 mt-4">
           <Button variant="outline" className="gap-2" onClick={handleGoToChooser}>
             {t.test.chooseDifferentMode}

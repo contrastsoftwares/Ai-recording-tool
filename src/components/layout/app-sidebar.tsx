@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -9,12 +9,12 @@ import {
   FileText,
   Camera,
   Mic,
-  Monitor,
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
   Globe,
   Clock,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -36,10 +36,26 @@ const navIcons = [
   { key: "dashboard" as const, href: "/dashboard", icon: LayoutDashboard },
   { key: "myNotes" as const, href: "/notes", icon: FileText },
   { key: "photoSolver" as const, href: "/photo-solver", icon: Camera },
-  { key: "audioRecorder" as const, href: "/recorder?tab=audio", icon: Mic },
-  { key: "screenRecording" as const, href: "/recorder?tab=screen", icon: Monitor },
+  { key: "recorder" as const, href: "/recorder", icon: Mic },
   { key: "settings" as const, href: "/settings", icon: Settings },
 ];
+
+// Custom event to communicate collapsed state to layout
+const SIDEBAR_COLLAPSE_EVENT = "sidebar-collapse";
+
+export function useSidebarCollapsed() {
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setCollapsed((e as CustomEvent).detail.collapsed);
+    };
+    window.addEventListener(SIDEBAR_COLLAPSE_EVENT, handler);
+    return () => window.removeEventListener(SIDEBAR_COLLAPSE_EVENT, handler);
+  }, []);
+
+  return collapsed;
+}
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -58,12 +74,28 @@ export function AppSidebar() {
           const bTime = new Date(b.lastAccessedAt || b.updatedAt || b.createdAt).getTime();
           return bTime - aTime;
         })
-        .slice(0, 5),
+        .slice(0, 10),
+    [notes]
+  );
+
+  const favoriteNotes = useMemo(
+    () => notes.filter((n) => n.isFavorite),
     [notes]
   );
 
   const currentLangLabel =
     languageOptions.find((l) => l.key === currentLang)?.label || "English";
+
+  // Broadcast collapsed state changes
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      window.dispatchEvent(
+        new CustomEvent(SIDEBAR_COLLAPSE_EVENT, { detail: { collapsed: next } })
+      );
+      return next;
+    });
+  }, []);
 
   // Close language dropdown on outside click
   useEffect(() => {
@@ -83,7 +115,7 @@ export function AppSidebar() {
       className={cn(
         "hidden lg:flex flex-col fixed left-0 top-0 h-screen z-40",
         "bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
-        "transition-all duration-300 ease-in-out"
+        "transition-[width] duration-300 ease-in-out overflow-hidden"
       )}
       style={{
         width: collapsed
@@ -94,8 +126,8 @@ export function AppSidebar() {
       {/* Brand */}
       <div
         className={cn(
-          "flex items-center gap-3 px-5 py-5 border-b border-sidebar-border",
-          collapsed && "justify-center px-0"
+          "flex items-center h-[68px] border-b border-sidebar-border shrink-0",
+          collapsed ? "justify-center" : "px-5 gap-3"
         )}
       >
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -113,7 +145,7 @@ export function AppSidebar() {
         )}
       </div>
 
-      {/* Navigation */}
+      {/* Navigation + Recent Notes + Favorites (scrollable area) */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 scrollbar-thin">
         <ul className="flex flex-col gap-1">
           {navIcons.map((item) => {
@@ -144,44 +176,78 @@ export function AppSidebar() {
             );
           })}
         </ul>
+
+        {/* Recent Notes */}
+        {!collapsed && recentNotes.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-sidebar-border">
+            <div className="flex items-center gap-1.5 px-3 mb-2">
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Recent
+              </span>
+            </div>
+            <ul className="flex flex-col gap-0.5">
+              {recentNotes.map((note) => (
+                <li key={note.id}>
+                  <Link
+                    href={`/notes/${note.id}`}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm",
+                      "text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
+                      pathname === `/notes/${note.id}` && "bg-primary/10 text-primary"
+                    )}
+                    title={note.title}
+                  >
+                    <FileText className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">
+                      {note.title.length > 24
+                        ? note.title.slice(0, 24) + "..."
+                        : note.title}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Favorites */}
+        {!collapsed && favoriteNotes.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-sidebar-border">
+            <div className="flex items-center gap-1.5 px-3 mb-2">
+              <Star className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Favorites
+              </span>
+            </div>
+            <ul className="flex flex-col gap-0.5">
+              {favoriteNotes.map((note) => (
+                <li key={note.id}>
+                  <Link
+                    href={`/notes/${note.id}`}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm",
+                      "text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
+                      pathname === `/notes/${note.id}` && "bg-primary/10 text-primary"
+                    )}
+                    title={note.title}
+                  >
+                    <Star className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">
+                      {note.title.length > 24
+                        ? note.title.slice(0, 24) + "..."
+                        : note.title}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </nav>
 
-      {/* Recent Notes */}
-      {!collapsed && recentNotes.length > 0 && (
-        <div className="px-3 pb-2 border-t border-sidebar-border pt-3">
-          <div className="flex items-center gap-1.5 px-3 mb-2">
-            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Recent
-            </span>
-          </div>
-          <ul className="flex flex-col gap-0.5">
-            {recentNotes.map((note) => (
-              <li key={note.id}>
-                <Link
-                  href={`/notes/${note.id}`}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm",
-                    "text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
-                    pathname === `/notes/${note.id}` && "bg-primary/10 text-primary"
-                  )}
-                  title={note.title}
-                >
-                  <FileText className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">
-                    {note.title.length > 24
-                      ? note.title.slice(0, 24) + "..."
-                      : note.title}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       {/* Bottom section */}
-      <div className="border-t border-sidebar-border px-3 py-3 space-y-1">
+      <div className="border-t border-sidebar-border px-3 py-3 space-y-1 shrink-0">
         <ThemeToggle collapsed={collapsed} />
 
         {/* Language switcher */}
@@ -230,7 +296,7 @@ export function AppSidebar() {
         </div>
 
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={toggleCollapsed}
           className={cn(
             "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium w-full",
             "text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",

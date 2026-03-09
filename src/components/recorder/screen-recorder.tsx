@@ -18,6 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RecordingControls } from "./recording-controls";
 import { useRouter } from "next/navigation";
 import { useUploadStore } from "@/stores/upload-store";
+import { useRecordingStore } from "@/stores/recording-store";
 import { useTranslation } from "@/lib/i18n";
 
 type RecordingStatus = "idle" | "recording" | "paused" | "stopped";
@@ -25,12 +26,17 @@ type RecordingStatus = "idle" | "recording" | "paused" | "stopped";
 export function ScreenRecorder() {
   const router = useRouter();
   const t = useTranslation();
-  const [status, setStatus] = useState<RecordingStatus>("idle");
-  const [duration, setDuration] = useState(0);
+  const savedRecording = useRecordingStore((s) => s.screenRecording);
+  const saveScreenRecording = useRecordingStore((s) => s.saveScreenRecording);
+  const clearScreenRecording = useRecordingStore((s) => s.clearScreenRecording);
+
+  const [status, setStatus] = useState<RecordingStatus>(
+    savedRecording ? "stopped" : "idle"
+  );
+  const [duration, setDuration] = useState(savedRecording?.duration ?? 0);
   const [includeMicrophone, setIncludeMicrophone] = useState(false);
   const [quality, setQuality] = useState<"720p" | "1080p">("1080p");
   const [error, setError] = useState<string | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -38,7 +44,20 @@ export function ScreenRecorder() {
   const micStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
-  const blobRef = useRef<Blob | null>(null);
+  const blobRef = useRef<Blob | null>(savedRecording?.blob ?? null);
+
+  const videoUrl = status === "stopped" && savedRecording ? savedRecording.url : null;
+
+  // Keep blobRef in sync with store
+  useEffect(() => {
+    blobRef.current = savedRecording?.blob ?? null;
+  }, [savedRecording]);
+
+  // Track duration in a ref so onstop callback has the latest value
+  const durationRef = useRef(duration);
+  useEffect(() => {
+    durationRef.current = duration;
+  }, [duration]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -48,21 +67,23 @@ export function ScreenRecorder() {
     return () => { if (interval) clearInterval(interval); };
   }, [status]);
 
+  // Cleanup active streams on unmount (but NOT the store data)
   useEffect(() => {
     return () => {
       if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
       if (micStreamRef.current) micStreamRef.current.getTracks().forEach((t) => t.stop());
       if (audioContextRef.current) audioContextRef.current.close().catch(() => {});
-      if (videoUrl) URL.revokeObjectURL(videoUrl);
     };
-  }, [videoUrl]);
+  }, []);
 
   const handleStart = useCallback(async () => {
     setError(null);
     setDuration(0);
     chunksRef.current = [];
+
+    // Clean up previous recording from store
+    clearScreenRecording();
     blobRef.current = null;
-    if (videoUrl) { URL.revokeObjectURL(videoUrl); setVideoUrl(null); }
 
     try {
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
@@ -120,7 +141,8 @@ export function ScreenRecorder() {
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: "video/webm" });
         blobRef.current = blob;
-        setVideoUrl(URL.createObjectURL(blob));
+        // Save to store so it persists across navigation
+        saveScreenRecording(blob, durationRef.current);
         if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
         if (micStreamRef.current) { micStreamRef.current.getTracks().forEach((t) => t.stop()); micStreamRef.current = null; }
         if (audioContextRef.current) { audioContextRef.current.close().catch(() => {}); audioContextRef.current = null; }
@@ -143,7 +165,7 @@ export function ScreenRecorder() {
         setError("An unexpected error occurred while starting screen recording.");
       }
     }
-  }, [videoUrl, includeMicrophone, quality]);
+  }, [includeMicrophone, quality, clearScreenRecording, saveScreenRecording]);
 
   const handlePause = useCallback(() => {
     if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.pause();
@@ -165,14 +187,14 @@ export function ScreenRecorder() {
     if (micStreamRef.current) { micStreamRef.current.getTracks().forEach((t) => t.stop()); micStreamRef.current = null; }
     if (audioContextRef.current) { audioContextRef.current.close().catch(() => {}); audioContextRef.current = null; }
     if (videoPreviewRef.current) videoPreviewRef.current.srcObject = null;
-    if (videoUrl) { URL.revokeObjectURL(videoUrl); setVideoUrl(null); }
+    clearScreenRecording();
     mediaRecorderRef.current = null;
     chunksRef.current = [];
     blobRef.current = null;
     setStatus("idle");
     setDuration(0);
     setError(null);
-  }, [videoUrl]);
+  }, [clearScreenRecording]);
 
   const handleDownload = useCallback(() => {
     if (!videoUrl) return;
