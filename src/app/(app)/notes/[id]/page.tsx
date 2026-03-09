@@ -34,7 +34,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { NoteViewer } from "@/components/notes/note-viewer";
 import { TranscriptPanel } from "@/components/notes/transcript-panel";
 import dynamic from "next/dynamic";
 
@@ -93,7 +92,6 @@ export default function NoteWorkspacePage() {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const [showChat, setShowChat] = useState(true);
   const [showNoteInfo, setShowNoteInfo] = useState(false);
   const updateNote = useNotesStore((s) => s.updateNote);
@@ -485,44 +483,10 @@ export default function NoteWorkspacePage() {
           <div ref={contentRef} className="flex-1 overflow-y-auto scrollbar-thin">
             <div className={activeTab === "notes" ? "" : "hidden"}>
               <div className="rounded-xl border border-border bg-card overflow-hidden">
-                {/* Edit/View toggle */}
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/30">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {isEditing ? t.noteDetail.edit : t.noteDetail.view} {t.noteDetail.notes.toLowerCase()}
-                  </span>
-                  <div className="inline-flex rounded-lg border border-border bg-background p-0.5 shadow-sm">
-                    <button
-                      onClick={() => setIsEditing(false)}
-                      className={cn(
-                        "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                        !isEditing ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      <FileText className="h-3 w-3" />
-                      {t.noteDetail.view}
-                    </button>
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className={cn(
-                        "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                        isEditing ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      <Pencil className="h-3 w-3" />
-                      {t.noteDetail.edit}
-                    </button>
-                  </div>
-                </div>
-                {isEditing ? (
-                  <RichTextEditor
-                    content={note.content}
-                    onChange={(html) => updateNote(noteId, { content: html })}
-                  />
-                ) : (
-                  <div className="p-6">
-                    <NoteViewer content={note.content} formats={note.formats} />
-                  </div>
-                )}
+                <RichTextEditor
+                  content={note.content}
+                  onChange={(html) => updateNote(noteId, { content: html })}
+                />
               </div>
             </div>
 

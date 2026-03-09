@@ -26,13 +26,25 @@ import {
   Undo2,
   Redo2,
   ChevronDown,
+  Copy,
+  Check,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Simple markdown-to-HTML converter (no external libs)
 // ---------------------------------------------------------------------------
 
+function isHtml(content: string): boolean {
+  const trimmed = content.trim();
+  return /^<[a-z][\s\S]*>/i.test(trimmed) || /<(?:p|h[1-6]|ul|ol|li|strong|em|blockquote|div|br\s*\/?)[\s>]/i.test(trimmed);
+}
+
 function markdownToHtml(markdown: string): string {
+  // If content is already HTML, return as-is to avoid double conversion
+  if (isHtml(markdown)) {
+    return markdown;
+  }
+
   const lines = markdown.split("\n");
   const htmlParts: string[] = [];
   let inUl = false;
@@ -307,6 +319,8 @@ export function RichTextEditor({
 }: RichTextEditorProps) {
   // Track whether the content was set from outside so we don't loop
   const isExternalUpdate = useRef(false);
+  // Track last content to avoid unnecessary re-renders
+  const lastContentRef = useRef(content);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -332,7 +346,9 @@ export function RichTextEditor({
     editable,
     onUpdate: ({ editor: ed }) => {
       if (!isExternalUpdate.current) {
-        onChange(ed.getHTML());
+        const html = ed.getHTML();
+        lastContentRef.current = html;
+        onChange(html);
       }
     },
     // Drag-and-drop handling for images
@@ -397,7 +413,7 @@ export function RichTextEditor({
       attributes: {
         class: cn(
           "prose prose-sm dark:prose-invert max-w-none focus:outline-none",
-          "min-h-[200px] px-4 py-3"
+          "min-h-[400px] px-8 md:px-12 lg:px-16 py-6"
         ),
       },
     },
@@ -410,13 +426,15 @@ export function RichTextEditor({
     }
   }, [editor, editable]);
 
-  // Sync external content changes
+  // Sync external content changes (e.g. chatbot appending notes)
   useEffect(() => {
     if (!editor) return;
-    const currentHtml = editor.getHTML();
-    const incomingHtml = markdownToHtml(content);
+    // Only update if the content prop changed from an external source
+    if (content === lastContentRef.current) return;
+    lastContentRef.current = content;
 
-    // Avoid unnecessary updates which reset cursor position
+    const incomingHtml = markdownToHtml(content);
+    const currentHtml = editor.getHTML();
     if (currentHtml !== incomingHtml) {
       isExternalUpdate.current = true;
       editor.commands.setContent(incomingHtml);
@@ -425,6 +443,17 @@ export function RichTextEditor({
   }, [content, editor]);
 
   // ----- Toolbar handlers -----
+
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    if (!editor) return;
+    // Copy plain text version to clipboard
+    const text = editor.getText();
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [editor]);
 
   const handleInsertImage = useCallback(() => {
     if (!editor) return;
@@ -439,12 +468,12 @@ export function RichTextEditor({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-background overflow-hidden">
+    <div className="bg-background overflow-hidden">
       {/* Toolbar */}
       {editable && (
         <div
           className={cn(
-            "flex flex-wrap items-center gap-0.5 border-b border-border bg-muted/30 px-2 py-1.5"
+            "flex flex-wrap items-center gap-0.5 border-b border-border bg-muted/30 px-2 py-1.5 sticky top-0 z-10"
           )}
         >
           {/* Bold */}
@@ -586,6 +615,16 @@ export function RichTextEditor({
             title="Redo (Ctrl+Shift+Z)"
           >
             <Redo2 className="h-4 w-4" />
+          </ToolbarButton>
+
+          <ToolbarSeparator />
+
+          {/* Copy */}
+          <ToolbarButton
+            onClick={handleCopy}
+            title={copied ? "Copied!" : "Copy to clipboard"}
+          >
+            {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
           </ToolbarButton>
         </div>
       )}
