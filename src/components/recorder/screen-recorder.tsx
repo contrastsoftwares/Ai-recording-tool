@@ -196,15 +196,38 @@ export function ScreenRecorder() {
     setError(null);
   }, [clearScreenRecording]);
 
-  const handleDownload = useCallback(() => {
-    if (!videoUrl) return;
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const downloadMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showDownloadMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (downloadMenuRef.current && !downloadMenuRef.current.contains(e.target as Node)) {
+        setShowDownloadMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showDownloadMenu]);
+
+  const handleDownload = useCallback((format: string = "webm") => {
+    if (!blobRef.current) return;
+    const mimeTypes: Record<string, string> = {
+      webm: "video/webm",
+      mp4: "video/mp4",
+      mkv: "video/x-matroska",
+    };
+    const blob = new Blob([blobRef.current], { type: mimeTypes[format] || "video/webm" });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = videoUrl;
-    a.download = `screen-recording-${Date.now()}.webm`;
+    a.href = url;
+    a.download = `screen-recording-${Date.now()}.${format}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-  }, [videoUrl]);
+    URL.revokeObjectURL(url);
+    setShowDownloadMenu(false);
+  }, []);
 
   const handleGenerateNotes = useCallback(() => {
     if (!blobRef.current) return;
@@ -243,10 +266,19 @@ export function ScreenRecorder() {
                     <FileText className="h-4 w-4" />
                     {t.screenRecorder.generateNotes}
                   </Button>
-                  <Button variant="outline" className="gap-2" onClick={handleDownload}>
-                    <Download className="h-4 w-4" />
-                    {t.screenRecorder.downloadRecording}
-                  </Button>
+                  <div className="relative" ref={downloadMenuRef}>
+                    <Button variant="outline" className="gap-2" onClick={() => setShowDownloadMenu(!showDownloadMenu)}>
+                      <Download className="h-4 w-4" />
+                      {t.screenRecorder.downloadRecording}
+                    </Button>
+                    {showDownloadMenu && (
+                      <div className="absolute top-full mt-1 left-0 z-50 w-48 rounded-lg border border-border bg-card shadow-lg py-1">
+                        <button onClick={() => handleDownload("webm")} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">.webm (WebM Video)</button>
+                        <button onClick={() => handleDownload("mp4")} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">.mp4 (MP4 Video)</button>
+                        <button onClick={() => handleDownload("mkv")} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">.mkv (MKV Video)</button>
+                      </div>
+                    )}
+                  </div>
                   <Button variant="outline" className="gap-2" onClick={handleReset}>
                     <RotateCcw className="h-4 w-4" />
                     {t.screenRecorder.newRecording}

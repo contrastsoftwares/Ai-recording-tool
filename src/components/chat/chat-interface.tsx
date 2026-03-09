@@ -47,7 +47,18 @@ export function ChatInterface({ noteId, noteContent, onEditNote }: ChatInterface
 
   const readFileAsText = async (file: File): Promise<string> => {
     if (file.type.startsWith("image/")) {
-      return `[Attached image: ${file.name}]`;
+      // Convert image to base64 so the API can analyze it
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result as string;
+          resolve(`[Attached image: ${file.name}]\n${base64}`);
+        };
+        reader.onerror = () => {
+          resolve(`[Attached image: ${file.name}]`);
+        };
+        reader.readAsDataURL(file);
+      });
     }
     try {
       const text = await file.text();

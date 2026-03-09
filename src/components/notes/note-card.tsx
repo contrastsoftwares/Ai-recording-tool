@@ -13,7 +13,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatDate, truncate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useNotesStore } from "@/stores/notes-store";
@@ -45,14 +45,20 @@ export function NoteCard({ note }: NoteCardProps) {
   const source = sourceConfig[note.sourceType];
   const SourceIcon = source.icon;
 
-  // Strip markdown formatting for preview
-  const plainContent = note.content
-    .replace(/#{1,6}\s/g, "")
-    .replace(/\*\*/g, "")
-    .replace(/\*/g, "")
-    .replace(/- /g, "")
-    .replace(/\n/g, " ")
-    .trim();
+  // Use description if available, otherwise generate a brief summary from content
+  const previewText = note.description || (() => {
+    const plain = note.content
+      .replace(/<[^>]+>/g, " ")  // Strip HTML tags
+      .replace(/#{1,6}\s/g, "")
+      .replace(/\*\*/g, "")
+      .replace(/\*/g, "")
+      .replace(/- /g, "")
+      .replace(/\n/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    // Take first ~100 chars as brief description
+    return plain.length > 100 ? plain.slice(0, 100) + "..." : plain;
+  })();
 
   return (
     <>
@@ -101,9 +107,9 @@ export function NoteCard({ note }: NoteCardProps) {
           {note.title}
         </h3>
 
-        {/* Content preview */}
+        {/* Description preview */}
         <p className="text-sm text-muted-foreground line-clamp-2 mb-3 leading-relaxed">
-          {truncate(plainContent, 100)}
+          {previewText}
         </p>
 
         {/* Tags */}

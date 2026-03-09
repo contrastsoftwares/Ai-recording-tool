@@ -436,16 +436,13 @@ export default function NoteWorkspacePage() {
           </Button>
           <div className="w-px h-6 bg-border mx-1" />
           <Button
-            variant={showChat ? "ghost" : "default"}
+            variant="default"
             size="sm"
-            className={cn(
-              "gap-1.5 text-xs",
-              !showChat && "animate-pulse"
-            )}
+            className="gap-1.5 text-xs"
             onClick={() => setShowChat(!showChat)}
           >
             <MessageSquare className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{showChat ? "✕" : t.noteDetail.chat}</span>
+            <span className="hidden sm:inline">{t.noteDetail.chat}</span>
           </Button>
         </div>
       </div>

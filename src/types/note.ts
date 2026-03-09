@@ -22,6 +22,7 @@ export interface NoteFormatOption {
 export interface Note {
   id: string;
   title: string;
+  description?: string;
   content: string;
   formats: NoteFormat[];
   sourceType: UploadType;

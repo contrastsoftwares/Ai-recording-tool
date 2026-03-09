@@ -152,15 +152,39 @@ export function AudioRecorder() {
     setError(null);
   }, [clearAudioRecording]);
 
-  const handleDownload = useCallback(() => {
-    if (!audioUrl) return;
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const downloadMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showDownloadMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (downloadMenuRef.current && !downloadMenuRef.current.contains(e.target as Node)) {
+        setShowDownloadMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showDownloadMenu]);
+
+  const handleDownload = useCallback((format: string = "webm") => {
+    if (!blobRef.current) return;
+    const mimeTypes: Record<string, string> = {
+      webm: "audio/webm",
+      wav: "audio/wav",
+      mp3: "audio/mpeg",
+      ogg: "audio/ogg",
+    };
+    const blob = new Blob([blobRef.current], { type: mimeTypes[format] || "audio/webm" });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = audioUrl;
-    a.download = `recording-${Date.now()}.webm`;
+    a.href = url;
+    a.download = `recording-${Date.now()}.${format}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-  }, [audioUrl]);
+    URL.revokeObjectURL(url);
+    setShowDownloadMenu(false);
+  }, []);
 
   const handleGenerateNotes = useCallback(() => {
     if (!blobRef.current) return;
@@ -189,10 +213,20 @@ export function AudioRecorder() {
                     <FileText className="h-4 w-4" />
                     {t.audioRecorder.generateNotes}
                   </Button>
-                  <Button variant="outline" className="gap-2" onClick={handleDownload}>
-                    <Download className="h-4 w-4" />
-                    {t.audioRecorder.downloadRecording}
-                  </Button>
+                  <div className="relative" ref={downloadMenuRef}>
+                    <Button variant="outline" className="gap-2" onClick={() => setShowDownloadMenu(!showDownloadMenu)}>
+                      <Download className="h-4 w-4" />
+                      {t.audioRecorder.downloadRecording}
+                    </Button>
+                    {showDownloadMenu && (
+                      <div className="absolute top-full mt-1 left-0 z-50 w-44 rounded-lg border border-border bg-card shadow-lg py-1">
+                        <button onClick={() => handleDownload("webm")} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">.webm (WebM Audio)</button>
+                        <button onClick={() => handleDownload("wav")} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">.wav (WAV Audio)</button>
+                        <button onClick={() => handleDownload("ogg")} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">.ogg (OGG Audio)</button>
+                        <button onClick={() => handleDownload("mp3")} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">.mp3 (MP3 Audio)</button>
+                      </div>
+                    )}
+                  </div>
                   <Button variant="outline" className="gap-2" onClick={handleReset}>
                     <RotateCcw className="h-4 w-4" />
                     {t.audioRecorder.newRecording}

@@ -1,12 +1,13 @@
 "use client";
 
 import { useEditor, EditorContent } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Color from "@tiptap/extension-color";
 import { TextStyle } from "@tiptap/extension-text-style";
 import Highlight from "@tiptap/extension-highlight";
-import Image from "@tiptap/extension-image";
+import TiptapImage from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,12 @@ import {
   ChevronDown,
   Copy,
   Check,
+  Trash2,
+  AlignLeft,
+  WrapText,
+  Square,
+  Layers,
+  MoveVertical,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -40,7 +47,6 @@ function isHtml(content: string): boolean {
 }
 
 function markdownToHtml(markdown: string): string {
-  // If content is already HTML, return as-is to avoid double conversion
   if (isHtml(markdown)) {
     return markdown;
   }
@@ -65,11 +71,8 @@ function markdownToHtml(markdown: string): string {
     const line = lines[i];
     const trimmed = line.trim();
 
-    // Blank line => close lists and push paragraph break
     if (trimmed === "") {
       closeList();
-      // Only push a break if the previous part wasn't already a closing tag
-      // to avoid excessive empty paragraphs
       continue;
     }
 
@@ -126,41 +129,46 @@ function markdownToHtml(markdown: string): string {
 
 /** Convert inline markdown formatting to HTML */
 function convertInline(text: string): string {
-  // Bold: **text** or __text__
   let result = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   result = result.replace(/__(.+?)__/g, "<strong>$1</strong>");
-
-  // Italic: *text* or _text_ (but not inside already-converted tags)
   result = result.replace(/(?<!\w)\*(?!\*)(.+?)(?<!\*)\*(?!\w)/g, "<em>$1</em>");
   result = result.replace(/(?<!\w)_(?!_)(.+?)(?<!_)_(?!\w)/g, "<em>$1</em>");
-
-  // Strikethrough: ~~text~~
   result = result.replace(/~~(.+?)~~/g, "<s>$1</s>");
-
-  // Inline code: `text`
   result = result.replace(/`(.+?)`/g, "<code>$1</code>");
-
-  // Images: ![alt](url)
   result = result.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
-
-  // Links: [text](url)
   result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
-
   return result;
 }
 
 // ---------------------------------------------------------------------------
-// Preset colors for the text color picker
+// Preset colors for the text color picker & highlight picker
 // ---------------------------------------------------------------------------
 
 const PRESET_COLORS = [
   { name: "Black", value: "#000000" },
+  { name: "Dark Gray", value: "#4b5563" },
   { name: "Red", value: "#dc2626" },
   { name: "Blue", value: "#2563eb" },
   { name: "Green", value: "#16a34a" },
   { name: "Purple", value: "#9333ea" },
   { name: "Orange", value: "#ea580c" },
+  { name: "Pink", value: "#ec4899" },
 ] as const;
+
+const HIGHLIGHT_COLORS = [
+  { name: "Yellow", value: "#fef08a" },
+  { name: "Green", value: "#bbf7d0" },
+  { name: "Blue", value: "#bfdbfe" },
+  { name: "Pink", value: "#fbcfe8" },
+  { name: "Purple", value: "#e9d5ff" },
+  { name: "Orange", value: "#fed7aa" },
+] as const;
+
+// ---------------------------------------------------------------------------
+// Image layout types
+// ---------------------------------------------------------------------------
+
+type ImageLayout = "inline" | "wrap-text" | "break-text" | "behind-text" | "in-front-of-text";
 
 // ---------------------------------------------------------------------------
 // Toolbar button component
@@ -209,7 +217,7 @@ function ToolbarSeparator() {
 }
 
 // ---------------------------------------------------------------------------
-// Color picker dropdown
+// Color picker dropdown (for text color)
 // ---------------------------------------------------------------------------
 
 interface ColorPickerProps {
@@ -222,7 +230,6 @@ function ColorPicker({ currentColor, onSelectColor, disabled }: ColorPickerProps
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -259,8 +266,9 @@ function ColorPicker({ currentColor, onSelectColor, disabled }: ColorPickerProps
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 rounded-lg border border-border bg-popover p-2 shadow-md">
-          <div className="grid grid-cols-3 gap-1">
+        <div className="absolute left-0 top-full z-50 mt-1 rounded-lg border border-border bg-popover p-3 shadow-md min-w-[180px]">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Text Color</p>
+          <div className="grid grid-cols-4 gap-2">
             {PRESET_COLORS.map((color) => (
               <button
                 key={color.value}
@@ -271,16 +279,15 @@ function ColorPicker({ currentColor, onSelectColor, disabled }: ColorPickerProps
                   setOpen(false);
                 }}
                 className={cn(
-                  "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors",
+                  "flex items-center justify-center rounded-md p-1 transition-colors",
                   "hover:bg-accent",
-                  currentColor === color.value && "bg-accent"
+                  currentColor === color.value && "ring-2 ring-primary ring-offset-1"
                 )}
               >
                 <span
-                  className="h-3.5 w-3.5 rounded-full border border-border shrink-0"
+                  className="h-5 w-5 rounded-full border border-border"
                   style={{ backgroundColor: color.value }}
                 />
-                <span className="text-foreground">{color.name}</span>
               </button>
             ))}
           </div>
@@ -291,13 +298,211 @@ function ColorPicker({ currentColor, onSelectColor, disabled }: ColorPickerProps
                 onSelectColor("");
                 setOpen(false);
               }}
-              className="mt-1 w-full rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="mt-2 w-full rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors text-center"
             >
               Remove color
             </button>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Highlight color picker dropdown
+// ---------------------------------------------------------------------------
+
+interface HighlightPickerProps {
+  editor: ReturnType<typeof useEditor>;
+  disabled?: boolean;
+}
+
+function HighlightPicker({ editor, disabled }: HighlightPickerProps) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const isActive = editor?.isActive("highlight");
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        disabled={disabled}
+        title="Highlight"
+        className={cn(
+          "inline-flex items-center justify-center gap-0.5 rounded-md p-1.5 text-sm transition-colors",
+          "hover:bg-accent hover:text-accent-foreground",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "disabled:pointer-events-none disabled:opacity-50",
+          isActive && "bg-accent text-accent-foreground"
+        )}
+      >
+        <Highlighter className="h-4 w-4" />
+        <ChevronDown className="h-3 w-3" />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1 rounded-lg border border-border bg-popover p-3 shadow-md min-w-[180px]">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Highlight Color</p>
+          <div className="grid grid-cols-3 gap-2">
+            {HIGHLIGHT_COLORS.map((color) => (
+              <button
+                key={color.value}
+                type="button"
+                title={color.name}
+                onClick={() => {
+                  editor?.chain().focus().toggleHighlight({ color: color.value }).run();
+                  setOpen(false);
+                }}
+                className={cn(
+                  "flex items-center justify-center rounded-md p-1.5 transition-colors",
+                  "hover:ring-2 hover:ring-primary/50"
+                )}
+              >
+                <span
+                  className="h-5 w-10 rounded border border-border"
+                  style={{ backgroundColor: color.value }}
+                />
+              </button>
+            ))}
+          </div>
+          {isActive && (
+            <button
+              type="button"
+              onClick={() => {
+                editor?.chain().focus().unsetHighlight().run();
+                setOpen(false);
+              }}
+              className="mt-2 w-full rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors text-center"
+            >
+              Remove highlight
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Image bubble menu (appears when clicking on an image)
+// ---------------------------------------------------------------------------
+
+interface ImageBubbleMenuProps {
+  editor: ReturnType<typeof useEditor>;
+}
+
+function ImageBubbleMenuContent({ editor }: ImageBubbleMenuProps) {
+  if (!editor) return null;
+
+  const handleDelete = () => {
+    editor.chain().focus().deleteSelection().run();
+  };
+
+  const setLayout = (layout: ImageLayout) => {
+    const { node } = editor.state.selection as any;
+    if (!node) return;
+
+    let className = "rounded-lg max-w-full h-auto my-4";
+    let style = "";
+
+    switch (layout) {
+      case "inline":
+        className = "rounded-lg h-auto my-2 inline-block max-w-[50%]";
+        style = "display: inline-block;";
+        break;
+      case "wrap-text":
+        className = "rounded-lg h-auto my-2 max-w-[50%]";
+        style = "float: left; margin-right: 16px; margin-bottom: 8px;";
+        break;
+      case "break-text":
+        className = "rounded-lg max-w-full h-auto my-4 block mx-auto";
+        style = "display: block; clear: both;";
+        break;
+      case "behind-text":
+        className = "rounded-lg max-w-full h-auto";
+        style = "position: absolute; z-index: -1; opacity: 0.3;";
+        break;
+      case "in-front-of-text":
+        className = "rounded-lg max-w-full h-auto";
+        style = "position: relative; z-index: 10;";
+        break;
+    }
+
+    editor
+      .chain()
+      .focus()
+      .updateAttributes("image", {
+        class: className,
+        style: style,
+      })
+      .run();
+  };
+
+  return (
+    <div className="flex items-center gap-1 rounded-lg border border-border bg-popover p-1.5 shadow-lg">
+      <button
+        type="button"
+        onClick={() => setLayout("inline")}
+        title="Inline"
+        className="rounded-md p-1.5 text-xs hover:bg-accent transition-colors"
+      >
+        <AlignLeft className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => setLayout("wrap-text")}
+        title="Wrap Text"
+        className="rounded-md p-1.5 text-xs hover:bg-accent transition-colors"
+      >
+        <WrapText className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => setLayout("break-text")}
+        title="Break Text"
+        className="rounded-md p-1.5 text-xs hover:bg-accent transition-colors"
+      >
+        <Square className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => setLayout("behind-text")}
+        title="Behind Text"
+        className="rounded-md p-1.5 text-xs hover:bg-accent transition-colors"
+      >
+        <Layers className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => setLayout("in-front-of-text")}
+        title="In Front of Text"
+        className="rounded-md p-1.5 text-xs hover:bg-accent transition-colors"
+      >
+        <MoveVertical className="h-3.5 w-3.5" />
+      </button>
+      <div className="mx-0.5 h-5 w-px bg-border" />
+      <button
+        type="button"
+        onClick={handleDelete}
+        title="Delete Image"
+        className="rounded-md p-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
@@ -317,25 +522,34 @@ export function RichTextEditor({
   onChange,
   editable = true,
 }: RichTextEditorProps) {
-  // Track whether the content was set from outside so we don't loop
   const isExternalUpdate = useRef(false);
-  // Track last content to avoid unnecessary re-renders
   const lastContentRef = useRef(content);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
       StarterKit.configure({
-        // StarterKit includes: bold, italic, strike, code, heading, bulletList, orderedList, etc.
+        heading: {
+          levels: [1, 2, 3],
+        },
+        bulletList: {
+          keepMarks: true,
+          keepAttributes: false,
+        },
+        orderedList: {
+          keepMarks: true,
+          keepAttributes: false,
+        },
       }),
       Underline,
       TextStyle,
       Color,
       Highlight.configure({ multicolor: true }),
-      Image.configure({
+      TiptapImage.configure({
         allowBase64: true,
         HTMLAttributes: {
-          class: "rounded-lg max-w-full h-auto my-4",
+          class: "rounded-lg max-w-full h-auto my-4 cursor-pointer",
         },
       }),
       Placeholder.configure({
@@ -351,7 +565,6 @@ export function RichTextEditor({
         onChange(html);
       }
     },
-    // Drag-and-drop handling for images
     editorProps: {
       handleDrop: (view, event, _slice, moved) => {
         if (moved) return false;
@@ -413,7 +626,17 @@ export function RichTextEditor({
       attributes: {
         class: cn(
           "prose prose-sm dark:prose-invert max-w-none focus:outline-none",
-          "min-h-[400px] px-8 md:px-12 lg:px-16 py-6"
+          "min-h-[400px] px-8 md:px-12 lg:px-16 py-6",
+          // Better heading styles
+          "prose-headings:font-bold prose-headings:tracking-tight",
+          "prose-h1:text-2xl prose-h1:border-b prose-h1:border-border prose-h1:pb-2 prose-h1:mb-4",
+          "prose-h2:text-xl prose-h2:text-primary prose-h2:mt-6 prose-h2:mb-3",
+          "prose-h3:text-lg prose-h3:text-foreground/80 prose-h3:mt-4 prose-h3:mb-2",
+          // Better list styles
+          "prose-ul:my-2 prose-ol:my-2",
+          "prose-li:my-0.5",
+          // Better paragraph spacing
+          "prose-p:my-2 prose-p:leading-relaxed",
         ),
       },
     },
@@ -426,10 +649,9 @@ export function RichTextEditor({
     }
   }, [editor, editable]);
 
-  // Sync external content changes (e.g. chatbot appending notes)
+  // Sync external content changes
   useEffect(() => {
     if (!editor) return;
-    // Only update if the content prop changed from an external source
     if (content === lastContentRef.current) return;
     lastContentRef.current = content;
 
@@ -448,7 +670,6 @@ export function RichTextEditor({
 
   const handleCopy = useCallback(() => {
     if (!editor) return;
-    // Copy plain text version to clipboard
     const text = editor.getText();
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -456,12 +677,30 @@ export function RichTextEditor({
   }, [editor]);
 
   const handleInsertImage = useCallback(() => {
-    if (!editor) return;
-    const url = window.prompt("Enter the image URL:");
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
-    }
-  }, [editor]);
+    // Open file picker instead of URL prompt
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (!files || files.length === 0 || !editor) return;
+
+      Array.from(files).forEach((file) => {
+        if (!file.type.startsWith("image/")) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const src = reader.result as string;
+          editor.chain().focus().setImage({ src }).run();
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // Reset file input
+      e.target.value = "";
+    },
+    [editor]
+  );
 
   if (!editor) {
     return null;
@@ -469,6 +708,26 @@ export function RichTextEditor({
 
   return (
     <div className="bg-background overflow-hidden">
+      {/* Hidden file input for image upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
+      {/* Image bubble menu - appears when clicking on an image */}
+      {editor && (
+        <BubbleMenu
+          editor={editor}
+          shouldShow={({ editor: ed }: { editor: any }) => ed.isActive("image")}
+        >
+          <ImageBubbleMenuContent editor={editor} />
+        </BubbleMenu>
+      )}
+
       {/* Toolbar */}
       {editable && (
         <div
@@ -581,14 +840,8 @@ export function RichTextEditor({
             }}
           />
 
-          {/* Highlight */}
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHighlight().run()}
-            isActive={editor.isActive("highlight")}
-            title="Highlight"
-          >
-            <Highlighter className="h-4 w-4" />
-          </ToolbarButton>
+          {/* Highlight with color picker */}
+          <HighlightPicker editor={editor} />
 
           <ToolbarSeparator />
 

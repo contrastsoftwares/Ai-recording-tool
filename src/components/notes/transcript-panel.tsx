@@ -27,14 +27,36 @@ function formatTimestamp(seconds: number): string {
 
 function parseContentIntoSegments(content: string): TranscriptSegment[] {
   if (!content) return [];
+
+  // Try to parse as JSON first (real Whisper transcript segments)
+  try {
+    const parsed = JSON.parse(content);
+    if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].start !== undefined) {
+      return parsed;
+    }
+  } catch {
+    // Not JSON, fall through to text parsing
+  }
+
+  // Split content into sentences and distribute timestamps based on word count
+  // Average speaking rate: ~150 words per minute = 2.5 words/sec
   const sentences = content
     .split(/(?<=[.!?])\s+/)
     .filter((s) => s.trim().length > 0);
-  return sentences.map((text, i) => ({
-    start: i * 10,
-    end: (i + 1) * 10,
-    text: text.trim(),
-  }));
+
+  let currentTime = 0;
+  return sentences.map((text) => {
+    const trimmedText = text.trim();
+    const wordCount = trimmedText.split(/\s+/).length;
+    const estimatedDuration = Math.max(2, Math.min(15, Math.round(wordCount / 2.5)));
+    const segment = {
+      start: currentTime,
+      end: currentTime + estimatedDuration,
+      text: trimmedText,
+    };
+    currentTime += estimatedDuration;
+    return segment;
+  });
 }
 
 export function TranscriptPanel({ noteId, rawContent }: TranscriptPanelProps) {

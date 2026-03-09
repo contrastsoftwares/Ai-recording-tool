@@ -45,6 +45,7 @@ function NewNoteContent() {
   const [selectedFormats, setSelectedFormats] = useState<NoteFormat[]>([]);
   const [selectedLength, setSelectedLength] = useState<NoteLength>("medium");
   const [customTitle, setCustomTitle] = useState("");
+  const [customDescription, setCustomDescription] = useState("");
 
   // Read language preference from settings
   const getLanguage = () => {
@@ -209,10 +210,29 @@ function NewNoteContent() {
       setProcessingMessage(t.newNote.finalizingNotes);
 
       // Step 3: Create note and save to store
+      // Auto-generate description if not provided
+      const autoDescription = customDescription.trim() || (() => {
+        // Create a brief description from the content
+        const plainText = notesResult.content
+          .replace(/<[^>]+>/g, " ")
+          .replace(/#{1,6}\s/g, "")
+          .replace(/\*\*/g, "")
+          .replace(/\*/g, "")
+          .replace(/\n/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+        // Take first 120 chars as description
+        if (plainText.length > 120) {
+          return plainText.slice(0, 120).replace(/\s+\S*$/, "") + "...";
+        }
+        return plainText;
+      })();
+
       // Store raw content; transcript is generated on-demand from the Transcript tab
       const newNote: Note = {
         id: `note-${Date.now()}`,
         title: customTitle.trim() || notesResult.title || title || "Untitled Notes",
+        description: autoDescription,
         content: notesResult.content,
         formats: selectedFormats,
         sourceType,
@@ -243,7 +263,7 @@ function NewNoteContent() {
     } finally {
       processingRef.current = false;
     }
-  }, [selectedFormats, selectedLength, selectedUrl, selectedFile, addNote, router, uploadStore, t, customTitle]);
+  }, [selectedFormats, selectedLength, selectedUrl, selectedFile, addNote, router, uploadStore, t, customTitle, customDescription]);
 
   const hasContent = selectedFile !== null || selectedUrl !== null;
   const stepIndex = steps.findIndex((s) => s.id === currentStep);
@@ -374,7 +394,24 @@ function NewNoteContent() {
                 className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
               <p className="text-xs text-muted-foreground">
-                {t.newNote.noteTitleDesc}
+                Leave blank to auto-generate a title from your content.
+              </p>
+            </div>
+
+            {/* Note description input */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Description
+              </label>
+              <textarea
+                value={customDescription}
+                onChange={(e) => setCustomDescription(e.target.value)}
+                placeholder="Brief description of what this note is about..."
+                rows={2}
+                className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave blank to auto-generate a description from your content.
               </p>
             </div>
 

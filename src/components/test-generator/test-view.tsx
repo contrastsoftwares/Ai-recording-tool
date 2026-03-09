@@ -337,15 +337,15 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
   // No test yet - show generate button
   if (!test) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 gap-6">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+      <div className="flex flex-col items-center justify-center py-16 gap-6 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted mx-auto">
           <FileQuestion className="h-8 w-8 text-muted-foreground" />
         </div>
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-2 mx-auto">
           <h3 className="text-lg font-semibold text-foreground">
             {isGenerating ? t.test.generating : t.test.noPracticeTest}
           </h3>
-          <p className="text-sm text-muted-foreground max-w-sm">
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
             {isGenerating
               ? t.test.generatingDesc
               : t.test.generateDesc}
@@ -397,38 +397,24 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
           </button>
 
           {/* Short Test */}
-          <div className="flex flex-col items-center gap-2">
-            <button
-              type="button"
-              onClick={() => startTest("short")}
-              className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 hover:border-primary/50 hover:bg-primary/5 transition-all text-center w-full"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10">
-                <Zap className="h-6 w-6 text-amber-500" />
-              </div>
-              <div>
-                <p className="text-base font-semibold text-foreground">{t.test.quickQuiz}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {Math.max(5, Math.min(10, Math.ceil(test.questions.filter((q) => q.type !== "short-answer").length * 0.3)))} {t.test.allQuestions}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t.test.newMix}
-                </p>
-              </div>
-            </button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => {
-                setQuizVersion((v) => v + 1);
-                startTest("short");
-              }}
-            >
-              <RefreshCw className="h-3 w-3" />
-              {t.test.retake}
-            </Button>
-          </div>
+          <button
+            type="button"
+            onClick={() => startTest("short")}
+            className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 hover:border-primary/50 hover:bg-primary/5 transition-all text-center"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10">
+              <Zap className="h-6 w-6 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-base font-semibold text-foreground">{t.test.quickQuiz}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {Math.max(5, Math.min(10, Math.ceil(test.questions.filter((q) => q.type !== "short-answer").length * 0.3)))} {t.test.allQuestions}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t.test.newMix}
+              </p>
+            </div>
+          </button>
         </div>
 
         {/* View Last Results / Remake Quiz actions */}
@@ -480,7 +466,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
             </Badge>
           </div>
         </div>
-        <TestResults score={score} onRemake={handleRegenerate} onReview={handleReview} />
+        <TestResults score={score} onRemake={handleRegenerate} onReview={handleReview} onRetry={() => startTest(testMode)} />
         <div className="flex justify-center gap-3 mt-4">
           <Button variant="outline" className="gap-2" onClick={handleGoToChooser}>
             {t.test.chooseDifferentMode}
@@ -548,7 +534,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 border border-destructive/30"
               onClick={() => setTestState("choosing")}
               title={t.test.exitQuiz}
             >

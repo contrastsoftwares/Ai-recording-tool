@@ -86,16 +86,16 @@ export function AppSidebar() {
   const currentLangLabel =
     languageOptions.find((l) => l.key === currentLang)?.label || "English";
 
-  // Broadcast collapsed state changes
+  // Broadcast collapsed state changes - dispatch event in useEffect to avoid setState-during-render
   const toggleCollapsed = useCallback(() => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      window.dispatchEvent(
-        new CustomEvent(SIDEBAR_COLLAPSE_EVENT, { detail: { collapsed: next } })
-      );
-      return next;
-    });
+    setCollapsed((prev) => !prev);
   }, []);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(SIDEBAR_COLLAPSE_EVENT, { detail: { collapsed } })
+    );
+  }, [collapsed]);
 
   // Close language dropdown on outside click
   useEffect(() => {

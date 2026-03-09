@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Trophy, Star, Sparkles } from "lucide-react";
+import { Eye, Trophy, Star, RefreshCw, Sparkles } from "lucide-react";
 
 interface TestResultsProps {
   score: {
@@ -13,6 +13,7 @@ interface TestResultsProps {
   };
   onRemake: () => void;
   onReview: () => void;
+  onRetry?: () => void;
 }
 
 function getGrade(percentage: number): { letter: string; color: string } {
@@ -31,7 +32,7 @@ function getPerformanceMessage(percentage: number): string {
   return "Keep studying, you'll get there!";
 }
 
-export function TestResults({ score, onRemake, onReview }: TestResultsProps) {
+export function TestResults({ score, onRemake, onReview, onRetry }: TestResultsProps) {
   const grade = getGrade(score.percentage);
   const circumference = 2 * Math.PI * 70;
   const strokeDashoffset =
@@ -145,10 +146,12 @@ export function TestResults({ score, onRemake, onReview }: TestResultsProps) {
           <Eye className="h-4 w-4" />
           Review Answers
         </Button>
-        <Button onClick={onRemake} className="flex-1 gap-2">
-          <Sparkles className="h-4 w-4" />
-          Remake Quiz
-        </Button>
+        {onRetry && (
+          <Button onClick={onRetry} className="flex-1 gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Retry Quiz
+          </Button>
+        )}
       </div>
     </div>
   );
