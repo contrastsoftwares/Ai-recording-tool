@@ -121,6 +121,7 @@ export function AppSidebar() {
         width: collapsed
           ? "var(--sidebar-width-collapsed)"
           : "var(--sidebar-width)",
+        minWidth: collapsed ? undefined : "var(--sidebar-width)",
       }}
     >
       {/* Brand */}
@@ -192,16 +193,16 @@ export function AppSidebar() {
                   <Link
                     href={`/notes/${note.id}`}
                     className={cn(
-                      "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm",
+                      "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm",
                       "text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
                       pathname === `/notes/${note.id}` && "bg-primary/10 text-primary"
                     )}
                     title={note.title}
                   >
-                    <FileText className="h-3.5 w-3.5 shrink-0" />
+                    <FileText className="h-4 w-4 shrink-0" />
                     <span className="truncate">
-                      {note.title.length > 24
-                        ? note.title.slice(0, 24) + "..."
+                      {note.title.length > 28
+                        ? note.title.slice(0, 28) + "..."
                         : note.title}
                     </span>
                   </Link>
@@ -226,16 +227,16 @@ export function AppSidebar() {
                   <Link
                     href={`/notes/${note.id}`}
                     className={cn(
-                      "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm",
+                      "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm",
                       "text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
                       pathname === `/notes/${note.id}` && "bg-primary/10 text-primary"
                     )}
                     title={note.title}
                   >
-                    <Star className="h-3.5 w-3.5 shrink-0" />
+                    <Star className="h-4 w-4 shrink-0" />
                     <span className="truncate">
-                      {note.title.length > 24
-                        ? note.title.slice(0, 24) + "..."
+                      {note.title.length > 28
+                        ? note.title.slice(0, 28) + "..."
                         : note.title}
                     </span>
                   </Link>

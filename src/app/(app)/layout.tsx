@@ -24,7 +24,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main content area - offset for sidebar on desktop */}
       <div
-        className="flex flex-1 flex-col min-w-0 transition-[margin] duration-300 ease-in-out"
+        className="flex flex-1 flex-col min-w-0"
         style={{
           marginLeft: isLg
             ? sidebarCollapsed

@@ -377,47 +377,51 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg">
           {/* Full Test */}
-          <button
-            type="button"
-            onClick={() => startTest("full")}
-            className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 hover:border-primary/50 hover:bg-primary/5 transition-all text-center"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-              <ListChecks className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <p className="text-base font-semibold text-foreground">{t.test.fullTest}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {`${t.test.allQuestions} (${test.questions.length})`}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {t.test.comprehensive}
-              </p>
-            </div>
-          </button>
+          <div className="flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={() => startTest("full")}
+              className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 hover:border-primary/50 hover:bg-primary/5 transition-all text-center w-full"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                <ListChecks className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-base font-semibold text-foreground">{t.test.fullTest}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {`${t.test.allQuestions} (${test.questions.length})`}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t.test.comprehensive}
+                </p>
+              </div>
+            </button>
+          </div>
 
-          {/* Short Test */}
-          <button
-            type="button"
-            onClick={() => startTest("short")}
-            className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 hover:border-primary/50 hover:bg-primary/5 transition-all text-center"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10">
-              <Zap className="h-6 w-6 text-amber-500" />
-            </div>
-            <div>
-              <p className="text-base font-semibold text-foreground">{t.test.quickQuiz}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {Math.max(5, Math.min(10, Math.ceil(test.questions.filter((q) => q.type !== "short-answer").length * 0.3)))} {t.test.allQuestions}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {t.test.newMix}
-              </p>
-            </div>
-          </button>
+          {/* Short Test + Remake Quiz under it */}
+          <div className="flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={() => startTest("short")}
+              className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 hover:border-primary/50 hover:bg-primary/5 transition-all text-center w-full"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10">
+                <Zap className="h-6 w-6 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-base font-semibold text-foreground">{t.test.quickQuiz}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {Math.max(5, Math.min(10, Math.ceil(test.questions.filter((q) => q.type !== "short-answer").length * 0.3)))} {t.test.allQuestions}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t.test.newMix}
+                </p>
+              </div>
+            </button>
+          </div>
         </div>
 
-        {/* View Last Results / Remake Quiz actions */}
+        {/* View Last Results / Remake All actions */}
         <div className="flex flex-col items-center gap-3">
           {savedResults && (
             <Button
@@ -439,7 +443,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
             {isGenerating ? (
               <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
-              <Sparkles className="h-3 w-3" />
+              <RefreshCw className="h-3 w-3" />
             )}
             {t.test.remakeQuiz}
           </Button>

@@ -20,23 +20,23 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    let questionRange: string;
+    let questionCount: number;
     if (wordCount < 100) {
-      questionRange = "3-5";
+      questionCount = 4;
     } else if (wordCount < 250) {
-      questionRange = "4-6";
+      questionCount = 5;
     } else if (wordCount < 500) {
-      questionRange = "6-10";
+      questionCount = 8;
     } else if (wordCount < 1500) {
-      questionRange = "12-18";
+      questionCount = 15;
     } else if (wordCount < 3000) {
-      questionRange = "18-25";
+      questionCount = 20;
     } else if (wordCount < 6000) {
-      questionRange = "25-35";
+      questionCount = 30;
     } else if (wordCount < 12000) {
-      questionRange = "35-50";
+      questionCount = 40;
     } else {
-      questionRange = "50-70";
+      questionCount = 60;
     }
 
     const response = await openai.chat.completions.create({
@@ -74,8 +74,7 @@ Respond ONLY with valid JSON in this format:
 }
 
 Guidelines:
-- Generate ${questionRange} questions — match the amount to how much content there actually is
-- Do NOT pad with filler or repetitive questions just to hit a number. If the content only supports 4 good questions, make 4.
+- Generate EXACTLY ${questionCount} questions — this number is mandatory, do not generate more or fewer
 - Mix: ~60% multiple choice, ~20% true/false, ~20% short answer
 - Cover ALL important concepts from the content, not just the beginning
 - Questions should test understanding, not just memorization

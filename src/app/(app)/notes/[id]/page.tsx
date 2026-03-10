@@ -9,7 +9,6 @@ import {
   MessageSquare,
   Layers,
   ClipboardCheck,
-  ScrollText,
   Video,
   Headphones,
   Link2,
@@ -34,7 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { TranscriptPanel } from "@/components/notes/transcript-panel";
+// Transcript feature removed
 import dynamic from "next/dynamic";
 
 const RichTextEditor = dynamic(
@@ -69,10 +68,7 @@ const sourceColors: Record<UploadType, string> = {
   document: "text-slate-500 bg-slate-500/10",
 };
 
-// Only show transcript tab for audio/video sources
-const mediaSourceTypes = new Set(["audio", "video"]);
-
-type TabId = "notes" | "chat" | "flashcards" | "test" | "transcript";
+type TabId = "notes" | "chat" | "flashcards" | "test";
 
 export default function NoteWorkspacePage() {
   const t = useTranslation();
@@ -86,7 +82,6 @@ export default function NoteWorkspacePage() {
     { id: "chat", label: t.noteDetail.chat, icon: MessageSquare },
     { id: "flashcards", label: t.noteDetail.flashcards, icon: Layers },
     { id: "test", label: t.noteDetail.test, icon: ClipboardCheck },
-    { id: "transcript", label: t.noteDetail.transcript, icon: ScrollText },
   ];
   const [activeTab, setActiveTab] = useState<TabId>("notes");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -238,9 +233,6 @@ export default function NoteWorkspacePage() {
       updateNote(noteId, { content });
     }
   }, [note, noteId, updateNote]);
-
-  // Raw content for on-demand transcript generation
-  const transcriptContent = note?.rawContent || note?.transcript || "";
 
   if (!note) {
     return (
@@ -455,8 +447,6 @@ export default function NoteWorkspacePage() {
           <div className="flex gap-1 rounded-lg bg-muted p-1 shrink-0 mb-4 overflow-x-auto">
             {tabs.map((tab) => {
               const Icon = tab.icon;
-              // Only show transcript tab for audio/video sources
-              if (tab.id === "transcript" && !mediaSourceTypes.has(note.sourceType)) return null;
               return (
                 <button
                   key={tab.id}
@@ -504,11 +494,6 @@ export default function NoteWorkspacePage() {
               <TestView noteId={noteId} noteContent={note.rawContent || note.content} />
             </div>
 
-            {mediaSourceTypes.has(note.sourceType) && (
-              <div className={activeTab === "transcript" ? "" : "hidden"}>
-                <TranscriptPanel noteId={noteId} rawContent={transcriptContent} />
-              </div>
-            )}
           </div>
         </div>
 

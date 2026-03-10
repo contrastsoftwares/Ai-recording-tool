@@ -9,6 +9,31 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import Highlight from "@tiptap/extension-highlight";
 import TiptapImage from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
+
+// Extend Image extension to support style and class attributes for layout options
+const CustomImage = TiptapImage.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      style: {
+        default: null,
+        parseHTML: (element: HTMLElement) => element.getAttribute("style"),
+        renderHTML: (attributes: Record<string, string>) => {
+          if (!attributes.style) return {};
+          return { style: attributes.style };
+        },
+      },
+      class: {
+        default: "rounded-lg max-w-full h-auto my-4 cursor-pointer",
+        parseHTML: (element: HTMLElement) => element.getAttribute("class"),
+        renderHTML: (attributes: Record<string, string>) => {
+          if (!attributes.class) return {};
+          return { class: attributes.class };
+        },
+      },
+    };
+  },
+});
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
@@ -193,6 +218,7 @@ function ToolbarButton({
     <button
       type="button"
       onClick={onClick}
+      onMouseDown={(e) => e.preventDefault()}
       disabled={disabled}
       title={title}
       className={cn(
@@ -246,6 +272,7 @@ function ColorPicker({ currentColor, onSelectColor, disabled }: ColorPickerProps
       <button
         type="button"
         onClick={() => setOpen(!open)}
+        onMouseDown={(e) => e.preventDefault()}
         disabled={disabled}
         title="Text Color"
         className={cn(
@@ -340,6 +367,7 @@ function HighlightPicker({ editor, disabled }: HighlightPickerProps) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
+        onMouseDown={(e) => e.preventDefault()}
         disabled={disabled}
         title="Highlight"
         className={cn(
@@ -546,11 +574,8 @@ export function RichTextEditor({
       TextStyle,
       Color,
       Highlight.configure({ multicolor: true }),
-      TiptapImage.configure({
+      CustomImage.configure({
         allowBase64: true,
-        HTMLAttributes: {
-          class: "rounded-lg max-w-full h-auto my-4 cursor-pointer",
-        },
       }),
       Placeholder.configure({
         placeholder: "Start writing your notes...",
@@ -637,6 +662,8 @@ export function RichTextEditor({
           "prose-li:my-0.5",
           // Better paragraph spacing
           "prose-p:my-2 prose-p:leading-relaxed",
+          // Force dark text on highlighted text so it's readable in dark mode
+          "[&_mark]:text-black",
         ),
       },
     },
