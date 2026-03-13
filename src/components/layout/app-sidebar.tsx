@@ -115,15 +115,20 @@ export function AppSidebar() {
       className={cn(
         "hidden lg:flex flex-col fixed left-0 top-0 h-screen z-40",
         "bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
-        "transition-[width] duration-300 ease-in-out overflow-hidden"
+        "transition-[width] duration-300 ease-in-out"
       )}
       style={{
         width: collapsed
           ? "var(--sidebar-width-collapsed)"
           : "var(--sidebar-width)",
-        minWidth: collapsed ? undefined : "var(--sidebar-width)",
+        overflow: "hidden",
       }}
     >
+      {/* Inner wrapper keeps full width so content doesn't reflow during collapse */}
+      <div
+        className="flex flex-col h-full"
+        style={{ width: "var(--sidebar-width)", minWidth: "var(--sidebar-width)" }}
+      >
       {/* Brand */}
       <div
         className={cn(
@@ -314,6 +319,7 @@ export function AppSidebar() {
           {!collapsed && <span>{t.sidebar.collapse}</span>}
         </button>
       </div>
+      </div>{/* end inner wrapper */}
     </aside>
   );
 }

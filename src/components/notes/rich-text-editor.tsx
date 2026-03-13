@@ -441,43 +441,61 @@ function ImageBubbleMenuContent({ editor }: ImageBubbleMenuProps) {
   };
 
   const setLayout = (layout: ImageLayout) => {
-    const { node } = editor.state.selection as any;
-    if (!node) return;
+    // Check if an image is selected - try multiple approaches for TipTap v3 compatibility
+    const sel = editor.state.selection as any;
+    const isImage = sel?.node?.type?.name === "image" || editor.isActive("image");
+    if (!isImage) return;
 
-    let className = "rounded-lg max-w-full h-auto my-4";
-    let style = "";
+    const layoutStyles: Record<ImageLayout, { class: string; style: string }> = {
+      "inline": {
+        class: "rounded-lg h-auto my-2 inline-block max-w-[50%]",
+        style: "display: inline-block;",
+      },
+      "wrap-text": {
+        class: "rounded-lg h-auto my-2 max-w-[50%]",
+        style: "float: left; margin-right: 16px; margin-bottom: 8px;",
+      },
+      "break-text": {
+        class: "rounded-lg max-w-full h-auto my-4 block mx-auto",
+        style: "display: block; clear: both;",
+      },
+      "behind-text": {
+        class: "rounded-lg max-w-full h-auto",
+        style: "position: absolute; z-index: -1; opacity: 0.3;",
+      },
+      "in-front-of-text": {
+        class: "rounded-lg max-w-full h-auto",
+        style: "position: relative; z-index: 10;",
+      },
+    };
 
-    switch (layout) {
-      case "inline":
-        className = "rounded-lg h-auto my-2 inline-block max-w-[50%]";
-        style = "display: inline-block;";
-        break;
-      case "wrap-text":
-        className = "rounded-lg h-auto my-2 max-w-[50%]";
-        style = "float: left; margin-right: 16px; margin-bottom: 8px;";
-        break;
-      case "break-text":
-        className = "rounded-lg max-w-full h-auto my-4 block mx-auto";
-        style = "display: block; clear: both;";
-        break;
-      case "behind-text":
-        className = "rounded-lg max-w-full h-auto";
-        style = "position: absolute; z-index: -1; opacity: 0.3;";
-        break;
-      case "in-front-of-text":
-        className = "rounded-lg max-w-full h-auto";
-        style = "position: relative; z-index: 10;";
-        break;
+    const { class: cls, style } = layoutStyles[layout];
+
+    // Use updateAttributes which works when the image node is selected
+    editor.chain().focus().updateAttributes("image", { class: cls, style }).run();
+
+    // If updateAttributes didn't work (no node selection), try finding the image via DOM
+    // and applying via transaction
+    if (!sel?.node) {
+      const { state } = editor;
+      const { tr } = state;
+      let applied = false;
+      state.doc.descendants((node, pos) => {
+        if (applied) return false;
+        if (node.type.name === "image") {
+          // Find the image closest to cursor
+          const from = state.selection.from;
+          if (pos <= from && pos + node.nodeSize >= from) {
+            tr.setNodeMarkup(pos, undefined, { ...node.attrs, class: cls, style });
+            applied = true;
+            return false;
+          }
+        }
+      });
+      if (applied) {
+        editor.view.dispatch(tr);
+      }
     }
-
-    editor
-      .chain()
-      .focus()
-      .updateAttributes("image", {
-        class: className,
-        style: style,
-      })
-      .run();
   };
 
   return (
