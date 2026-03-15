@@ -1,7 +1,6 @@
 "use client";
 
 import { useEditor, EditorContent } from "@tiptap/react";
-import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Color from "@tiptap/extension-color";
@@ -10,8 +9,9 @@ import Highlight from "@tiptap/extension-highlight";
 import TiptapImage from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
 
-// Extend Image extension to support style and class attributes for layout options
+// Custom draggable image extension
 const CustomImage = TiptapImage.extend({
+  draggable: true,
   addAttributes() {
     return {
       ...this.parent?.(),
@@ -24,7 +24,7 @@ const CustomImage = TiptapImage.extend({
         },
       },
       class: {
-        default: "rounded-lg max-w-full h-auto my-4 cursor-pointer",
+        default: "editor-image",
         parseHTML: (element: HTMLElement) => element.getAttribute("class"),
         renderHTML: (attributes: Record<string, string>) => {
           if (!attributes.class) return {};
@@ -34,6 +34,7 @@ const CustomImage = TiptapImage.extend({
     };
   },
 });
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
@@ -54,12 +55,6 @@ import {
   ChevronDown,
   Copy,
   Check,
-  Trash2,
-  AlignLeft,
-  WrapText,
-  Square,
-  Layers,
-  MoveVertical,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -98,6 +93,21 @@ function markdownToHtml(markdown: string): string {
 
     if (trimmed === "") {
       closeList();
+      continue;
+    }
+
+    // Horizontal rule
+    if (/^(-{3,}|_{3,}|\*{3,})$/.test(trimmed)) {
+      closeList();
+      htmlParts.push("<hr />");
+      continue;
+    }
+
+    // Blockquote
+    if (trimmed.startsWith("> ")) {
+      closeList();
+      const text = convertInline(trimmed.slice(2));
+      htmlParts.push(`<blockquote><p>${text}</p></blockquote>`);
       continue;
     }
 
@@ -188,12 +198,6 @@ const HIGHLIGHT_COLORS = [
   { name: "Purple", value: "#e9d5ff" },
   { name: "Orange", value: "#fed7aa" },
 ] as const;
-
-// ---------------------------------------------------------------------------
-// Image layout types
-// ---------------------------------------------------------------------------
-
-type ImageLayout = "inline" | "wrap-text" | "break-text" | "behind-text" | "in-front-of-text";
 
 // ---------------------------------------------------------------------------
 // Toolbar button component
@@ -426,134 +430,6 @@ function HighlightPicker({ editor, disabled }: HighlightPickerProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Image bubble menu (appears when clicking on an image)
-// ---------------------------------------------------------------------------
-
-interface ImageBubbleMenuProps {
-  editor: ReturnType<typeof useEditor>;
-}
-
-function ImageBubbleMenuContent({ editor }: ImageBubbleMenuProps) {
-  if (!editor) return null;
-
-  const handleDelete = () => {
-    editor.chain().focus().deleteSelection().run();
-  };
-
-  const setLayout = (layout: ImageLayout) => {
-    // Check if an image is selected - try multiple approaches for TipTap v3 compatibility
-    const sel = editor.state.selection as any;
-    const isImage = sel?.node?.type?.name === "image" || editor.isActive("image");
-    if (!isImage) return;
-
-    const layoutStyles: Record<ImageLayout, { class: string; style: string }> = {
-      "inline": {
-        class: "rounded-lg h-auto my-2 inline-block max-w-[50%]",
-        style: "display: inline-block;",
-      },
-      "wrap-text": {
-        class: "rounded-lg h-auto my-2 max-w-[50%]",
-        style: "float: left; margin-right: 16px; margin-bottom: 8px;",
-      },
-      "break-text": {
-        class: "rounded-lg max-w-full h-auto my-4 block mx-auto",
-        style: "display: block; clear: both;",
-      },
-      "behind-text": {
-        class: "rounded-lg max-w-full h-auto",
-        style: "position: absolute; z-index: -1; opacity: 0.3;",
-      },
-      "in-front-of-text": {
-        class: "rounded-lg max-w-full h-auto",
-        style: "position: relative; z-index: 10;",
-      },
-    };
-
-    const { class: cls, style } = layoutStyles[layout];
-
-    // Use updateAttributes which works when the image node is selected
-    editor.chain().focus().updateAttributes("image", { class: cls, style }).run();
-
-    // If updateAttributes didn't work (no node selection), try finding the image via DOM
-    // and applying via transaction
-    if (!sel?.node) {
-      const { state } = editor;
-      const { tr } = state;
-      let applied = false;
-      state.doc.descendants((node, pos) => {
-        if (applied) return false;
-        if (node.type.name === "image") {
-          // Find the image closest to cursor
-          const from = state.selection.from;
-          if (pos <= from && pos + node.nodeSize >= from) {
-            tr.setNodeMarkup(pos, undefined, { ...node.attrs, class: cls, style });
-            applied = true;
-            return false;
-          }
-        }
-      });
-      if (applied) {
-        editor.view.dispatch(tr);
-      }
-    }
-  };
-
-  return (
-    <div className="flex items-center gap-1 rounded-lg border border-border bg-popover p-1.5 shadow-lg">
-      <button
-        type="button"
-        onClick={() => setLayout("inline")}
-        title="Inline"
-        className="rounded-md p-1.5 text-xs hover:bg-accent transition-colors"
-      >
-        <AlignLeft className="h-3.5 w-3.5" />
-      </button>
-      <button
-        type="button"
-        onClick={() => setLayout("wrap-text")}
-        title="Wrap Text"
-        className="rounded-md p-1.5 text-xs hover:bg-accent transition-colors"
-      >
-        <WrapText className="h-3.5 w-3.5" />
-      </button>
-      <button
-        type="button"
-        onClick={() => setLayout("break-text")}
-        title="Break Text"
-        className="rounded-md p-1.5 text-xs hover:bg-accent transition-colors"
-      >
-        <Square className="h-3.5 w-3.5" />
-      </button>
-      <button
-        type="button"
-        onClick={() => setLayout("behind-text")}
-        title="Behind Text"
-        className="rounded-md p-1.5 text-xs hover:bg-accent transition-colors"
-      >
-        <Layers className="h-3.5 w-3.5" />
-      </button>
-      <button
-        type="button"
-        onClick={() => setLayout("in-front-of-text")}
-        title="In Front of Text"
-        className="rounded-md p-1.5 text-xs hover:bg-accent transition-colors"
-      >
-        <MoveVertical className="h-3.5 w-3.5" />
-      </button>
-      <div className="mx-0.5 h-5 w-px bg-border" />
-      <button
-        type="button"
-        onClick={handleDelete}
-        title="Delete Image"
-        className="rounded-md p-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Main rich text editor component
 // ---------------------------------------------------------------------------
 
@@ -587,6 +463,8 @@ export function RichTextEditor({
           keepMarks: true,
           keepAttributes: false,
         },
+        horizontalRule: {},
+        blockquote: {},
       }),
       Underline,
       TextStyle,
@@ -667,22 +545,7 @@ export function RichTextEditor({
         return true;
       },
       attributes: {
-        class: cn(
-          "prose prose-sm dark:prose-invert max-w-none focus:outline-none",
-          "min-h-[400px] px-8 md:px-12 lg:px-16 py-6",
-          // Better heading styles
-          "prose-headings:font-bold prose-headings:tracking-tight",
-          "prose-h1:text-2xl prose-h1:border-b prose-h1:border-border prose-h1:pb-2 prose-h1:mb-4",
-          "prose-h2:text-xl prose-h2:text-primary prose-h2:mt-6 prose-h2:mb-3",
-          "prose-h3:text-lg prose-h3:text-foreground/80 prose-h3:mt-4 prose-h3:mb-2",
-          // Better list styles
-          "prose-ul:my-2 prose-ol:my-2",
-          "prose-li:my-0.5",
-          // Better paragraph spacing
-          "prose-p:my-2 prose-p:leading-relaxed",
-          // Force dark text on highlighted text so it's readable in dark mode
-          "[&_mark]:text-black",
-        ),
+        class: "editor-content",
       },
     },
   });
@@ -722,7 +585,6 @@ export function RichTextEditor({
   }, [editor]);
 
   const handleInsertImage = useCallback(() => {
-    // Open file picker instead of URL prompt
     fileInputRef.current?.click();
   }, []);
 
@@ -741,7 +603,6 @@ export function RichTextEditor({
         reader.readAsDataURL(file);
       });
 
-      // Reset file input
       e.target.value = "";
     },
     [editor]
@@ -762,16 +623,6 @@ export function RichTextEditor({
         onChange={handleFileChange}
         className="hidden"
       />
-
-      {/* Image bubble menu - appears when clicking on an image */}
-      {editor && (
-        <BubbleMenu
-          editor={editor}
-          shouldShow={({ editor: ed }: { editor: any }) => ed.isActive("image")}
-        >
-          <ImageBubbleMenuContent editor={editor} />
-        </BubbleMenu>
-      )}
 
       {/* Toolbar */}
       {editable && (

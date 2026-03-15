@@ -72,6 +72,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     return null;
   });
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isRemakingQuiz, setIsRemakingQuiz] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
 
   const [testState, setTestState] = useState<TestState>(() => {
@@ -85,10 +86,22 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
   const [score, setScore] = useState<{ correct: number; total: number; percentage: number } | null>(null);
   const [aiGrades, setAiGrades] = useState<Record<string, AiGrade>>({});
   const questionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  // Track quiz version to allow re-generating quick quiz questions
   const [quizVersion, setQuizVersion] = useState(0);
-  // Saved results so user can return to them from mode chooser
   const [savedResults, setSavedResults] = useState<SavedResults | null>(null);
+
+  // Whether quick quiz should be shown (hide if total questions < 10)
+  const showQuickQuiz = useMemo(() => {
+    if (!test) return false;
+    return test.questions.length >= 10;
+  }, [test]);
+
+  // Quick quiz size: 5-10 questions based on total
+  const quizSize = useMemo(() => {
+    if (!test) return 5;
+    const nonShortAnswer = test.questions.filter((q) => q.type !== "short-answer");
+    const thirtyPercent = Math.ceil(nonShortAnswer.length * 0.3);
+    return Math.max(5, Math.min(10, thirtyPercent));
+  }, [test]);
 
   // Persist test data
   useEffect(() => {
@@ -102,13 +115,11 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     if (!test) return [];
 
     if (testMode === "full") {
-      // Full test: all questions, scrambled order
       return shuffle(test.questions);
     }
 
-    // Quick quiz: exclude short-answer, pick ~30% with weighted selection, scrambled
+    // Quick quiz: exclude short-answer, pick weighted selection
     const nonShortAnswer = test.questions.filter((q) => q.type !== "short-answer");
-    const quizSize = Math.max(5, Math.min(10, Math.ceil(nonShortAnswer.length * 0.3)));
 
     // Load question frequency data from localStorage for weighted selection
     let questionFreq: Record<string, number> = {};
@@ -118,23 +129,19 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
       questionFreq = {};
     }
 
-    // Weighted selection: sort by frequency (ascending) so least-shown questions come first
-    // Add jitter to break ties randomly
     const sortedByFreq = [...nonShortAnswer].sort((a, b) => {
       const freqA = questionFreq[a.id] || 0;
       const freqB = questionFreq[b.id] || 0;
       if (freqA !== freqB) return freqA - freqB;
-      return Math.random() - 0.5; // random tie-breaking
+      return Math.random() - 0.5;
     });
 
-    // Pick the least-shown questions up to quizSize
     const picked = sortedByFreq.slice(0, quizSize);
-
     return shuffle(picked);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [test, testMode, quizVersion]);
+  }, [test, testMode, quizVersion, quizSize]);
 
-  // Shuffle MCQ options for each question (stable per quiz version)
+  // Shuffle MCQ options for each question
   const shuffledOptionsMap = useMemo(() => {
     const map: Record<string, string[]> = {};
     for (const q of activeQuestions) {
@@ -167,22 +174,19 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     }
   }, [noteContent]);
 
-  const handleRegenerate = useCallback(async () => {
-    if (!noteContent) return;
-    // Clear existing test data from localStorage
-    localStorage.removeItem(`test-data-${noteId}`);
-    localStorage.removeItem(`test-answers-${noteId}-full`);
-    localStorage.removeItem(`test-answers-${noteId}-short`);
+  // Remake quiz = just reshuffle/re-pick quiz questions (not regenerate the whole test)
+  const handleRemakeQuiz = useCallback(() => {
+    setIsRemakingQuiz(true);
+    // Reset quiz frequency so new questions get picked
     localStorage.removeItem(`question-freq-${noteId}`);
     localStorage.removeItem(`prev-quiz-ids-${noteId}`);
-    setTest(null);
-    setSavedResults(null);
-    setScore(null);
-    setAiGrades({});
-    setAnswers({});
-    // Now generate fresh
-    await handleGenerate();
-  }, [noteContent, noteId, handleGenerate]);
+    // Bump quiz version to trigger re-computation of activeQuestions
+    setQuizVersion((v) => v + 1);
+    // Brief visual delay to show the remaking indicator
+    setTimeout(() => {
+      setIsRemakingQuiz(false);
+    }, 800);
+  }, [noteId]);
 
   // Restore answers from localStorage
   useEffect(() => {
@@ -220,9 +224,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     setElapsedSeconds(0);
     setScore(null);
     setAiGrades({});
-    // Clear saved answers so stale answers don't get restored by the useEffect
     localStorage.removeItem(`test-answers-${noteId}-${mode}`);
-    // Force re-compute of quiz questions when starting (for scramble)
     setQuizVersion((v) => v + 1);
     setTestState("taking");
   }, [noteId]);
@@ -230,7 +232,6 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
   // Update question frequency tracking when taking a quick quiz
   useEffect(() => {
     if (testState === "taking" && testMode === "short" && activeQuestions.length > 0) {
-      // Update frequency counts
       let questionFreq: Record<string, number> = {};
       try {
         questionFreq = JSON.parse(localStorage.getItem(`question-freq-${noteId}`) || "{}");
@@ -241,8 +242,6 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
         questionFreq[q.id] = (questionFreq[q.id] || 0) + 1;
       }
       localStorage.setItem(`question-freq-${noteId}`, JSON.stringify(questionFreq));
-
-      // Also save prev quiz IDs for backward compat
       localStorage.setItem(
         `prev-quiz-ids-${noteId}`,
         JSON.stringify(activeQuestions.map((q) => q.id))
@@ -255,7 +254,6 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     setTestState("results");
     localStorage.removeItem(`test-answers-${noteId}-${testMode}`);
 
-    // Grade non-short-answer questions immediately
     let correct = 0;
     const totalQuestions = activeQuestions.length;
     for (const question of activeQuestions) {
@@ -265,11 +263,9 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
       if (userAnswer === correctAnswer) correct++;
     }
 
-    // Show initial score (without short answers)
     const shortAnswerQuestions = activeQuestions.filter((q) => q.type === "short-answer");
     setScore({ correct, total: totalQuestions, percentage: totalQuestions > 0 ? Math.round((correct / totalQuestions) * 100) : 0 });
 
-    // Grade short answers via AI, then update score
     if (shortAnswerQuestions.length > 0) {
       const grades: Record<string, AiGrade> = {};
       for (const question of shortAnswerQuestions) {
@@ -291,7 +287,6 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
         }
       }
 
-      // Recalculate score including AI-graded short answers
       let updatedCorrect = correct;
       for (const question of shortAnswerQuestions) {
         const grade = grades[question.id];
@@ -308,7 +303,6 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
 
   function handleReview() { setTestState("review"); }
 
-  // Save current results and go to mode chooser
   function handleGoToChooser() {
     if (score) {
       setSavedResults({
@@ -322,7 +316,6 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
     setTestState("choosing");
   }
 
-  // Restore saved results
   function handleRestoreResults() {
     if (savedResults) {
       setScore(savedResults.score);
@@ -375,7 +368,10 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg">
+        <div className={cn(
+          "grid gap-4 w-full max-w-lg",
+          showQuickQuiz ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 max-w-xs"
+        )}>
           {/* Full Test */}
           <div className="flex flex-col items-center gap-2">
             <button
@@ -398,56 +394,68 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
             </button>
           </div>
 
-          {/* Short Test + Remake Quiz under it */}
-          <div className="flex flex-col items-center gap-2">
-            <button
-              type="button"
-              onClick={() => startTest("short")}
-              className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 hover:border-primary/50 hover:bg-primary/5 transition-all text-center w-full"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10">
-                <Zap className="h-6 w-6 text-amber-500" />
-              </div>
-              <div>
-                <p className="text-base font-semibold text-foreground">{t.test.quickQuiz}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {Math.max(5, Math.min(10, Math.ceil(test.questions.filter((q) => q.type !== "short-answer").length * 0.3)))} {t.test.allQuestions}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t.test.newMix}
-                </p>
-              </div>
-            </button>
-          </div>
+          {/* Quick Quiz — only shown if >= 10 questions */}
+          {showQuickQuiz && (
+            <div className="flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={() => !isRemakingQuiz && startTest("short")}
+                disabled={isRemakingQuiz}
+                className={cn(
+                  "flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 hover:border-primary/50 hover:bg-primary/5 transition-all text-center w-full",
+                  isRemakingQuiz && "opacity-60 pointer-events-none"
+                )}
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10">
+                  {isRemakingQuiz ? (
+                    <Loader2 className="h-6 w-6 text-amber-500 animate-spin" />
+                  ) : (
+                    <Zap className="h-6 w-6 text-amber-500" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-base font-semibold text-foreground">
+                    {isRemakingQuiz ? "Remaking Quiz..." : t.test.quickQuiz}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {quizSize} {t.test.allQuestions}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t.test.newMix}
+                  </p>
+                </div>
+              </button>
+
+              {/* Remake Quiz button — only under Quick Quiz */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                onClick={handleRemakeQuiz}
+                disabled={isRemakingQuiz}
+              >
+                {isRemakingQuiz ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3" />
+                )}
+                {t.test.remakeQuiz}
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* View Last Results / Remake All actions */}
-        <div className="flex flex-col items-center gap-3">
-          {savedResults && (
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={handleRestoreResults}
-            >
-              <CheckSquare className="h-4 w-4" />
-              {t.test.viewLastResults}
-            </Button>
-          )}
+        {/* View Last Results */}
+        {savedResults && (
           <Button
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-            onClick={handleRegenerate}
-            disabled={isGenerating}
+            variant="outline"
+            className="gap-2"
+            onClick={handleRestoreResults}
           >
-            {isGenerating ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <RefreshCw className="h-3 w-3" />
-            )}
-            {t.test.remakeQuiz}
+            <CheckSquare className="h-4 w-4" />
+            {t.test.viewLastResults}
           </Button>
-        </div>
+        )}
       </div>
     );
   }
@@ -470,7 +478,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
             </Badge>
           </div>
         </div>
-        <TestResults score={score} onRemake={handleRegenerate} onReview={handleReview} onRetry={() => startTest(testMode)} />
+        <TestResults score={score} onRemake={() => startTest(testMode)} onReview={handleReview} onRetry={() => startTest(testMode)} />
         <div className="flex justify-center gap-3 mt-4">
           <Button variant="outline" className="gap-2" onClick={handleGoToChooser}>
             {t.test.chooseDifferentMode}

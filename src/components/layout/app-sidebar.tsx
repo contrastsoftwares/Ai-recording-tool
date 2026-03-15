@@ -86,7 +86,6 @@ export function AppSidebar() {
   const currentLangLabel =
     languageOptions.find((l) => l.key === currentLang)?.label || "English";
 
-  // Broadcast collapsed state changes - dispatch event in useEffect to avoid setState-during-render
   const toggleCollapsed = useCallback(() => {
     setCollapsed((prev) => !prev);
   }, []);
@@ -115,25 +114,19 @@ export function AppSidebar() {
       className={cn(
         "hidden lg:flex flex-col fixed left-0 top-0 h-screen z-40",
         "bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
-        "transition-[width] duration-300 ease-in-out"
+        "transition-[width] duration-300 ease-in-out overflow-hidden"
       )}
       style={{
         width: collapsed
           ? "var(--sidebar-width-collapsed)"
           : "var(--sidebar-width)",
-        overflow: "hidden",
       }}
     >
-      {/* Inner wrapper keeps full width so content doesn't reflow during collapse */}
-      <div
-        className="flex flex-col h-full"
-        style={{ width: "var(--sidebar-width)", minWidth: "var(--sidebar-width)" }}
-      >
       {/* Brand */}
       <div
         className={cn(
           "flex items-center h-[68px] border-b border-sidebar-border shrink-0",
-          collapsed ? "justify-center" : "px-5 gap-3"
+          collapsed ? "justify-center px-0" : "px-5 gap-3"
         )}
       >
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -166,12 +159,14 @@ export function AppSidebar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium",
+                    "flex items-center rounded-lg text-sm font-medium",
                     "transition-colors duration-150",
                     isActive
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                    collapsed && "justify-center px-0"
+                    collapsed
+                      ? "justify-center h-10 w-10 mx-auto p-0"
+                      : "gap-3 px-3 py-2.5"
                   )}
                   title={collapsed ? label : undefined}
                 >
@@ -253,17 +248,24 @@ export function AppSidebar() {
       </nav>
 
       {/* Bottom section */}
-      <div className="border-t border-sidebar-border px-3 py-3 space-y-1 shrink-0">
+      <div
+        className={cn(
+          "border-t border-sidebar-border py-3 space-y-1 shrink-0",
+          collapsed ? "px-0 flex flex-col items-center" : "px-3"
+        )}
+      >
         <ThemeToggle collapsed={collapsed} />
 
         {/* Language switcher */}
-        <div className="relative" ref={langDropdownRef}>
+        <div className="relative w-full" ref={langDropdownRef}>
           <button
             onClick={() => setLangDropdownOpen(!langDropdownOpen)}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium w-full",
+              "flex items-center rounded-lg text-sm font-medium",
               "text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
-              collapsed && "justify-center px-0"
+              collapsed
+                ? "justify-center h-10 w-10 mx-auto p-0"
+                : "gap-3 px-3 py-2.5 w-full"
             )}
             title={collapsed ? currentLangLabel : undefined}
             aria-label="Change language"
@@ -304,9 +306,11 @@ export function AppSidebar() {
         <button
           onClick={toggleCollapsed}
           className={cn(
-            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium w-full",
+            "flex items-center rounded-lg text-sm font-medium",
             "text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
-            collapsed && "justify-center px-0"
+            collapsed
+              ? "justify-center h-10 w-10 mx-auto p-0"
+              : "gap-3 px-3 py-2.5 w-full"
           )}
           aria-label={collapsed ? t.sidebar.expandSidebar : t.sidebar.collapseSidebar}
           title={collapsed ? t.sidebar.expandSidebar : t.sidebar.collapseSidebar}
@@ -319,7 +323,6 @@ export function AppSidebar() {
           {!collapsed && <span>{t.sidebar.collapse}</span>}
         </button>
       </div>
-      </div>{/* end inner wrapper */}
     </aside>
   );
 }

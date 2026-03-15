@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Determine question count based on content length
+    // Determine question count based on content length — scales up to 100
     const wordCount = noteContent.trim().split(/\s+/).filter(Boolean).length;
     if (wordCount < 10) {
       return NextResponse.json(
@@ -24,19 +24,23 @@ export async function POST(request: NextRequest) {
     if (wordCount < 100) {
       questionCount = 4;
     } else if (wordCount < 250) {
-      questionCount = 5;
+      questionCount = 6;
     } else if (wordCount < 500) {
-      questionCount = 8;
+      questionCount = 10;
     } else if (wordCount < 1500) {
-      questionCount = 15;
+      questionCount = 18;
     } else if (wordCount < 3000) {
-      questionCount = 20;
+      questionCount = 28;
     } else if (wordCount < 6000) {
-      questionCount = 30;
-    } else if (wordCount < 12000) {
       questionCount = 40;
+    } else if (wordCount < 12000) {
+      questionCount = 55;
+    } else if (wordCount < 25000) {
+      questionCount = 70;
+    } else if (wordCount < 50000) {
+      questionCount = 85;
     } else {
-      questionCount = 60;
+      questionCount = 100;
     }
 
     const response = await openai.chat.completions.create({
@@ -80,11 +84,12 @@ Guidelines:
 - Questions should test understanding, not just memorization
 - Include clear explanations for each answer
 - Make distractors (wrong options) plausible but clearly wrong
-- Ensure later topics in the content are also tested`,
+- Ensure later topics in the content are also tested
+- Distribute questions proportionally across the entire content — beginning, middle, and end`,
         },
         {
           role: "user",
-          content: `Generate a comprehensive practice test from this content:\n\n${noteContent.slice(0, 50000)}`,
+          content: `Generate a comprehensive practice test from this content:\n\n${noteContent.slice(0, 100000)}`,
         },
       ],
       temperature: 0.3,
