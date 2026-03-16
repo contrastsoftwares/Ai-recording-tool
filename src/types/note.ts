@@ -1,4 +1,5 @@
 export type NoteFormat =
+  | "ai-decide"
   | "bullet-points"
   | "sentences"
   | "cornell"

@@ -278,9 +278,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Build format instructions — each format gets its own detailed section prompt
-    const formatSections = (formats as string[])
-      .map((f) => formatDescriptions[f] || f)
-      .join("\n\n---\n\n");
+    const isAiDecide = (formats as string[]).includes("ai-decide");
+    const formatSections = isAiDecide
+      ? `## AI-Decide Mode
+You have full freedom to choose the BEST format(s) for this content. Analyze the source material and decide which combination will produce the most useful study notes. Consider:
+- For factual/encyclopedic content → bullet-points + key-concepts
+- For narrative/historical content → timeline + summary
+- For procedural/how-to content → outline + bullet-points
+- For argumentative/analytical content → sentences + qa-format
+- For mixed content → combine 2-3 formats that complement each other
+
+Choose 1-3 formats from the available options and produce notes using those formats. Start with a brief line stating which format(s) you chose and why, then proceed with the notes.
+
+Available formats and their descriptions for reference:
+${Object.entries(formatDescriptions).map(([key, val]) => `### ${key}\n${val.slice(0, 200)}...`).join("\n\n")}`
+      : (formats as string[])
+        .map((f) => formatDescriptions[f] || f)
+        .join("\n\n---\n\n");
 
     const noteLengthGuide =
       lengthInstructions[length as string] || lengthInstructions.medium;
@@ -296,7 +310,7 @@ export async function POST(request: NextRequest) {
 The source material is very lengthy. You MUST still cover ALL major topics and themes throughout the ENTIRE transcript/content — from beginning to end. Do not stop partway through or only cover the first portion. To manage length, be more concise in your explanations while ensuring every major topic, event, argument, and theme across the full duration is represented. Prioritize breadth of coverage across the entire source over extreme depth on any single point.`
       : "";
 
-    const systemPrompt = `You are a premium study-note AI that produces beautifully formatted, Google-Docs-quality study notes. Your output should look like a polished study guide — the kind of notes a top student or a premium tool like TurboAI or Notion AI would create.
+    const systemPrompt = `You are a premium study-note AI that produces beautifully formatted, TurboAI-quality study notes. Your output should look like a polished, visually striking study guide — the kind that top EdTech tools like TurboAI, Notion AI, or premium study apps create.
 
 Generate study notes from the provided content using the format(s) specified below.
 
@@ -308,46 +322,58 @@ ${noteLengthGuide}${longContentNote}
 
 ## OUTPUT FORMAT — CRITICAL
 
-You MUST output well-structured Markdown. The rendering engine supports: headings (#, ##, ###), **bold**, *italic*, bullet lists (- item), numbered lists (1. item), > blockquotes, --- horizontal rules, and tables.
+You MUST output well-structured Markdown. The rendering engine supports: headings (#, ##, ###), **bold**, *italic*, bullet lists (- item), numbered lists (1. item), > blockquotes, --- horizontal rules, and tables (| col | col |).
 
 ## DOCUMENT STRUCTURE
 
-1. **Title**: Start with a single # heading that is a concise, descriptive title for the entire document. Make it compelling — not generic.
+1. **Title**: Start with a single # heading. Add a relevant emoji before the title text. Make it compelling and specific.
+   Example: \`# 🌍 The Amazon Rainforest: Earth's Green Heart\`
 
-2. **Brief Overview**: Immediately after the title, write a 2-3 sentence paragraph (NOT in a heading) that summarizes what these notes cover. Mention the topic, scope, and source type. **Bold** key topic names in this paragraph.
+2. **Brief Overview**: Immediately after the title, write a 2-3 sentence overview paragraph (NOT a heading). Summarize the topic, scope, and key themes. **Bold** the most important terms.
 
-3. **Major Sections**: Use ## headings for each major topic section. Each section heading should be specific and descriptive (e.g., "## Amazon Rainforest Overview" not "## Section 1").
+3. **Major Sections with Emoji**: Use ## headings with a relevant emoji at the start for each major topic.
+   Examples: \`## 🌳 Biodiversity & Ecosystems\`, \`## 💧 Water Cycle & Climate\`, \`## ⚠️ Threats & Conservation\`
 
-4. **Subsections**: Use ### headings within sections for subtopics (e.g., "### Size & Global Impact").
+4. **Granular Subsections**: Use ### headings for individual subtopics — one specific concept per ###.
+   Examples: \`### Jaguar Population\`, \`### Carbon Sequestration Process\`, \`### Deforestation Statistics\`
 
-5. **Section Dividers**: Use --- between each ## section for clean visual separation.
+5. **Section Dividers**: Use --- between every ## section for clean visual separation.
 
-## FORMATTING RULES
+## FORMATTING RULES — TurboAI STYLE
 
-- **Bold liberally**: Bold key terms, important names, dates, numbers, and critical concepts. A reader should be able to skim the bold text alone and understand the main ideas.
-- **Bullet points**: Use - for bullet points. Each bullet should be a complete thought, not a sentence fragment.
-- **Key term highlighting in bullets**: Start bullets with the key term in bold followed by a colon, then the explanation (e.g., "- **Carbon cycle:** For > 50 million years the forest has drawn CO2...")
-- **Blockquotes**: Use > for standout insights, key quotes, important definitions, or "big picture" takeaways. These should be impactful, not overused — 1-2 per major section maximum.
-- **Paragraphs**: For explanatory content, use well-developed paragraphs (3-5 sentences) with bold terms throughout.
-- **No filler**: Remove ALL transcript artifacts (um, uh, like, you know, basically, so yeah). Write in polished, professional prose.
-- **No meta-commentary**: Never write "The speaker discusses...", "This section covers...", "The content explains...". Just state the information directly.
-- **No LaTeX**: Never use LaTeX or math notation. Write equations in plain text if needed.
+- **Emoji Section Headings**: EVERY ## heading MUST start with a relevant emoji. Choose emojis that match the topic (🔬 for science, 📊 for data, 🏛️ for history, 💡 for insights, ⚡ for energy, 🌊 for water, etc.)
+- **Bold Key Terms Pattern**: In bullets, always use the pattern: \`- **Key Term:** concise 1-2 line explanation\`. The bolded term acts as a scannable anchor.
+- **Concise Bullets**: Each bullet should be 1-2 lines MAXIMUM. Pack information density — no fluff, no filler words. Be direct and factual.
+- **Comparison Tables**: Whenever 2+ items, concepts, or entities are being compared, USE A TABLE. Tables are visually powerful.
+  Example:
+  | Feature | Amazon | Congo |
+  |---------|--------|-------|
+  | **Size** | 5.5M km² | 2M km² |
+  | **Species** | 10% of all species | 11,000 plant species |
+- **Blockquotes for Key Insights**: Use > sparingly (1-2 per ## section) for the most important takeaways, definitions, or "big picture" insights. Make them punchy and memorable.
+  Example: \`> 💡 The Amazon produces 20% of the world's oxygen — it literally keeps the planet breathing.\`
+- **No filler**: Remove ALL transcript artifacts (um, uh, like, you know, basically). Write in polished, professional prose.
+- **No meta-commentary**: Never write "The speaker discusses...", "This section covers...". State information directly.
+- **No LaTeX**: Write equations in plain text if needed.
 
 ## CONTENT QUALITY
 
-- Every bullet point must contain SPECIFIC information — names, dates, numbers, places, examples. Never write vague generalities.
-- Sub-bullets must add NEW information (evidence, examples, context, implications) — never just rephrase the parent bullet.
-- Organize by TOPIC, not by order of appearance (unless using timeline format).
+- Every bullet must contain SPECIFIC information — names, dates, numbers, places, examples. Never write vague generalities.
+- Sub-bullets must add NEW information — never rephrase the parent.
+- Each ### subsection should focus on ONE specific concept, entity, or idea — keep them granular.
 - Cover ALL major topics from the ENTIRE source — beginning, middle, and end — with roughly equal depth.
 - Stay faithful to the source. Do not invent information.
-- Write in a clear, educational tone like a well-crafted textbook.
+- Write in a clear, educational tone — like a well-crafted modern textbook.
 
 ## WHAT NOT TO DO
-- Do NOT produce sparse, thin notes with only 1-2 bullets per section
-- Do NOT use repetitive sentence patterns (same structure for every bullet)
-- Do NOT write surface-level notes that just list topic names without substance
-- Do NOT start every line with the same word or phrase
-- Do NOT use generic headings like "Key Points" or "Important Details" without specifying what they're about
+- Do NOT produce sparse notes with only 1-2 bullets per section
+- Do NOT use repetitive sentence patterns
+- Do NOT write surface-level notes that list topics without substance
+- Do NOT start every bullet with the same word
+- Do NOT use generic headings like "Key Points" — be specific
+- Do NOT write long paragraph-style bullets. Keep them to 1-2 lines.
+- Do NOT forget emoji on ## headings — this is CRITICAL for visual quality
+- Do NOT skip tables when items are being compared
 - If multiple formats requested, include ONE summary total, not one per format
 
 ## MULTI-FORMAT

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight, RotateCcw, Layers, Keyboard, Loader2, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, Layers, Keyboard, Loader2, AlertTriangle, Plus, X as XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { FlashcardSingle } from "@/components/flashcards/flashcard-single";
@@ -38,6 +38,9 @@ export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
     return new Set();
   });
   const [showTroubleOnly, setShowTroubleOnly] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newFront, setNewFront] = useState("");
+  const [newBack, setNewBack] = useState("");
 
   const activeCards = showTroubleOnly
     ? cards.filter((c) => troubleCards.has(c.id))
@@ -99,6 +102,22 @@ export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
       return next;
     });
   }, [activeCards, currentIndex]);
+
+  const handleAddCard = useCallback(() => {
+    if (!newFront.trim() || !newBack.trim()) return;
+    const newCard: FlashcardResult = {
+      id: `custom-${Date.now()}`,
+      front: newFront.trim(),
+      back: newBack.trim(),
+      difficulty: "medium",
+      timesReviewed: 0,
+      lastReviewed: null,
+    };
+    setCards((prev) => [...prev, newCard]);
+    setNewFront("");
+    setNewBack("");
+    setShowAddForm(false);
+  }, [newFront, newBack]);
 
   // Keyboard shortcuts (only when not typing in an input/textarea)
   useEffect(() => {
@@ -191,6 +210,15 @@ export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
             )}
           </h2>
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="gap-1.5"
+            >
+              {showAddForm ? <XIcon className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+              {showAddForm ? t.common.cancel : t.flashcards.addCard || "Add Card"}
+            </Button>
             {troubleCount > 0 && (
               <Button
                 size="sm"
@@ -205,6 +233,40 @@ export function FlashcardDeck({ noteId, noteContent }: FlashcardDeckProps) {
           </div>
         </div>
       </div>
+
+      {showAddForm && (
+        <div className="border-b border-border px-6 py-4 space-y-3">
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">{t.flashcards.front || "Front (Question)"}</label>
+            <textarea
+              value={newFront}
+              onChange={(e) => setNewFront(e.target.value)}
+              placeholder={t.flashcards.frontPlaceholder || "Enter the question or term..."}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+              rows={2}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">{t.flashcards.back || "Back (Answer)"}</label>
+            <textarea
+              value={newBack}
+              onChange={(e) => setNewBack(e.target.value)}
+              placeholder={t.flashcards.backPlaceholder || "Enter the answer or definition..."}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+              rows={2}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button size="sm" variant="ghost" onClick={() => { setShowAddForm(false); setNewFront(""); setNewBack(""); }}>
+              {t.common.cancel}
+            </Button>
+            <Button size="sm" onClick={handleAddCard} disabled={!newFront.trim() || !newBack.trim()}>
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              {t.flashcards.addCard || "Add Card"}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-8">
         <p className="mb-6 text-sm font-medium text-muted-foreground">

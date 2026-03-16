@@ -11,6 +11,7 @@ import {
   Clock,
   HelpCircle,
   Check,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
@@ -36,6 +37,12 @@ export function FormatSelector({ onFormatsChange, onLengthChange }: FormatSelect
   const [selectedLength, setSelectedLength] = useState<NoteLength>("medium");
 
   const formatOptions: FormatOption[] = [
+    {
+      id: "ai-decide",
+      label: t.formatSelector.aiDecide || "AI Decide",
+      description: t.formatSelector.aiDecideDesc || "Let AI choose the best format for your content",
+      icon: Sparkles,
+    },
     {
       id: "bullet-points",
       label: t.formatSelector.bulletPoints,
@@ -105,9 +112,17 @@ export function FormatSelector({ onFormatsChange, onLengthChange }: FormatSelect
   ];
 
   const toggleFormat = (formatId: NoteFormat) => {
-    const updated = selectedFormats.includes(formatId)
-      ? selectedFormats.filter((id) => id !== formatId)
-      : [...selectedFormats, formatId];
+    let updated: NoteFormat[];
+    if (formatId === "ai-decide") {
+      // AI-decide is mutually exclusive — toggle it alone
+      updated = selectedFormats.includes("ai-decide") ? [] : ["ai-decide"];
+    } else {
+      // Selecting a specific format deselects ai-decide
+      const withoutAi = selectedFormats.filter((id) => id !== "ai-decide");
+      updated = withoutAi.includes(formatId)
+        ? withoutAi.filter((id) => id !== formatId)
+        : [...withoutAi, formatId];
+    }
     setSelectedFormats(updated);
     onFormatsChange?.(updated);
   };
@@ -178,6 +193,7 @@ export function FormatSelector({ onFormatsChange, onLengthChange }: FormatSelect
           {formatOptions.map((format) => {
             const Icon = format.icon;
             const isSelected = selectedFormats.includes(format.id);
+            const isAiDecide = format.id === "ai-decide";
 
             return (
               <button
@@ -187,9 +203,10 @@ export function FormatSelector({ onFormatsChange, onLengthChange }: FormatSelect
                 className={cn(
                   "relative flex flex-col items-start gap-2 rounded-xl border p-4 text-left",
                   "transition-all duration-200",
-                  isSelected
-                    ? "border-primary bg-primary/5 shadow-sm"
-                    : "border-border bg-card hover:border-primary/30 hover:bg-muted/50"
+                  isAiDecide && !isSelected && "border-primary/30 bg-primary/5 hover:border-primary/50 hover:bg-primary/10",
+                  isAiDecide && isSelected && "border-primary bg-primary/10 shadow-md ring-1 ring-primary/20",
+                  !isAiDecide && isSelected && "border-primary bg-primary/5 shadow-sm",
+                  !isAiDecide && !isSelected && "border-border bg-card hover:border-primary/30 hover:bg-muted/50"
                 )}
               >
                 {isSelected && (

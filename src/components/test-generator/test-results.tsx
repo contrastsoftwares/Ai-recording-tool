@@ -14,6 +14,7 @@ interface TestResultsProps {
   onRemake: () => void;
   onReview: () => void;
   onRetry?: () => void;
+  testMode?: "full" | "short";
 }
 
 function getGrade(percentage: number): { letter: string; color: string } {
@@ -32,7 +33,7 @@ function getPerformanceMessage(percentage: number): string {
   return "Keep studying, you'll get there!";
 }
 
-export function TestResults({ score, onRemake, onReview, onRetry }: TestResultsProps) {
+export function TestResults({ score, onRemake, onReview, onRetry, testMode }: TestResultsProps) {
   const grade = getGrade(score.percentage);
   const circumference = 2 * Math.PI * 70;
   const strokeDashoffset =
@@ -150,6 +151,12 @@ export function TestResults({ score, onRemake, onReview, onRetry }: TestResultsP
           <Button onClick={onRetry} className="flex-1 gap-2">
             <RefreshCw className="h-4 w-4" />
             Retry Quiz
+          </Button>
+        )}
+        {testMode === "short" && (
+          <Button variant="outline" onClick={onRemake} className="flex-1 gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Remake Quiz
           </Button>
         )}
       </div>

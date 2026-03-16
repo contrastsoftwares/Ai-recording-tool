@@ -330,6 +330,22 @@ html {
   outline: 2px solid hsl(var(--primary));
   outline-offset: 2px;
 }
+/* Freely-dragged images floating on top of text */
+.editor-content img[style*="position: absolute"] {
+  z-index: 20;
+  cursor: grab;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 2px solid transparent;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.editor-content img[style*="position: absolute"]:hover {
+  border-color: hsl(var(--primary) / 0.5);
+}
+.editor-content img.dragging {
+  cursor: grabbing;
+  opacity: 0.85;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
 
 /* --- Highlighted text --- */
 .editor-content mark {

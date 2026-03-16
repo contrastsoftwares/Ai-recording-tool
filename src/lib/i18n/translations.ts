@@ -264,6 +264,11 @@ export interface Translations {
     arrowsNavigate: string;
     arrowsToNavigate: string;
     tForTrouble: string;
+    addCard: string;
+    front: string;
+    back: string;
+    frontPlaceholder: string;
+    backPlaceholder: string;
   };
   // Test
   test: {
@@ -360,6 +365,8 @@ export interface Translations {
     timelineDesc: string;
     qaFormat: string;
     qaFormatDesc: string;
+    aiDecide: string;
+    aiDecideDesc: string;
   };
   // Upload zone
   uploadZone: {
@@ -638,6 +645,11 @@ const en: Translations = {
     spaceToFlip: "Space to flip",
     arrowsNavigate: "Arrows to navigate",
     tForTrouble: "T for trouble",
+    addCard: "Add Card",
+    front: "Front (Question)",
+    back: "Back (Answer)",
+    frontPlaceholder: "Enter the question or term...",
+    backPlaceholder: "Enter the answer or definition...",
     noFlashcardsYet: "No flashcards yet",
     generateDesc: "Generate flashcards from your notes to start studying.",
     generate: "Generate Flashcards",
@@ -737,6 +749,8 @@ const en: Translations = {
     timelineDesc: "Chronological sequence of events",
     qaFormat: "Q&A Format",
     qaFormatDesc: "Question and answer style notes",
+    aiDecide: "AI Decide",
+    aiDecideDesc: "Let AI choose the best format for your content",
   },
   uploadZone: {
     fileUpload: "File Upload",
@@ -1010,6 +1024,11 @@ const es: Translations = {
     spaceToFlip: "Espacio para voltear",
     arrowsNavigate: "Flechas para navegar",
     tForTrouble: "T para difícil",
+    addCard: "Añadir Tarjeta",
+    front: "Frente (Pregunta)",
+    back: "Reverso (Respuesta)",
+    frontPlaceholder: "Ingresa la pregunta o término...",
+    backPlaceholder: "Ingresa la respuesta o definición...",
     noFlashcardsYet: "Aún no hay tarjetas",
     generateDesc: "Genera tarjetas a partir de tus notas para comenzar a estudiar.",
     generate: "Generar Tarjetas",
@@ -1109,6 +1128,8 @@ const es: Translations = {
     timelineDesc: "Secuencia cronológica de eventos",
     qaFormat: "Formato P&R",
     qaFormatDesc: "Notas en estilo pregunta y respuesta",
+    aiDecide: "IA Decide",
+    aiDecideDesc: "Deja que la IA elija el mejor formato",
   },
   uploadZone: {
     fileUpload: "Subir archivo",
@@ -1382,6 +1403,11 @@ const fr: Translations = {
     spaceToFlip: "Espace pour retourner",
     arrowsNavigate: "Flèches pour naviguer",
     tForTrouble: "T pour difficile",
+    addCard: "Ajouter une Carte",
+    front: "Recto (Question)",
+    back: "Verso (Réponse)",
+    frontPlaceholder: "Entrez la question ou le terme...",
+    backPlaceholder: "Entrez la réponse ou la définition...",
     noFlashcardsYet: "Pas encore de cartes",
     generateDesc: "Générez des cartes à partir de vos notes.",
     generate: "Générer des cartes",
@@ -1481,6 +1507,8 @@ const fr: Translations = {
     timelineDesc: "Séquence chronologique des événements",
     qaFormat: "Format Q&R",
     qaFormatDesc: "Notes en style question-réponse",
+    aiDecide: "IA Décide",
+    aiDecideDesc: "Laissez l'IA choisir le meilleur format",
   },
   uploadZone: {
     fileUpload: "Télécharger un fichier",
@@ -1754,6 +1782,11 @@ const de: Translations = {
     spaceToFlip: "Leertaste zum Umdrehen",
     arrowsNavigate: "Pfeiltasten zum Navigieren",
     tForTrouble: "T für schwierig",
+    addCard: "Karte Hinzufügen",
+    front: "Vorderseite (Frage)",
+    back: "Rückseite (Antwort)",
+    frontPlaceholder: "Frage oder Begriff eingeben...",
+    backPlaceholder: "Antwort oder Definition eingeben...",
     noFlashcardsYet: "Noch keine Karteikarten",
     generateDesc: "Generiere Karteikarten aus deinen Notizen, um mit dem Lernen zu beginnen.",
     generate: "Karteikarten Generieren",
@@ -1853,6 +1886,8 @@ const de: Translations = {
     timelineDesc: "Chronologische Abfolge der Ereignisse",
     qaFormat: "F&A-Format",
     qaFormatDesc: "Notizen im Frage-Antwort-Stil",
+    aiDecide: "KI Entscheidet",
+    aiDecideDesc: "Lassen Sie die KI das beste Format wählen",
   },
   uploadZone: {
     fileUpload: "Datei hochladen",
@@ -2126,6 +2161,11 @@ const zh: Translations = {
     spaceToFlip: "空格键翻转",
     arrowsNavigate: "方向键切换",
     tForTrouble: "T键标记薄弱项",
+    addCard: "添加卡片",
+    front: "正面（问题）",
+    back: "背面（答案）",
+    frontPlaceholder: "输入问题或术语...",
+    backPlaceholder: "输入答案或定义...",
     noFlashcardsYet: "还没有回顾卡片",
     generateDesc: "从笔记中生成回顾卡片，开始高效学习。",
     generate: "生成回顾卡片",
@@ -2225,6 +2265,8 @@ const zh: Translations = {
     timelineDesc: "事件的时间顺序",
     qaFormat: "问答格式",
     qaFormatDesc: "问答式笔记",
+    aiDecide: "AI 决定",
+    aiDecideDesc: "让AI选择最佳格式",
   },
   uploadZone: {
     fileUpload: "上传文件",
@@ -2498,6 +2540,11 @@ const ja: Translations = {
     spaceToFlip: "スペースキーでめくる",
     arrowsNavigate: "矢印キーで移動",
     tForTrouble: "Tキーで苦手マーク",
+    addCard: "カードを追加",
+    front: "表面（質問）",
+    back: "裏面（回答）",
+    frontPlaceholder: "質問や用語を入力...",
+    backPlaceholder: "回答や定義を入力...",
     noFlashcardsYet: "まだフラッシュカードがありません",
     generateDesc: "ノートからフラッシュカードを生成して学習を始めましょう。",
     generate: "フラッシュカードを生成",
@@ -2597,6 +2644,8 @@ const ja: Translations = {
     timelineDesc: "出来事の時系列",
     qaFormat: "Q&A形式",
     qaFormatDesc: "質問と回答形式のノート",
+    aiDecide: "AI おまかせ",
+    aiDecideDesc: "AIが最適なフォーマットを選択",
   },
   uploadZone: {
     fileUpload: "ファイルアップロード",
@@ -2870,6 +2919,11 @@ const ko: Translations = {
     spaceToFlip: "스페이스바로 뒤집기",
     arrowsNavigate: "화살표로 이동",
     tForTrouble: "T로 어려움 표시",
+    addCard: "카드 추가",
+    front: "앞면 (질문)",
+    back: "뒷면 (답변)",
+    frontPlaceholder: "질문이나 용어를 입력하세요...",
+    backPlaceholder: "답변이나 정의를 입력하세요...",
     noFlashcardsYet: "아직 플래시카드가 없습니다",
     generateDesc: "노트에서 플래시카드를 생성하여 학습을 시작하세요.",
     generate: "플래시카드 생성",
@@ -2969,6 +3023,8 @@ const ko: Translations = {
     timelineDesc: "사건의 시간순 배열",
     qaFormat: "Q&A 형식",
     qaFormatDesc: "질문과 답변 형식의 노트",
+    aiDecide: "AI 결정",
+    aiDecideDesc: "AI가 최적의 형식을 선택합니다",
   },
   uploadZone: {
     fileUpload: "파일 업로드",

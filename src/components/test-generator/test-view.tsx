@@ -478,7 +478,7 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
             </Badge>
           </div>
         </div>
-        <TestResults score={score} onRemake={() => startTest(testMode)} onReview={handleReview} onRetry={() => startTest(testMode)} />
+        <TestResults score={score} onRemake={handleRemakeQuiz} onReview={handleReview} onRetry={() => startTest(testMode)} testMode={testMode} />
         <div className="flex justify-center gap-3 mt-4">
           <Button variant="outline" className="gap-2" onClick={handleGoToChooser}>
             {t.test.chooseDifferentMode}
@@ -544,13 +544,14 @@ export function TestView({ noteId, noteContent }: TestViewProps) {
               </Button>
             )}
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 border border-destructive/30"
+              variant="destructive"
+              size="sm"
+              className="gap-1.5 h-9 px-3"
               onClick={() => setTestState("choosing")}
               title={t.test.exitQuiz}
             >
               <X className="h-4 w-4" />
+              <span className="hidden sm:inline text-xs font-medium">Exit</span>
             </Button>
           </div>
         </div>

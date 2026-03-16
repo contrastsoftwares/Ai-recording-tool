@@ -387,6 +387,7 @@ export default function NoteWorkspacePage() {
                   <div className="flex flex-wrap gap-1">
                     {note.formats.map((format) => {
                       const formatLabels: Record<string, string> = {
+                        "ai-decide": t.formatSelector.aiDecide || "AI Decide",
                         "bullet-points": t.formatSelector.bulletPoints,
                         sentences: t.formatSelector.sentences,
                         cornell: t.formatSelector.cornellNotes,
@@ -469,7 +470,7 @@ export default function NoteWorkspacePage() {
           {/* Tab content - all rendered but hidden to preserve state/scroll */}
           <div ref={contentRef} className="flex-1 overflow-y-auto scrollbar-thin">
             <div className={activeTab === "notes" ? "" : "hidden"}>
-              <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="rounded-xl border border-border bg-muted/20 dark:bg-muted/10">
                 <RichTextEditor
                   content={note.content}
                   onChange={(html) => updateNote(noteId, { content: html })}
