@@ -279,16 +279,25 @@ export async function POST(request: NextRequest) {
 
     // Build format instructions — each format gets its own detailed section prompt
     const isAiDecide = (formats as string[]).includes("ai-decide");
+
+    // Scale the number of formats AI picks based on the selected length
+    const aiDecideFormatCount =
+      (length as string) === "short" ? "2-3" :
+      (length as string) === "long"  ? "4-6" :
+      /* medium (default) */           "3-5";
+
     const formatSections = isAiDecide
       ? `## AI-Decide Mode
-You have full freedom to choose the BEST format(s) for this content. Analyze the source material and decide which combination will produce the most useful study notes. Consider:
-- For factual/encyclopedic content → bullet-points + key-concepts
-- For narrative/historical content → timeline + summary
-- For procedural/how-to content → outline + bullet-points
-- For argumentative/analytical content → sentences + qa-format
-- For mixed content → combine 2-3 formats that complement each other
+You have full freedom to choose the BEST combination of formats for this content. Analyze the source material and decide which combination will produce the most useful, comprehensive study notes. Consider:
+- For factual/encyclopedic content → bullet-points + key-concepts + qa-format
+- For narrative/historical content → timeline + summary + detailed-notes
+- For procedural/how-to content → outline + bullet-points + key-concepts
+- For argumentative/analytical content → sentences + qa-format + summary
+- For mixed content → combine multiple formats that complement each other
 
-Choose 1-3 formats from the available options and produce notes using those formats. Start with a brief line stating which format(s) you chose and why, then proceed with the notes.
+Choose ${aiDecideFormatCount} formats from the available options and produce FULL notes for EACH chosen format. Do NOT abbreviate — treat each chosen format as if the user explicitly selected it. The result should be a rich, multi-section study guide.
+
+Start with a brief line stating which format(s) you chose and why, then proceed with the complete notes for each format, separated by clear headings.
 
 Available formats and their descriptions for reference:
 ${Object.entries(formatDescriptions).map(([key, val]) => `### ${key}\n${val.slice(0, 200)}...`).join("\n\n")}`
