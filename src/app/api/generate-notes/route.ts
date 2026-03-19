@@ -226,36 +226,33 @@ Requirements:
 };
 
 const lengthInstructions: Record<string, string> = {
-  short: `**Length: Short (Concise but Informative)**
-Cover the most important points with enough detail to be genuinely useful for revision. Aim for roughly 40-50% of what comprehensive notes would be.
-- Bullet points: 4-6 topic groups, each with 3-4 bullets and 2-3 sub-bullets
-- Timeline: 5-8 entries, each with 2-3 sentences
-- Cornell: 8-12 rows with 3-4 sentence notes per cell
-- Q&A: 10-15 pairs with 3-4 sentence answers
-- Key concepts: 8-12 entries with 3-4 sentences each
-- Summary: 3-5 paragraphs
-- Outline: 4-6 main sections, 3 levels deep
-CRITICAL: Even in short mode, every section must have meaningful, substantive content. A "short" note that is vague or surface-level is useless. Be concise but SPECIFIC — cut wordiness, not information.`,
-  medium: `**Length: Medium (Substantial and Thorough)**
-Cover all important topics with supporting details, examples, and analysis. This is the standard level — thorough enough for effective studying.
-- Bullet points: 6-10 topic groups, each with 4-6 bullets and 3-4 sub-bullets
-- Timeline: 10-15 entries, each with 3-5 sentences
-- Cornell: 12-18 rows with 4-5 sentence notes per cell
-- Q&A: 15-20 pairs with 4-5 sentence answers
-- Key concepts: 12-18 entries with 5-7 sentences each
-- Summary: 5-8 paragraphs under clear subheadings
-- Outline: 6-8 main sections, 3-4 levels deep
+  short: `**Length: Short (Concise — but cover EVERYTHING)**
+CRITICAL: You MUST cover ALL topics, facts, and information from the source material. Do NOT skip or omit any content. "Short" means each point is brief and concise — NOT that you cover fewer topics.
+- Each bullet/entry: 1-2 sentences max, get straight to the point
+- Sub-bullets: minimal, only when essential for clarity
+- Q&A answers: 2-3 sentences, direct and factual
+- Key concepts: 2-3 sentences per entry
+- Summary paragraphs: short and dense
+- Create as many topic groups, entries, rows, or questions as needed to cover ALL content from the source material
+The goal: a quick-reference guide that touches on EVERYTHING but doesn't elaborate. Cut wordiness and elaboration, never cut topics or facts.`,
+  medium: `**Length: Medium (Substantial and Thorough — cover EVERYTHING)**
+CRITICAL: You MUST cover ALL topics, facts, and information from the source material. Do NOT skip or omit any content. "Medium" means moderate detail per point.
+- Each bullet/entry: 2-4 sentences with supporting details
+- Sub-bullets: include where they add value
+- Q&A answers: 4-5 sentences with specific details and examples
+- Key concepts: 5-7 sentences each (definition, explanation, example)
+- Summary: thorough paragraphs under clear subheadings
+- Create as many topic groups, entries, rows, or questions as needed to cover ALL content from the source material
 Each section should feel complete — a reader who only reads one section should still learn something substantial.`,
-  long: `**Length: Long (Exhaustive and Comprehensive)**
-Cover EVERY topic in full detail with examples, explanations, context, connections, and analysis. This should serve as a complete study reference — leave nothing important out.
-- Bullet points: 8-12+ topic groups, each with 5-8 bullets and 4-5 sub-bullets
-- Timeline: 15-25 entries, each with 4-6 sentences
-- Cornell: 18-25 rows with 5-6 sentence notes per cell, plus extensive summary
-- Q&A: 20-30 pairs with 5-6 sentence answers covering all question types
-- Key concepts: 15-25 entries with 6-8 sentences each (Definition, Explanation, Example, Connections)
-- Summary: 8-12 paragraphs with detailed subheadings
-- Outline: 8-12 main sections, 4+ levels deep
-Include supporting evidence, edge cases, nuances, counterarguments, and implications. Every major AND minor topic deserves coverage.`,
+  long: `**Length: Long (Exhaustive and Comprehensive — cover EVERYTHING)**
+CRITICAL: You MUST cover ALL topics, facts, and information from the source material. Do NOT skip or omit any content. "Long" means maximum detail per point.
+- Each bullet/entry: 4-6+ sentences with examples, context, and analysis
+- Sub-bullets: extensive, covering nuances and edge cases
+- Q&A answers: 5-6 sentences covering all angles
+- Key concepts: 6-8 sentences each (Definition, Explanation, Example, Connections)
+- Summary: detailed paragraphs with comprehensive subheadings
+- Create as many topic groups, entries, rows, or questions as needed to cover ALL content from the source material
+Include supporting evidence, edge cases, nuances, counterarguments, and implications. Leave nothing out — every major AND minor topic deserves full coverage.`,
 };
 
 export async function POST(request: NextRequest) {
@@ -280,24 +277,18 @@ export async function POST(request: NextRequest) {
     // Build format instructions — each format gets its own detailed section prompt
     const isAiDecide = (formats as string[]).includes("ai-decide");
 
-    // Scale the number of formats AI picks based on the selected length
-    const aiDecideFormatCount =
-      (length as string) === "short" ? "2-3" :
-      (length as string) === "long"  ? "4-6" :
-      /* medium (default) */           "3-5";
-
     const formatSections = isAiDecide
       ? `## AI-Decide Mode
-You have full freedom to choose the BEST combination of formats for this content. Analyze the source material and decide which combination will produce the most useful, comprehensive study notes. Consider:
-- For factual/encyclopedic content → bullet-points + key-concepts + qa-format
-- For narrative/historical content → timeline + summary + detailed-notes
-- For procedural/how-to content → outline + bullet-points + key-concepts
-- For argumentative/analytical content → sentences + qa-format + summary
-- For mixed content → combine multiple formats that complement each other
+You have full freedom to choose the BEST format(s) for this content. Analyze the source material and decide which combination will produce the most useful study notes. Consider:
+- For factual/encyclopedic content → bullet-points + key-concepts
+- For narrative/historical content → timeline + summary
+- For procedural/how-to content → outline + bullet-points
+- For argumentative/analytical content → sentences + qa-format
+- For mixed content → combine 2-3 formats that complement each other
 
-Choose ${aiDecideFormatCount} formats from the available options and produce FULL notes for EACH chosen format. Do NOT abbreviate — treat each chosen format as if the user explicitly selected it. The result should be a rich, multi-section study guide.
+Choose 1-3 formats from the available options and produce notes using those formats. Start with a brief line stating which format(s) you chose and why, then proceed with the notes.
 
-Start with a brief line stating which format(s) you chose and why, then proceed with the complete notes for each format, separated by clear headings.
+CRITICAL: Regardless of how many formats you choose, ALL information from the source material must be represented in your notes. Do not skip any topics, facts, or details. The format controls HOW the notes look — not how much content is included.
 
 Available formats and their descriptions for reference:
 ${Object.entries(formatDescriptions).map(([key, val]) => `### ${key}\n${val.slice(0, 200)}...`).join("\n\n")}`
@@ -322,6 +313,9 @@ The source material is very lengthy. You MUST still cover ALL major topics and t
     const systemPrompt = `You are a premium study-note AI that produces beautifully formatted, TurboAI-quality study notes. Your output should look like a polished, visually striking study guide — the kind that top EdTech tools like TurboAI, Notion AI, or premium study apps create.
 
 Generate study notes from the provided content using the format(s) specified below.
+
+## CRITICAL: Full Content Coverage
+You MUST convert ALL information from the source material into notes — every topic, fact, argument, example, and detail mentioned in the source must appear in the output. Do NOT skip, summarize away, or omit any content. The selected format controls HOW the notes look (bullet points vs Q&A vs summary, etc.). The selected length controls HOW DETAILED each point is (brief vs. thorough). Neither format nor length should ever cause you to skip or leave out any content from the source material. If the source mentions it, your notes must include it.
 
 ## Format Instructions
 ${formatSections}
