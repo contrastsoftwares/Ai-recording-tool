@@ -1,38 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+import openai from "@/lib/openai";
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const image = formData.get("image") as File;
 
-    if (!image) {
+    // Support multiple images: collect all "image" and "images" entries
+    const images: File[] = [];
+    const singleImage = formData.get("image") as File | null;
+    if (singleImage) {
+      images.push(singleImage);
+    }
+    const multiImages = formData.getAll("images") as File[];
+    images.push(...multiImages);
+
+    if (images.length === 0) {
       return NextResponse.json(
         { error: "No image provided" },
         { status: 400 }
       );
     }
 
-    // Convert image to base64 data URL
-    const bytes = await image.arrayBuffer();
-    const base64 = Buffer.from(bytes).toString("base64");
-    const mimeType = image.type || "image/png";
-    const dataUrl = `data:${mimeType};base64,${base64}`;
+    if (images.length > 20) {
+      return NextResponse.json(
+        { error: "Maximum 20 images allowed per session" },
+        { status: 400 }
+      );
+    }
+
+    // Convert all images to base64 data URLs
+    const imageContents = await Promise.all(
+      images.map(async (image) => {
+        const bytes = await image.arrayBuffer();
+        const base64 = Buffer.from(bytes).toString("base64");
+        const mimeType = image.type || "image/png";
+        const dataUrl = `data:${mimeType};base64,${base64}`;
+        return {
+          type: "image_url" as const,
+          image_url: { url: dataUrl, detail: "high" as const },
+        };
+      })
+    );
+
+    const imageCountNote =
+      images.length > 1
+        ? `There are ${images.length} images provided. They may be parts of the same problem, consecutive textbook problems, or lecture slides. Analyze all of them together and provide a comprehensive solution.`
+        : "Please analyze and solve the problem in this image. Provide a step-by-step solution.";
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: `You are an expert tutor who solves problems from images. Analyze the image and provide a detailed step-by-step solution.
+          content: `You are an expert tutor who solves problems from images. Analyze the image(s) and provide a detailed step-by-step solution.
 
 Respond ONLY with valid JSON in this exact format:
 {
   "subject": "Mathematics" or "Physics" or "Chemistry" or "Biology" or "Computer Science" or "Other",
   "subjectDetail": "Calculus" or "Algebra" or more specific topic,
-  "problem": "Restate the problem clearly from the image",
+  "problem": "Restate the problem clearly from the image(s)",
   "steps": [
     {
       "stepNumber": 1,
@@ -48,18 +74,16 @@ Make sure:
 - Each step is clear and educational
 - Explanations are thorough enough for a student to learn from
 - Include 3-8 steps depending on complexity
-- The math field should contain any relevant formulas or calculations`,
+- The math field should contain any relevant formulas or calculations
+- If multiple images are provided, address all problems shown across them`,
         },
         {
           role: "user",
           content: [
-            {
-              type: "image_url",
-              image_url: { url: dataUrl, detail: "high" },
-            },
+            ...imageContents,
             {
               type: "text",
-              text: "Please analyze and solve the problem in this image. Provide a step-by-step solution.",
+              text: imageCountNote,
             },
           ],
         },

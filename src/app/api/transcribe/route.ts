@@ -1,7 +1,299 @@
-import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import { NextRequest } from "next/server";
+import openai from "@/lib/openai";
+import { writeFile, readFile, mkdir, readdir, rm, stat } from "fs/promises";
+import { join } from "path";
+import { tmpdir } from "os";
+import { execFile } from "child_process";
+import { promisify } from "util";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const execFileAsync = promisify(execFile);
+
+const MAX_DIRECT_SIZE = 24 * 1024 * 1024; // 24MB (margin below 25MB Whisper limit)
+const CHUNK_DURATION_SECS = 600; // 10 minutes per chunk
+
+export const maxDuration = 3600; // 60 min timeout – supports transcription of files up to ~90 min
+
+/**
+ * Resolve the ffmpeg binary path.
+ * Tries system ffmpeg first, then the ffmpeg-static npm package.
+ */
+async function getFFmpegPath(): Promise<string> {
+  // 1. System ffmpeg
+  try {
+    await execFileAsync("ffmpeg", ["-version"], { timeout: 5000 });
+    return "ffmpeg";
+  } catch {
+    // not on PATH
+  }
+
+  // 2. ffmpeg-static npm package
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const staticPath = require("ffmpeg-static");
+    if (staticPath) return staticPath as string;
+  } catch {
+    // not installed
+  }
+
+  throw new Error(
+    "ffmpeg is required for files over 25 MB. " +
+      "Install it from https://ffmpeg.org or run: npm install ffmpeg-static"
+  );
+}
+
+interface TranscriptSegment {
+  start: number;
+  end: number;
+  text: string;
+}
+
+/** Transcribe a single audio buffer with Whisper. */
+async function transcribeChunk(buffer: Buffer, filename: string) {
+  const file = new File([new Uint8Array(buffer)], filename, { type: "audio/mpeg" });
+  return openai.audio.transcriptions.create({
+    model: "whisper-1",
+    file,
+    response_format: "verbose_json",
+    timestamp_granularities: ["segment"],
+  });
+}
+
+// ── Small‑file handler (unchanged behaviour) ────────────────────────────────
+
+async function transcribeSmallFile(file: File) {
+  const response = await openai.audio.transcriptions.create({
+    model: "whisper-1",
+    file,
+    response_format: "verbose_json",
+    timestamp_granularities: ["segment"],
+  });
+
+  const segments = (
+    (response as unknown as Record<string, unknown>).segments as Array<{
+      start: number;
+      end: number;
+      text: string;
+    }> ?? []
+  ).map((seg) => ({
+    start: seg.start,
+    end: seg.end,
+    text: seg.text.trim(),
+  }));
+
+  return Response.json({ transcript: response.text, segments });
+}
+
+// ── Large‑file handler (split → transcribe chunks → stream progress) ────────
+
+function transcribeLargeFile(file: File) {
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (data: Record<string, unknown>) => {
+        controller.enqueue(encoder.encode(JSON.stringify(data) + "\n"));
+      };
+
+      const tempDir = join(tmpdir(), `transcribe-${Date.now()}`);
+
+      try {
+        await mkdir(tempDir, { recursive: true });
+
+        // ── Write uploaded file to disk ──────────────────────────────────
+        send({
+          type: "progress",
+          message: "Preparing audio for transcription...",
+          percent: 5,
+        });
+
+        const inputPath = join(tempDir, "input");
+        const arrayBuffer = await file.arrayBuffer();
+        await writeFile(inputPath, Buffer.from(arrayBuffer));
+
+        // ── Resolve ffmpeg ──────────────────────────────────────────────
+        const ffmpegPath = await getFFmpegPath();
+
+        // ── Step 1: Convert to clean MP3 (tolerates corrupt audio) ──────
+        send({
+          type: "progress",
+          message: "Converting audio (this may take a moment)...",
+          percent: 8,
+        });
+
+        const cleanAudioPath = join(tempDir, "clean_audio.mp3");
+        let partialAudio = false;
+        try {
+          await execFileAsync(
+            ffmpegPath,
+            [
+              "-fflags", "+discardcorrupt+genpts",
+              "-err_detect", "ignore_err",
+              "-i",
+              inputPath,
+              "-vn",        // strip video track
+              "-ac", "1",   // mono
+              "-ar", "16000", // 16 kHz (speech‑optimised)
+              "-ab", "64k", // 64 kbps
+              "-y",         // overwrite if exists
+              cleanAudioPath,
+            ],
+            { timeout: 600_000, maxBuffer: 200 * 1024 * 1024 } // 10 min, 200 MB stderr buffer
+          );
+        } catch (ffmpegError: unknown) {
+          // ffmpeg may exit with error even when partial output is usable
+          // (e.g. corrupt AAC data causes channel misdetection mid-stream)
+          const fileStats = await stat(cleanAudioPath).catch(() => null);
+          if (!fileStats || fileStats.size < 10_000) {
+            // No usable output — re-throw the original error
+            throw ffmpegError;
+          }
+          // Partial output exists — proceed with what we have
+          partialAudio = true;
+          send({
+            type: "progress",
+            message: "Audio partially converted (some corrupt sections skipped)...",
+            percent: 10,
+          });
+        }
+
+        // ── Step 2: Split clean MP3 into chunks (no re-encoding) ────────
+        send({
+          type: "progress",
+          message: "Splitting audio into chunks...",
+          percent: 12,
+        });
+
+        const chunkPattern = join(tempDir, "chunk_%03d.mp3");
+        await execFileAsync(
+          ffmpegPath,
+          [
+            "-i",
+            cleanAudioPath,
+            "-f", "segment",
+            "-segment_time", String(CHUNK_DURATION_SECS),
+            "-c", "copy",  // no re-encoding needed, already clean MP3
+            chunkPattern,
+          ],
+          { timeout: 120_000 } // 2 min for splitting (just copying)
+        );
+
+        // ── List chunk files ────────────────────────────────────────────
+        const chunkFiles = (await readdir(tempDir))
+          .filter((f) => f.startsWith("chunk_") && f.endsWith(".mp3"))
+          .sort()
+          .map((f) => join(tempDir, f));
+
+        const totalChunks = chunkFiles.length;
+        let fullTranscript = "";
+        const allSegments: TranscriptSegment[] = [];
+        let timeOffset = 0;
+
+        send({
+          type: "progress",
+          message: `Transcribing ${totalChunks} chunk(s)...`,
+          percent: 10,
+        });
+
+        // ── Transcribe each chunk ───────────────────────────────────────
+        for (let i = 0; i < totalChunks; i++) {
+          const chunkPct = 10 + Math.round(((i + 0.5) / totalChunks) * 85);
+          send({
+            type: "progress",
+            message: `Transcribing part ${i + 1} of ${totalChunks}...`,
+            percent: chunkPct,
+            chunk: i + 1,
+            totalChunks,
+          });
+
+          const chunkBuffer = await readFile(chunkFiles[i]);
+          const response = await transcribeChunk(
+            chunkBuffer,
+            `chunk_${i}.mp3`
+          );
+
+          // Append transcript
+          if (fullTranscript && response.text) fullTranscript += " ";
+          fullTranscript += response.text;
+
+          // Merge segments with corrected timestamps
+          const rawSegments =
+            (
+              response as unknown as Record<string, unknown>
+            ).segments as Array<{
+              start: number;
+              end: number;
+              text: string;
+            }> ?? [];
+
+          for (const seg of rawSegments) {
+            allSegments.push({
+              start: seg.start + timeOffset,
+              end: seg.end + timeOffset,
+              text: seg.text.trim(),
+            });
+          }
+
+          // Advance offset by the last segment's end time (or chunk duration)
+          const lastSeg = rawSegments.at(-1);
+          timeOffset += lastSeg ? lastSeg.end : CHUNK_DURATION_SECS;
+        }
+
+        // ── Send final result ───────────────────────────────────────────
+        const prefix = partialAudio
+          ? "[Note: Some audio was unreadable due to file corruption. " +
+            "The transcript below covers the recoverable portions.]\n\n"
+          : "";
+        send({
+          type: "result",
+          transcript: prefix + fullTranscript,
+          segments: allSegments,
+        });
+      } catch (error: unknown) {
+        console.error("Chunked transcription error:", error);
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Transcription failed. Please try again.";
+        send({ type: "error", error: message });
+      } finally {
+        // Clean up temp directory
+        await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "application/x-ndjson",
+      "Cache-Control": "no-cache",
+    },
+  });
+}
+
+// ── Duration check ────────────────────────────────────────────────────────────
+
+const MAX_DIRECT_DURATION_SECS = 300; // 5 min – chunk anything longer
+
+/** Get audio duration in seconds using ffmpeg. Returns null if undetectable. */
+async function getAudioDuration(filePath: string): Promise<number | null> {
+  try {
+    const ffmpegPath = await getFFmpegPath();
+    // ffmpeg -i <file> with no output will print duration to stderr
+    const result = await execFileAsync(ffmpegPath, ["-i", filePath, "-f", "null", "-"], {
+      timeout: 30_000,
+    }).catch((err: unknown) => ({ stderr: ((err as Record<string, string>).stderr) || "" }));
+    const match = (result.stderr as string).match(/Duration:\s*(\d+):(\d+):(\d+)/);
+    if (match) {
+      return parseInt(match[1]) * 3600 + parseInt(match[2]) * 60 + parseInt(match[3]);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,29 +301,47 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File;
 
     if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+      return Response.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const response = await openai.audio.transcriptions.create({
-      model: "whisper-1",
-      file: file,
-      response_format: "verbose_json",
-      timestamp_granularities: ["segment"],
-    });
+    // Always check duration when possible. Long but small files (e.g. 1hr
+    // compressed audio < 24MB) need chunking too.
+    const buf = await file.arrayBuffer();
+    let needsChunking = file.size > MAX_DIRECT_SIZE;
 
-    const segments = ((response as unknown as Record<string, unknown>).segments as Array<{ start: number; end: number; text: string }> ?? []).map((seg) => ({
-      start: seg.start,
-      end: seg.end,
-      text: seg.text.trim(),
-    }));
+    if (!needsChunking) {
+      try {
+        const tempDir = join(tmpdir(), `dur-check-${Date.now()}`);
+        await mkdir(tempDir, { recursive: true });
+        const tempPath = join(tempDir, "input");
+        await writeFile(tempPath, Buffer.from(buf));
+        const duration = await getAudioDuration(tempPath);
+        await rm(tempDir, { recursive: true, force: true }).catch(() => {});
 
-    return NextResponse.json({
-      transcript: response.text,
-      segments,
-    });
+        if (duration !== null && duration > MAX_DIRECT_DURATION_SECS) {
+          needsChunking = true;
+        }
+      } catch {
+        // ffmpeg not available – use size-based heuristic.
+        // Compressed audio at ~32kbps can fit ~1hr in ~15MB, so if file
+        // is > 5MB it's likely over 5 minutes and should be chunked.
+        if (file.size > 5 * 1024 * 1024) {
+          needsChunking = true;
+        }
+      }
+    }
+
+    if (needsChunking) {
+      const freshFile = new File([buf], file.name, { type: file.type });
+      return transcribeLargeFile(freshFile);
+    }
+
+    // Small + short file — direct transcription
+    const smallFile = new File([buf], file.name, { type: file.type });
+    return transcribeSmallFile(smallFile);
   } catch (error) {
     console.error("Transcription error:", error);
-    return NextResponse.json(
+    return Response.json(
       { error: "Transcription failed. Please try again." },
       { status: 500 }
     );

@@ -8,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RecordingControls } from "./recording-controls";
 import { useRouter } from "next/navigation";
 import { useUploadStore } from "@/stores/upload-store";
+import { useRecordingStore } from "@/stores/recording-store";
+import { useTranslation } from "@/lib/i18n";
 
 type RecordingStatus = "idle" | "recording" | "paused" | "stopped";
 
@@ -30,15 +32,30 @@ function WaveformBar({ index, isRecording }: { index: number; isRecording: boole
 
 export function AudioRecorder() {
   const router = useRouter();
-  const [status, setStatus] = useState<RecordingStatus>("idle");
-  const [duration, setDuration] = useState(0);
+  const t = useTranslation();
+  const savedRecording = useRecordingStore((s) => s.audioRecording);
+  const saveAudioRecording = useRecordingStore((s) => s.saveAudioRecording);
+  const clearAudioRecording = useRecordingStore((s) => s.clearAudioRecording);
+
+  // If there's a saved recording, start in "stopped" state so it's shown
+  const [status, setStatus] = useState<RecordingStatus>(
+    savedRecording ? "stopped" : "idle"
+  );
+  const [duration, setDuration] = useState(savedRecording?.duration ?? 0);
   const [error, setError] = useState<string | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
-  const blobRef = useRef<Blob | null>(null);
+
+  // Derive audioUrl and blob from store when in stopped state
+  const audioUrl = status === "stopped" && savedRecording ? savedRecording.url : null;
+  const blobRef = useRef<Blob | null>(savedRecording?.blob ?? null);
+
+  // Keep blobRef in sync with store
+  useEffect(() => {
+    blobRef.current = savedRecording?.blob ?? null;
+  }, [savedRecording]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -48,20 +65,21 @@ export function AudioRecorder() {
     return () => { if (interval) clearInterval(interval); };
   }, [status]);
 
+  // Cleanup active streams on unmount (but NOT the store data)
   useEffect(() => {
     return () => {
       if (streamRef.current) streamRef.current.getTracks().forEach((track) => track.stop());
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
     };
-  }, [audioUrl]);
+  }, []);
 
   const handleStart = useCallback(async () => {
     setError(null);
     setDuration(0);
     chunksRef.current = [];
-    blobRef.current = null;
 
-    if (audioUrl) { URL.revokeObjectURL(audioUrl); setAudioUrl(null); }
+    // Clean up previous recording from store
+    clearAudioRecording();
+    blobRef.current = null;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -77,7 +95,8 @@ export function AudioRecorder() {
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         blobRef.current = blob;
-        setAudioUrl(URL.createObjectURL(blob));
+        // Save to store so it persists across navigation
+        saveAudioRecording(blob, durationRef.current);
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((track) => track.stop());
           streamRef.current = null;
@@ -99,7 +118,13 @@ export function AudioRecorder() {
         setError("An unexpected error occurred while accessing the microphone.");
       }
     }
-  }, [audioUrl]);
+  }, [clearAudioRecording, saveAudioRecording]);
+
+  // Track duration in a ref so the onstop callback has the latest value
+  const durationRef = useRef(duration);
+  useEffect(() => {
+    durationRef.current = duration;
+  }, [duration]);
 
   const handlePause = useCallback(() => {
     if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.pause();
@@ -118,24 +143,48 @@ export function AudioRecorder() {
 
   const handleReset = useCallback(() => {
     if (streamRef.current) { streamRef.current.getTracks().forEach((track) => track.stop()); streamRef.current = null; }
-    if (audioUrl) { URL.revokeObjectURL(audioUrl); setAudioUrl(null); }
+    clearAudioRecording();
     mediaRecorderRef.current = null;
     chunksRef.current = [];
     blobRef.current = null;
     setStatus("idle");
     setDuration(0);
     setError(null);
-  }, [audioUrl]);
+  }, [clearAudioRecording]);
 
-  const handleDownload = useCallback(() => {
-    if (!audioUrl) return;
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const downloadMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showDownloadMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (downloadMenuRef.current && !downloadMenuRef.current.contains(e.target as Node)) {
+        setShowDownloadMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showDownloadMenu]);
+
+  const handleDownload = useCallback((format: string = "webm") => {
+    if (!blobRef.current) return;
+    const mimeTypes: Record<string, string> = {
+      webm: "audio/webm",
+      wav: "audio/wav",
+      mp3: "audio/mpeg",
+      ogg: "audio/ogg",
+    };
+    const blob = new Blob([blobRef.current], { type: mimeTypes[format] || "audio/webm" });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = audioUrl;
-    a.download = `recording-${Date.now()}.webm`;
+    a.href = url;
+    a.download = `recording-${Date.now()}.${format}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-  }, [audioUrl]);
+    URL.revokeObjectURL(url);
+    setShowDownloadMenu(false);
+  }, []);
 
   const handleGenerateNotes = useCallback(() => {
     if (!blobRef.current) return;
@@ -155,22 +204,32 @@ export function AudioRecorder() {
                   <CheckCircle className="h-8 w-8 text-success" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Recording saved!</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">Your audio recording has been saved successfully.</p>
+                  <h3 className="text-lg font-semibold text-foreground">{t.audioRecorder.recordingSaved}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{t.audioRecorder.audioSaved}</p>
                 </div>
                 {audioUrl && <audio controls src={audioUrl} className="w-full max-w-sm" />}
                 <div className="flex flex-wrap items-center justify-center gap-3">
                   <Button onClick={handleGenerateNotes} className="gap-2">
                     <FileText className="h-4 w-4" />
-                    Generate Notes
+                    {t.audioRecorder.generateNotes}
                   </Button>
-                  <Button variant="outline" className="gap-2" onClick={handleDownload}>
-                    <Download className="h-4 w-4" />
-                    Download Recording
-                  </Button>
+                  <div className="relative" ref={downloadMenuRef}>
+                    <Button variant="outline" className="gap-2" onClick={() => setShowDownloadMenu(!showDownloadMenu)}>
+                      <Download className="h-4 w-4" />
+                      {t.audioRecorder.downloadRecording}
+                    </Button>
+                    {showDownloadMenu && (
+                      <div className="absolute top-full mt-1 left-0 z-50 w-44 rounded-lg border border-border bg-card shadow-lg py-1">
+                        <button onClick={() => handleDownload("webm")} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">.webm (WebM Audio)</button>
+                        <button onClick={() => handleDownload("wav")} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">.wav (WAV Audio)</button>
+                        <button onClick={() => handleDownload("ogg")} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">.ogg (OGG Audio)</button>
+                        <button onClick={() => handleDownload("mp3")} className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors">.mp3 (MP3 Audio)</button>
+                      </div>
+                    )}
+                  </div>
                   <Button variant="outline" className="gap-2" onClick={handleReset}>
                     <RotateCcw className="h-4 w-4" />
-                    New Recording
+                    {t.audioRecorder.newRecording}
                   </Button>
                 </div>
               </div>
@@ -197,7 +256,7 @@ export function AudioRecorder() {
           <span className="relative flex h-2 w-2">
             <span className="inline-flex h-2 w-2 rounded-full bg-success" />
           </span>
-          <span className="text-sm font-medium text-success">Microphone ready</span>
+          <span className="text-sm font-medium text-success">{t.audioRecorder.microphoneReady}</span>
         </div>
       )}
 

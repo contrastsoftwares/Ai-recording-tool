@@ -10,17 +10,19 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
-const navItems = [
-  { label: "Home", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Notes", href: "/notes", icon: FileText },
-  { label: "Photo Solver", href: "/photo-solver", icon: Camera },
-  { label: "Record", href: "/recorder", icon: Mic },
-  { label: "Settings", href: "/settings", icon: Settings },
+const navIcons = [
+  { key: "home" as const, href: "/dashboard", icon: LayoutDashboard },
+  { key: "notes" as const, href: "/notes", icon: FileText },
+  { key: "photo" as const, href: "/photo-solver", icon: Camera },
+  { key: "audio" as const, href: "/recorder", icon: Mic },
+  { key: "settings" as const, href: "/settings", icon: Settings },
 ];
 
 export function MobileNav() {
   const pathname = usePathname();
+  const t = useTranslation();
 
   return (
     <nav
@@ -31,10 +33,12 @@ export function MobileNav() {
       )}
     >
       <div className="flex w-full items-center justify-around px-1 pb-[env(safe-area-inset-bottom)]">
-        {navItems.map((item) => {
+        {navIcons.map((item) => {
+          const hrefPath = item.href.split("?")[0];
           const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+            pathname === hrefPath || pathname.startsWith(hrefPath + "/");
           const Icon = item.icon;
+          const label = t.nav[item.key];
 
           return (
             <Link
@@ -53,7 +57,7 @@ export function MobileNav() {
               />
               {isActive && (
                 <span className="text-[10px] font-semibold leading-tight truncate max-w-[64px]">
-                  {item.label}
+                  {label}
                 </span>
               )}
             </Link>

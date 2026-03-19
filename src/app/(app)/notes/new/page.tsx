@@ -16,21 +16,24 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { UploadZone } from "@/components/notes/upload-zone";
 import { FormatSelector } from "@/components/notes/format-selector";
+import type { NoteLength } from "@/components/notes/format-selector";
 import { useNotesStore } from "@/stores/notes-store";
 import { useUploadStore } from "@/stores/upload-store";
 import { aiService } from "@/lib/ai-service";
 import type { NoteFormat, Note, UploadType } from "@/types/note";
+import { useTranslation } from "@/lib/i18n";
 
 type Step = "upload" | "format" | "processing" | "done";
 
-const steps: { id: Step; label: string; icon: React.ElementType }[] = [
-  { id: "upload", label: "Upload", icon: Upload },
-  { id: "format", label: "Format", icon: SlidersHorizontal },
-  { id: "processing", label: "Processing", icon: Sparkles },
-];
-
 function NewNoteContent() {
   const router = useRouter();
+  const t = useTranslation();
+
+  const steps: { id: Step; label: string; icon: React.ElementType }[] = [
+    { id: "upload", label: t.newNote.upload, icon: Upload },
+    { id: "format", label: t.newNote.format, icon: SlidersHorizontal },
+    { id: "processing", label: t.newNote.processing, icon: Sparkles },
+  ];
   const searchParams = useSearchParams();
   const addNote = useNotesStore((state) => state.addNote);
   const uploadStore = useUploadStore();
@@ -40,6 +43,18 @@ function NewNoteContent() {
   const [processingMessage, setProcessingMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [selectedFormats, setSelectedFormats] = useState<NoteFormat[]>([]);
+  const [selectedLength, setSelectedLength] = useState<NoteLength>("medium");
+  const [customTitle, setCustomTitle] = useState("");
+  const [customDescription, setCustomDescription] = useState("");
+
+  // Read language preference from settings
+  const getLanguage = () => {
+    if (typeof window === "undefined") return "english";
+    try {
+      const stored = localStorage.getItem("setting-language");
+      return stored ? JSON.parse(stored) : "english";
+    } catch { return "english"; }
+  };
 
   // Track uploaded content
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -81,6 +96,10 @@ function NewNoteContent() {
     setSelectedFormats(formats);
   }, []);
 
+  const handleLengthChange = useCallback((length: NoteLength) => {
+    setSelectedLength(length);
+  }, []);
+
   const handleGenerateNotes = useCallback(async () => {
     if (selectedFormats.length === 0) {
       setError("Please select at least one note format.");
@@ -100,7 +119,7 @@ function NewNoteContent() {
 
       // Step 1: Extract content
       if (selectedUrl) {
-        setProcessingMessage("Extracting content from URL...");
+        setProcessingMessage(t.newNote.extractingUrl);
         setProgress(10);
 
         const extracted = await aiService.extractContent({ url: selectedUrl });
@@ -112,18 +131,22 @@ function NewNoteContent() {
         const fileType = selectedFile.type;
 
         if (fileType.startsWith("audio/") || fileType.startsWith("video/")) {
-          // Transcribe audio/video
-          setProcessingMessage("Transcribing your recording...");
+          setProcessingMessage(t.newNote.transcribing);
           setProgress(10);
 
-          const transcribeResult = await aiService.transcribe(selectedFile);
+          const transcribeResult = await aiService.transcribe(
+            selectedFile,
+            (data) => {
+              setProcessingMessage(data.message);
+              setProgress(10 + (data.percent / 100) * 30);
+            }
+          );
           content = transcribeResult.transcript;
           title = selectedFile.name.replace(/\.[^.]+$/, "");
           sourceType = fileType.startsWith("audio/") ? "audio" : "video";
           setProgress(40);
         } else if (fileType === "application/pdf") {
-          // Extract PDF text
-          setProcessingMessage("Extracting text from PDF...");
+          setProcessingMessage(t.newNote.extractingPdf);
           setProgress(10);
 
           const extracted = await aiService.extractContent(
@@ -135,8 +158,7 @@ function NewNoteContent() {
           sourceType = "pdf";
           setProgress(30);
         } else if (fileType.startsWith("image/")) {
-          // For images, we'll generate notes describing what's in the image
-          setProcessingMessage("Analyzing image...");
+          setProcessingMessage(t.newNote.analyzingImage);
           setProgress(10);
 
           const solution = await aiService.solvePhoto(selectedFile);
@@ -145,8 +167,7 @@ function NewNoteContent() {
           sourceType = "image";
           setProgress(30);
         } else {
-          // Text/document files
-          setProcessingMessage("Reading document...");
+          setProcessingMessage(t.newNote.readingDocument);
           setProgress(10);
 
           const extracted = await aiService.extractContent({
@@ -165,28 +186,58 @@ function NewNoteContent() {
         );
       }
 
-      // Step 2: Generate notes
-      setProcessingMessage("Generating AI-powered notes...");
+      // Check minimum content length
+      const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+      if (wordCount < 10) {
+        throw new Error(
+          "The content is too short to generate meaningful notes. Please upload a file with more content (at least a few sentences)."
+        );
+      }
+
+      // Step 2: Generate notes (with length parameter)
+      setProcessingMessage(t.newNote.generatingAiNotes);
       setProgress(50);
 
       const notesResult = await aiService.generateNotes(
         content,
         selectedFormats,
-        title
+        title,
+        selectedLength,
+        getLanguage()
       );
 
       setProgress(80);
-      setProcessingMessage("Finalizing your notes...");
+      setProcessingMessage(t.newNote.finalizingNotes);
 
       // Step 3: Create note and save to store
+      // Auto-generate description if not provided
+      const autoDescription = customDescription.trim() || (() => {
+        // Create a brief description from the content
+        const plainText = notesResult.content
+          .replace(/<[^>]+>/g, " ")
+          .replace(/#{1,6}\s/g, "")
+          .replace(/\*\*/g, "")
+          .replace(/\*/g, "")
+          .replace(/\n/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+        // Take first 120 chars as description
+        if (plainText.length > 120) {
+          return plainText.slice(0, 120).replace(/\s+\S*$/, "") + "...";
+        }
+        return plainText;
+      })();
+
+      // Store raw content; transcript is generated on-demand from the Transcript tab
       const newNote: Note = {
         id: `note-${Date.now()}`,
-        title: notesResult.title || title || "Untitled Notes",
+        title: customTitle.trim() || notesResult.title || title || "Untitled Notes",
+        description: autoDescription,
         content: notesResult.content,
         formats: selectedFormats,
         sourceType,
         sourceUrl: selectedUrl || undefined,
-        transcript: content,
+        rawContent: content,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         tags: notesResult.tags || [],
@@ -212,7 +263,7 @@ function NewNoteContent() {
     } finally {
       processingRef.current = false;
     }
-  }, [selectedFormats, selectedUrl, selectedFile, addNote, router, uploadStore]);
+  }, [selectedFormats, selectedLength, selectedUrl, selectedFile, addNote, router, uploadStore, t, customTitle, customDescription]);
 
   const hasContent = selectedFile !== null || selectedUrl !== null;
   const stepIndex = steps.findIndex((s) => s.id === currentStep);
@@ -228,14 +279,14 @@ function NewNoteContent() {
           onClick={() => router.push("/notes")}
         >
           <ArrowLeft className="h-4 w-4" />
-          Back
+          {t.newNote.back}
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            Create New Notes
+            {t.newNote.title}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Upload your content and let AI generate notes for you
+            {t.newNote.subtitle}
           </p>
         </div>
       </div>
@@ -313,7 +364,7 @@ function NewNoteContent() {
                 size="lg"
                 disabled={!hasContent}
               >
-                Continue to Format Selection
+                {t.newNote.continueToFormat}
               </Button>
             </div>
           </div>
@@ -325,12 +376,49 @@ function NewNoteContent() {
             {/* Show what was uploaded */}
             <div className="rounded-lg border border-border bg-muted/50 px-4 py-3">
               <p className="text-sm text-foreground">
-                <span className="font-medium">Source: </span>
+                <span className="font-medium">{t.newNote.source} </span>
                 {selectedFile ? selectedFile.name : selectedUrl}
               </p>
             </div>
 
-            <FormatSelector onFormatsChange={handleFormatsChange} />
+            {/* Note title input */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                {t.newNote.noteTitle}
+              </label>
+              <input
+                type="text"
+                value={customTitle}
+                onChange={(e) => setCustomTitle(e.target.value)}
+                placeholder={t.newNote.noteTitlePlaceholder}
+                className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave blank to auto-generate a title from your content.
+              </p>
+            </div>
+
+            {/* Note description input */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Description
+              </label>
+              <textarea
+                value={customDescription}
+                onChange={(e) => setCustomDescription(e.target.value)}
+                placeholder="Brief description of what this note is about..."
+                rows={2}
+                className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave blank to auto-generate a description from your content.
+              </p>
+            </div>
+
+            <FormatSelector
+              onFormatsChange={handleFormatsChange}
+              onLengthChange={handleLengthChange}
+            />
 
             <div className="flex justify-between">
               <Button
@@ -338,7 +426,7 @@ function NewNoteContent() {
                 onClick={() => setCurrentStep("upload")}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+                {t.newNote.back}
               </Button>
               <Button
                 onClick={handleGenerateNotes}
@@ -346,7 +434,7 @@ function NewNoteContent() {
                 disabled={selectedFormats.length === 0}
               >
                 <Sparkles className="h-4 w-4 mr-2" />
-                Generate Notes
+                {t.newNote.generateNotes}
               </Button>
             </div>
           </div>
@@ -365,7 +453,7 @@ function NewNoteContent() {
             </div>
 
             <h3 className="text-lg font-semibold text-foreground mb-2">
-              Generating Your Notes
+              {t.newNote.generatingYourNotes}
             </h3>
             <p className="text-sm text-muted-foreground mb-6">
               {processingMessage}
@@ -374,7 +462,7 @@ function NewNoteContent() {
             <div className="w-full max-w-md space-y-2">
               <Progress value={progress} />
               <p className="text-center text-xs text-muted-foreground">
-                {Math.round(progress)}% complete
+                {Math.round(progress)}% {t.newNote.complete}
               </p>
             </div>
           </div>
@@ -387,10 +475,10 @@ function NewNoteContent() {
               <CheckCircle className="h-10 w-10 text-success" />
             </div>
             <h3 className="text-lg font-semibold text-foreground mb-2">
-              Notes Generated Successfully!
+              {t.newNote.notesGenerated}
             </h3>
             <p className="text-sm text-muted-foreground">
-              Redirecting to your new notes...
+              {t.newNote.redirecting}
             </p>
           </div>
         )}

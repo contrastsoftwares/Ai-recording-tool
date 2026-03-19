@@ -1,18 +1,26 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { FileText } from "lucide-react";
-import { mockNotes } from "@/lib/mock-data";
+import { useNotesStore } from "@/stores/notes-store";
 import { NoteCard } from "@/components/notes/note-card";
+import { useTranslation } from "@/lib/i18n";
 
 export function RecentNotes() {
-  const recentNotes = mockNotes
-    .slice()
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    )
-    .slice(0, 6);
+  const t = useTranslation();
+  const notes = useNotesStore((s) => s.notes);
+  const recentNotes = useMemo(
+    () =>
+      [...notes]
+        .sort(
+          (a, b) =>
+            new Date(b.lastAccessedAt || b.createdAt).getTime() -
+            new Date(a.lastAccessedAt || a.createdAt).getTime()
+        )
+        .slice(0, 6),
+    [notes]
+  );
 
   if (recentNotes.length === 0) {
     return (
@@ -21,10 +29,10 @@ export function RecentNotes() {
           <FileText className="h-7 w-7 text-muted-foreground" />
         </div>
         <h3 className="text-lg font-semibold text-foreground mb-1">
-          No notes yet
+          {t.dashboard.noNotesYet}
         </h3>
         <p className="text-sm text-muted-foreground text-center max-w-sm">
-          Upload a video, PDF, or audio file to generate your first AI-powered notes.
+          {t.dashboard.noNotesDesc}
         </p>
       </div>
     );
@@ -33,12 +41,12 @@ export function RecentNotes() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-foreground">Recent Notes</h2>
+        <h2 className="text-lg font-semibold text-foreground">{t.dashboard.recentNotes}</h2>
         <Link
           href="/notes"
           className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
         >
-          View All
+          {t.dashboard.viewAll}
         </Link>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

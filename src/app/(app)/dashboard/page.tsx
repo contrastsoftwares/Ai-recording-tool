@@ -1,23 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslation } from "@/lib/i18n";
 import { StatsOverview } from "@/components/dashboard/stats-overview";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { RecentNotes } from "@/components/dashboard/recent-notes";
 
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning!";
-  if (hour < 17) return "Good afternoon!";
-  return "Good evening!";
-}
-
 export default function DashboardPage() {
-  const [greeting, setGreeting] = useState("Welcome back!");
+  const t = useTranslation();
+  const [greeting, setGreeting] = useState("");
 
   useEffect(() => {
-    setGreeting(getGreeting());
-  }, []);
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting(t.dashboard.goodMorning);
+    else if (hour < 17) setGreeting(t.dashboard.goodAfternoon);
+    else setGreeting(t.dashboard.goodEvening);
+  }, [t]);
 
   return (
     <div className="space-y-8">
@@ -27,7 +25,7 @@ export default function DashboardPage() {
           {greeting}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Here&apos;s what&apos;s happening with your studies
+          {t.dashboard.subtitle}
         </p>
       </div>
 
@@ -37,7 +35,7 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       <div>
         <h2 className="text-lg font-semibold text-foreground mb-4">
-          Quick Actions
+          {t.dashboard.quickActions}
         </h2>
         <QuickActions />
       </div>

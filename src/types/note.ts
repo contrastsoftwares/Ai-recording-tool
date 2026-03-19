@@ -1,4 +1,5 @@
 export type NoteFormat =
+  | "ai-decide"
   | "bullet-points"
   | "sentences"
   | "cornell"
@@ -7,6 +8,8 @@ export type NoteFormat =
   | "summary"
   | "timeline"
   | "qa-format";
+
+export type NoteLength = "short" | "medium" | "long";
 
 export type UploadType = "video" | "audio" | "pdf" | "link" | "image" | "document";
 
@@ -20,13 +23,16 @@ export interface NoteFormatOption {
 export interface Note {
   id: string;
   title: string;
+  description?: string;
   content: string;
   formats: NoteFormat[];
   sourceType: UploadType;
   sourceUrl?: string;
+  rawContent?: string;
   transcript?: string;
   createdAt: string;
   updatedAt: string;
+  lastAccessedAt?: string;
   tags: string[];
   isFavorite: boolean;
 }

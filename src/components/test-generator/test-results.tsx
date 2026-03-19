@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RotateCcw, Eye, Trophy, Star, Sparkles } from "lucide-react";
+import { Eye, Trophy, Star, RefreshCw, Sparkles } from "lucide-react";
 
 interface TestResultsProps {
   score: {
@@ -11,8 +11,10 @@ interface TestResultsProps {
     total: number;
     percentage: number;
   };
-  onRetake: () => void;
+  onRemake: () => void;
   onReview: () => void;
+  onRetry?: () => void;
+  testMode?: "full" | "short";
 }
 
 function getGrade(percentage: number): { letter: string; color: string } {
@@ -31,7 +33,7 @@ function getPerformanceMessage(percentage: number): string {
   return "Keep studying, you'll get there!";
 }
 
-export function TestResults({ score, onRetake, onReview }: TestResultsProps) {
+export function TestResults({ score, onRemake, onReview, onRetry, testMode }: TestResultsProps) {
   const grade = getGrade(score.percentage);
   const circumference = 2 * Math.PI * 70;
   const strokeDashoffset =
@@ -112,7 +114,7 @@ export function TestResults({ score, onRetake, onReview }: TestResultsProps) {
       {/* Score text */}
       <div className="text-center space-y-2">
         <p className="text-lg font-semibold text-foreground">
-          {score.correct} out of {score.total} correct
+          {Number.isInteger(score.correct) ? score.correct : score.correct.toFixed(1)} out of {score.total} correct
         </p>
 
         {/* Grade badge */}
@@ -145,10 +147,18 @@ export function TestResults({ score, onRetake, onReview }: TestResultsProps) {
           <Eye className="h-4 w-4" />
           Review Answers
         </Button>
-        <Button onClick={onRetake} className="flex-1 gap-2">
-          <RotateCcw className="h-4 w-4" />
-          Retake Test
-        </Button>
+        {onRetry && (
+          <Button onClick={onRetry} className="flex-1 gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Retry Quiz
+          </Button>
+        )}
+        {testMode === "short" && (
+          <Button variant="outline" onClick={onRemake} className="flex-1 gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Remake Quiz
+          </Button>
+        )}
       </div>
     </div>
   );

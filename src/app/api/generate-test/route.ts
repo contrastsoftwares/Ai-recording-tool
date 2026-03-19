@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+import openai from "@/lib/openai";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,12 +12,43 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Determine question count based on content length — scales up to 100
+    const wordCount = noteContent.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount < 10) {
+      return NextResponse.json(
+        { error: "Content is too short to generate a test. Please provide more content." },
+        { status: 400 }
+      );
+    }
+    let questionCount: number;
+    if (wordCount < 100) {
+      questionCount = 4;
+    } else if (wordCount < 250) {
+      questionCount = 6;
+    } else if (wordCount < 500) {
+      questionCount = 10;
+    } else if (wordCount < 1500) {
+      questionCount = 18;
+    } else if (wordCount < 3000) {
+      questionCount = 28;
+    } else if (wordCount < 6000) {
+      questionCount = 40;
+    } else if (wordCount < 12000) {
+      questionCount = 55;
+    } else if (wordCount < 25000) {
+      questionCount = 70;
+    } else if (wordCount < 50000) {
+      questionCount = 85;
+    } else {
+      questionCount = 100;
+    }
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: `You are an expert educator who creates practice tests. Given note content, generate a comprehensive practice test with a mix of question types.
+          content: `You are an expert educator who creates comprehensive practice tests. Given content, generate a thorough test that covers ALL the important topics and concepts.
 
 Respond ONLY with valid JSON in this format:
 {
@@ -49,16 +78,18 @@ Respond ONLY with valid JSON in this format:
 }
 
 Guidelines:
-- Generate 8-12 questions
+- Generate EXACTLY ${questionCount} questions — this number is mandatory, do not generate more or fewer
 - Mix: ~60% multiple choice, ~20% true/false, ~20% short answer
-- Cover the most important concepts from the notes
+- Cover ALL important concepts from the content, not just the beginning
 - Questions should test understanding, not just memorization
 - Include clear explanations for each answer
-- Make distractors (wrong options) plausible but clearly wrong`,
+- Make distractors (wrong options) plausible but clearly wrong
+- Ensure later topics in the content are also tested
+- Distribute questions proportionally across the entire content — beginning, middle, and end`,
         },
         {
           role: "user",
-          content: `Generate a practice test from these notes:\n\n${noteContent.slice(0, 30000)}`,
+          content: `Generate a comprehensive practice test from this content:\n\n${noteContent.slice(0, 100000)}`,
         },
       ],
       temperature: 0.3,

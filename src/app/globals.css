@@ -89,7 +89,7 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", "Noto Sans JP", "Noto Sans KR", "Microsoft YaHei", "PingFang SC", "Hiragino Sans", "Meiryo", "Malgun Gothic", sans-serif;
   --color-sidebar: hsl(var(--card));
   --color-sidebar-foreground: hsl(var(--card-foreground));
   --color-sidebar-border: hsl(var(--border));
@@ -121,6 +121,19 @@
   }
 }
 
+/* CJK language font overrides — prioritise the loaded Noto Sans CJK
+   font for the active language so every glyph (including Latin) uses it,
+   giving a consistent look rather than mixing Inter + fallback CJK. */
+html[data-lang="chinese"] body {
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Inter", system-ui, sans-serif;
+}
+html[data-lang="japanese"] body {
+  font-family: "Noto Sans JP", "Hiragino Sans", "Meiryo", "Inter", system-ui, sans-serif;
+}
+html[data-lang="korean"] body {
+  font-family: "Noto Sans KR", "Malgun Gothic", "Inter", system-ui, sans-serif;
+}
+
 /* Smooth transitions for theme switching */
 html {
   transition: color-scheme 0.3s;
@@ -131,6 +144,231 @@ html {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
   border-radius: var(--radius-sm);
+}
+
+/* ================================================================
+   Editor Content — Google Docs-like document styling
+   ================================================================ */
+
+/* Main editor area — document page feel */
+.editor-content {
+  max-width: none;
+  min-height: 500px;
+  padding: 2.5rem 3rem;
+  line-height: 1.75;
+  font-size: 0.9375rem;
+  color: hsl(var(--foreground));
+  outline: none;
+}
+@media (max-width: 768px) {
+  .editor-content {
+    padding: 1.5rem 1.25rem;
+  }
+}
+
+/* Placeholder */
+.editor-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+  height: 0;
+}
+
+/* --- Headings --- */
+.editor-content h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.25;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.02em;
+  color: hsl(var(--foreground));
+}
+.editor-content h1:first-child {
+  margin-top: 0;
+  text-align: center;
+  font-size: 2rem;
+  padding-bottom: 0.5rem;
+}
+
+.editor-content h2 {
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-top: 2rem;
+  margin-bottom: 0.625rem;
+  letter-spacing: -0.01em;
+  color: hsl(var(--foreground));
+}
+
+.editor-content h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.35;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: hsl(var(--foreground));
+}
+
+/* --- Paragraphs --- */
+.editor-content p {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  line-height: 1.75;
+}
+
+/* --- Strong / Bold --- */
+.editor-content strong {
+  font-weight: 700;
+}
+
+/* --- Emphasis / Italic --- */
+.editor-content em {
+  font-style: italic;
+}
+
+/* --- Lists --- */
+.editor-content ul {
+  list-style-type: disc;
+  padding-left: 1.75rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.editor-content ol {
+  list-style-type: decimal;
+  padding-left: 1.75rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.editor-content li {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+  line-height: 1.7;
+  padding-left: 0.25rem;
+}
+.editor-content li p {
+  margin: 0;
+}
+.editor-content li::marker {
+  color: hsl(var(--muted-foreground));
+}
+/* Nested lists */
+.editor-content ul ul,
+.editor-content ol ul {
+  list-style-type: circle;
+  margin-top: 0.125rem;
+  margin-bottom: 0.125rem;
+}
+.editor-content ul ul ul,
+.editor-content ol ul ul {
+  list-style-type: square;
+}
+
+/* --- Blockquotes --- */
+.editor-content blockquote {
+  border-left: 4px solid hsl(var(--primary));
+  margin: 1.25rem 0;
+  padding: 0.75rem 1.25rem;
+  background: hsl(var(--primary) / 0.04);
+  border-radius: 0 0.375rem 0.375rem 0;
+  font-style: italic;
+  color: hsl(var(--foreground) / 0.85);
+}
+.editor-content blockquote p {
+  margin: 0;
+}
+
+/* --- Horizontal rules --- */
+.editor-content hr {
+  border: none;
+  border-top: 1px solid hsl(var(--border));
+  margin: 2rem 0;
+}
+
+/* --- Code --- */
+.editor-content code {
+  background: hsl(var(--muted));
+  padding: 0.15em 0.4em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* --- Tables --- */
+.editor-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+}
+.editor-content th,
+.editor-content td {
+  border: 1px solid hsl(var(--border));
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+.editor-content th {
+  background: hsl(var(--muted));
+  font-weight: 600;
+}
+
+/* --- Images (draggable) --- */
+.editor-content img,
+.editor-content .editor-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  cursor: grab;
+}
+.editor-content img:active {
+  cursor: grabbing;
+}
+.editor-content img.ProseMirror-selectednode {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+/* Freely-dragged images floating on top of text */
+.editor-content img[style*="position: absolute"] {
+  z-index: 20;
+  cursor: grab;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 2px solid transparent;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.editor-content img[style*="position: absolute"]:hover {
+  border-color: hsl(var(--primary) / 0.5);
+}
+.editor-content img.dragging {
+  cursor: grabbing;
+  opacity: 0.85;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* --- Highlighted text --- */
+.editor-content mark {
+  border-radius: 0.125rem;
+  padding: 0.05em 0.15em;
+}
+.dark .editor-content mark {
+  color: #000000 !important;
+}
+
+/* --- Links --- */
+.editor-content a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.editor-content a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* --- Selection --- */
+.editor-content ::selection {
+  background: hsl(var(--primary) / 0.2);
 }
 
 /* Card flip animation for flashcards */

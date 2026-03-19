@@ -53,9 +53,19 @@ export interface TestQuestion {
   explanation: string;
 }
 
+export interface TranscribeProgress {
+  message: string;
+  percent: number;
+  chunk?: number;
+  totalChunks?: number;
+}
+
 export const aiService = {
-  /** Transcribe audio/video file via Whisper */
-  async transcribe(file: File): Promise<TranscribeResult> {
+  /** Transcribe audio/video file via Whisper (supports streaming progress for large files) */
+  async transcribe(
+    file: File,
+    onProgress?: (data: TranscribeProgress) => void
+  ): Promise<TranscribeResult> {
     const formData = new FormData();
     formData.append("file", file);
 
@@ -69,6 +79,47 @@ export const aiService = {
       throw new Error(err.error || "Transcription failed");
     }
 
+    const contentType = res.headers.get("content-type") || "";
+
+    // Streaming NDJSON response for large files (chunked transcription)
+    if (contentType.includes("application/x-ndjson") && res.body) {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let result: TranscribeResult | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const event = JSON.parse(line);
+
+          if (event.type === "progress" && onProgress) {
+            onProgress(event as TranscribeProgress);
+          } else if (event.type === "result") {
+            result = {
+              transcript: event.transcript,
+              segments: event.segments,
+            };
+          } else if (event.type === "error") {
+            throw new Error(event.error);
+          }
+        }
+      }
+
+      if (!result) {
+        throw new Error("Transcription failed: no result received");
+      }
+      return result;
+    }
+
+    // Standard JSON response for small files
     return res.json();
   },
 
@@ -76,12 +127,14 @@ export const aiService = {
   async generateNotes(
     content: string,
     formats: NoteFormat[],
-    title?: string
+    title?: string,
+    length?: string,
+    language?: string
   ): Promise<GenerateNotesResult> {
     const res = await fetch("/api/generate-notes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content, formats, title }),
+      body: JSON.stringify({ content, formats, title, length: length || "medium", language: language || "english" }),
     });
 
     if (!res.ok) {
@@ -122,7 +175,7 @@ export const aiService = {
   async chat(
     noteContent: string,
     messages: Array<{ role: string; content: string }>
-  ): Promise<string> {
+  ): Promise<{ content: string; noteEdit?: { action: "append" | "replace"; content: string } }> {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -135,13 +188,16 @@ export const aiService = {
     }
 
     const data = await res.json();
-    return data.content;
+    return { content: data.content, noteEdit: data.noteEdit || undefined };
   },
 
-  /** Solve a problem from an image */
-  async solvePhoto(image: File): Promise<SolvePhotoResult> {
+  /** Solve a problem from one or more images */
+  async solvePhoto(images: File | File[]): Promise<SolvePhotoResult> {
     const formData = new FormData();
-    formData.append("image", image);
+    const files = Array.isArray(images) ? images : [images];
+    for (const file of files) {
+      formData.append("images", file);
+    }
 
     const res = await fetch("/api/solve-photo", {
       method: "POST",
@@ -186,6 +242,26 @@ export const aiService = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || "Test generation failed");
+    }
+
+    return res.json();
+  },
+
+  /** Grade a short-answer question using AI */
+  async gradeShortAnswer(
+    question: string,
+    correctAnswer: string,
+    userAnswer: string
+  ): Promise<{ score: "correct" | "partial" | "incorrect"; feedback: string }> {
+    const res = await fetch("/api/grade-answer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, correctAnswer, userAnswer }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Grading failed");
     }
 
     return res.json();
