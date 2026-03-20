@@ -277,21 +277,39 @@ export async function POST(request: NextRequest) {
     // Build format instructions — each format gets its own detailed section prompt
     const isAiDecide = (formats as string[]).includes("ai-decide");
 
+    const aiDecideFormatCount = length === "long" ? "4-6" : length === "short" ? "2-3" : "3-5";
+
     const formatSections = isAiDecide
-      ? `## AI-Decide Mode
-You have full freedom to choose the BEST format(s) for this content. Analyze the source material and decide which combination will produce the most useful study notes. Consider:
-- For factual/encyclopedic content → bullet-points + key-concepts
-- For narrative/historical content → timeline + summary
-- For procedural/how-to content → outline + bullet-points
-- For argumentative/analytical content → sentences + qa-format
-- For mixed content → combine 2-3 formats that complement each other
+      ? `## AI-Decide Mode — COMPREHENSIVE NOTE GENERATION
 
-Choose 1-3 formats from the available options and produce notes using those formats. Start with a brief line stating which format(s) you chose and why, then proceed with the notes.
+You are an expert study-note architect. Your job is to analyze the source material and build the MOST comprehensive, useful study notes possible by combining multiple complementary formats.
 
-CRITICAL: Regardless of how many formats you choose, ALL information from the source material must be represented in your notes. Do not skip any topics, facts, or details. The format controls HOW the notes look — not how much content is included.
+### Step 1: Analyze the Content
+Read the entire source material and identify:
+- The type of content (factual, narrative, procedural, argumentative, mixed)
+- The key topics, themes, and structure
+- What combination of formats would best serve a student studying this material
 
-Available formats and their descriptions for reference:
-${Object.entries(formatDescriptions).map(([key, val]) => `### ${key}\n${val.slice(0, 200)}...`).join("\n\n")}`
+### Step 2: Select ${aiDecideFormatCount} Complementary Formats
+Choose ${aiDecideFormatCount} formats that work together to cover the material from different angles. Use these guidelines:
+- For factual/encyclopedic content → bullet-points + key-concepts + qa-format
+- For narrative/historical content → timeline + summary + sentences
+- For procedural/how-to content → outline + bullet-points + key-concepts
+- For argumentative/analytical content → sentences + qa-format + summary
+- For mixed content → combine formats that complement each other
+- For rich, complex content → use MORE formats to capture every dimension
+
+### Step 3: Generate FULL Notes in Each Format
+For EACH format you choose, generate a COMPLETE section that covers ALL the source material. Each format section must independently cover the entire content — do NOT split topics across formats. Every format section should be able to stand alone as a complete set of notes.
+
+## ABSOLUTE RULE: ZERO CONTENT LOSS
+Every single topic, fact, argument, example, name, date, figure, and detail from the source material MUST appear in your notes. The formats you choose control HOW the notes look and feel — they NEVER reduce how much content is included. If the source mentions it, your notes MUST include it. Missing even one topic is unacceptable — a student relying on these notes for an exam must find EVERYTHING from the source material.
+
+Start with a brief line stating which format(s) you chose and why, then proceed with the full notes.
+
+### Available Formats — FULL Descriptions (follow these exactly for each format you use):
+
+${Object.entries(formatDescriptions).map(([key, val]) => `---\n\n#### Format: ${key}\n${val}`).join("\n\n")}`
       : (formats as string[])
         .map((f) => formatDescriptions[f] || f)
         .join("\n\n---\n\n");
@@ -314,8 +332,15 @@ The source material is very lengthy. You MUST still cover ALL major topics and t
 
 Generate study notes from the provided content using the format(s) specified below.
 
-## CRITICAL: Full Content Coverage
-You MUST convert ALL information from the source material into notes — every topic, fact, argument, example, and detail mentioned in the source must appear in the output. Do NOT skip, summarize away, or omit any content. The selected format controls HOW the notes look (bullet points vs Q&A vs summary, etc.). The selected length controls HOW DETAILED each point is (brief vs. thorough). Neither format nor length should ever cause you to skip or leave out any content from the source material. If the source mentions it, your notes must include it.
+## CRITICAL: ZERO CONTENT LOSS — THIS IS THE #1 RULE
+A student will use these notes to study for an exam. If ANY information from the source is missing, they could fail a question. You MUST convert ALL information from the source material into notes — every topic, fact, argument, example, name, date, figure, and detail mentioned in the source MUST appear in the output.
+
+- **Format** controls HOW the notes look (bullet points vs Q&A vs summary, etc.) — it NEVER reduces content
+- **Length** controls HOW DETAILED each point is (brief vs. thorough) — it NEVER reduces content
+- "Short" means each point uses fewer words, NOT that you include fewer points
+- "Bullet points" means information is in bullet format, NOT that you leave out information that doesn't fit bullets
+
+If the source material discusses 20 topics, your notes must cover all 20 topics. If it mentions 50 facts, all 50 must appear. NOTHING gets left out. Go through the source material from beginning to end and ensure every section is represented in your output.
 
 ## Format Instructions
 ${formatSections}
@@ -380,7 +405,12 @@ You MUST output well-structured Markdown. The rendering engine supports: heading
 - If multiple formats requested, include ONE summary total, not one per format
 
 ## MULTI-FORMAT
-When multiple formats are requested, create a cohesive single document with clear ## headings separating each format section.${languageInstruction}`;
+When multiple formats are requested, create a cohesive single document with clear ## headings separating each format section. Each format section must cover ALL the source material — do not split content across formats or skip topics in one format because they appear in another. Every format section should be independently complete. Use --- dividers between format sections.${languageInstruction}`;
+
+    // Always use maximum output tokens — GPT-4o caps at ~16K
+    // The prompt controls how detailed/concise notes are, not the token limit
+    // We never want the model to cut off mid-note due to token limits
+    const maxTokens = 16000;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -392,7 +422,7 @@ When multiple formats are requested, create a cohesive single document with clea
         },
       ],
       temperature: 0.3,
-      max_tokens: 16000,
+      max_tokens: maxTokens,
     });
 
     const notesContent = response.choices[0]?.message?.content ?? "";
