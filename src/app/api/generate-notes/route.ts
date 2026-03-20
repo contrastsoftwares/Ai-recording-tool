@@ -277,27 +277,33 @@ export async function POST(request: NextRequest) {
     // Build format instructions — each format gets its own detailed section prompt
     const isAiDecide = (formats as string[]).includes("ai-decide");
 
-    const aiDecideFormatCount = length === "long" ? "4-6" : length === "short" ? "2-3" : "3-5";
-
     const formatSections = isAiDecide
       ? `## AI-Decide Mode — COMPREHENSIVE NOTE GENERATION
 
-You are an expert study-note architect. Your job is to analyze the source material and build the MOST comprehensive, useful study notes possible by combining multiple complementary formats.
+You are an expert study-note architect. Your job is to analyze the source material and choose the format(s) that will produce the MOST useful, comprehensive study notes for this specific content.
 
 ### Step 1: Analyze the Content
 Read the entire source material and identify:
 - The type of content (factual, narrative, procedural, argumentative, mixed)
 - The key topics, themes, and structure
-- What combination of formats would best serve a student studying this material
+- What format(s) would best serve a student studying THIS specific material
 
-### Step 2: Select ${aiDecideFormatCount} Complementary Formats
-Choose ${aiDecideFormatCount} formats that work together to cover the material from different angles. Use these guidelines:
-- For factual/encyclopedic content → bullet-points + key-concepts + qa-format
-- For narrative/historical content → timeline + summary + sentences
-- For procedural/how-to content → outline + bullet-points + key-concepts
-- For argumentative/analytical content → sentences + qa-format + summary
-- For mixed content → combine formats that complement each other
-- For rich, complex content → use MORE formats to capture every dimension
+### Step 2: Choose the Right Format(s) for the Content
+Pick the format(s) that genuinely FIT the content — not more, not fewer. The number of formats is driven entirely by the content, NOT by the length setting. Length only controls how detailed each point is.
+
+- A straightforward lecture might only need bullet-points — that's fine, use just 1 format
+- A history documentary might benefit from timeline + key-concepts — use 2
+- A complex scientific paper might call for bullet-points + key-concepts + qa-format — use 3
+- Only add a format if it genuinely adds value for the student, not just to pad the notes
+
+Use these as guidelines for matching content to formats:
+- Factual/encyclopedic content → bullet-points, key-concepts
+- Narrative/historical content → timeline, summary
+- Procedural/how-to content → outline, bullet-points
+- Argumentative/analytical content → sentences, qa-format
+- Content with many terms/definitions → key-concepts
+- Content a student needs to self-test on → qa-format
+- Mix and match as the content demands — trust your judgment
 
 ### Step 3: Generate FULL Notes in Each Format
 For EACH format you choose, generate a COMPLETE section that covers ALL the source material. Each format section must independently cover the entire content — do NOT split topics across formats. Every format section should be able to stand alone as a complete set of notes.
