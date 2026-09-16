@@ -1,6 +1,6 @@
 "use client";
 
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, ReactNodeViewRenderer } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Color from "@tiptap/extension-color";
@@ -9,7 +9,10 @@ import Highlight from "@tiptap/extension-highlight";
 import TiptapImage from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
 import TextAlign from "@tiptap/extension-text-align";
+import { TableKit } from "@tiptap/extension-table";
 import { Extension } from "@tiptap/core";
+import { ResizableImage } from "./resizable-image";
+import { markdownToHtml } from "@/lib/markdown";
 
 // Custom fontSize extension via TextStyle
 const FontSize = Extension.create({
@@ -47,45 +50,34 @@ const FontSize = Extension.create({
   },
 });
 
-// Custom draggable image extension with position attributes for free placement
+// Google-Docs-style image: resizable, alignable/wrappable via a React NodeView.
+// Persists `width` (percentage of the content column) and `align` so the layout
+// round-trips through getHTML()/setContent().
 const CustomImage = TiptapImage.extend({
-  draggable: true,
   addAttributes() {
     return {
       ...this.parent?.(),
-      style: {
+      width: {
         default: null,
-        parseHTML: (element: HTMLElement) => element.getAttribute("style"),
+        parseHTML: (element: HTMLElement) =>
+          element.getAttribute("data-width") || element.style.width || null,
         renderHTML: (attributes: Record<string, string>) => {
-          if (!attributes.style) return {};
-          return { style: attributes.style };
+          if (!attributes.width) return {};
+          return { "data-width": attributes.width, style: `width: ${attributes.width}` };
         },
       },
-      class: {
-        default: "editor-image",
-        parseHTML: (element: HTMLElement) => element.getAttribute("class"),
+      align: {
+        default: "none",
+        parseHTML: (element: HTMLElement) => element.getAttribute("data-align") || "none",
         renderHTML: (attributes: Record<string, string>) => {
-          if (!attributes.class) return {};
-          return { class: attributes.class };
-        },
-      },
-      "data-float-x": {
-        default: null,
-        parseHTML: (element: HTMLElement) => element.getAttribute("data-float-x"),
-        renderHTML: (attributes: Record<string, string>) => {
-          if (!attributes["data-float-x"]) return {};
-          return { "data-float-x": attributes["data-float-x"] };
-        },
-      },
-      "data-float-y": {
-        default: null,
-        parseHTML: (element: HTMLElement) => element.getAttribute("data-float-y"),
-        renderHTML: (attributes: Record<string, string>) => {
-          if (!attributes["data-float-y"]) return {};
-          return { "data-float-y": attributes["data-float-y"] };
+          if (!attributes.align || attributes.align === "none") return {};
+          return { "data-align": attributes.align };
         },
       },
     };
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(ResizableImage);
   },
 });
 
@@ -114,125 +106,8 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  Table2,
 } from "lucide-react";
-
-// ---------------------------------------------------------------------------
-// Simple markdown-to-HTML converter (no external libs)
-// ---------------------------------------------------------------------------
-
-function isHtml(content: string): boolean {
-  const trimmed = content.trim();
-  return /^<[a-z][\s\S]*>/i.test(trimmed) || /<(?:p|h[1-6]|ul|ol|li|strong|em|blockquote|div|br\s*\/?)[\s>]/i.test(trimmed);
-}
-
-function markdownToHtml(markdown: string): string {
-  if (isHtml(markdown)) {
-    return markdown;
-  }
-
-  const lines = markdown.split("\n");
-  const htmlParts: string[] = [];
-  let inUl = false;
-  let inOl = false;
-
-  const closeList = () => {
-    if (inUl) {
-      htmlParts.push("</ul>");
-      inUl = false;
-    }
-    if (inOl) {
-      htmlParts.push("</ol>");
-      inOl = false;
-    }
-  };
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-
-    if (trimmed === "") {
-      closeList();
-      continue;
-    }
-
-    // Horizontal rule
-    if (/^(-{3,}|_{3,}|\*{3,})$/.test(trimmed)) {
-      closeList();
-      htmlParts.push("<hr />");
-      continue;
-    }
-
-    // Blockquote
-    if (trimmed.startsWith("> ")) {
-      closeList();
-      const text = convertInline(trimmed.slice(2));
-      htmlParts.push(`<blockquote><p>${text}</p></blockquote>`);
-      continue;
-    }
-
-    // Headings
-    const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)/);
-    if (headingMatch) {
-      closeList();
-      const level = headingMatch[1].length;
-      const text = convertInline(headingMatch[2]);
-      htmlParts.push(`<h${level}>${text}</h${level}>`);
-      continue;
-    }
-
-    // Unordered list items (- or *)
-    if (/^[-*]\s+/.test(trimmed)) {
-      if (inOl) {
-        htmlParts.push("</ol>");
-        inOl = false;
-      }
-      if (!inUl) {
-        htmlParts.push("<ul>");
-        inUl = true;
-      }
-      const text = convertInline(trimmed.replace(/^[-*]\s+/, ""));
-      htmlParts.push(`<li>${text}</li>`);
-      continue;
-    }
-
-    // Ordered list items (1. 2. etc.)
-    const olMatch = trimmed.match(/^(\d+)\.\s+(.+)/);
-    if (olMatch) {
-      if (inUl) {
-        htmlParts.push("</ul>");
-        inUl = false;
-      }
-      if (!inOl) {
-        htmlParts.push("<ol>");
-        inOl = true;
-      }
-      const text = convertInline(olMatch[2]);
-      htmlParts.push(`<li>${text}</li>`);
-      continue;
-    }
-
-    // Regular paragraph
-    closeList();
-    const text = convertInline(trimmed);
-    htmlParts.push(`<p>${text}</p>`);
-  }
-
-  closeList();
-  return htmlParts.join("");
-}
-
-/** Convert inline markdown formatting to HTML */
-function convertInline(text: string): string {
-  let result = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-  result = result.replace(/__(.+?)__/g, "<strong>$1</strong>");
-  result = result.replace(/(?<!\w)\*(?!\*)(.+?)(?<!\*)\*(?!\w)/g, "<em>$1</em>");
-  result = result.replace(/(?<!\w)_(?!_)(.+?)(?<!_)_(?!\w)/g, "<em>$1</em>");
-  result = result.replace(/~~(.+?)~~/g, "<s>$1</s>");
-  result = result.replace(/`(.+?)`/g, "<code>$1</code>");
-  result = result.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
-  result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
-  return result;
-}
 
 // ---------------------------------------------------------------------------
 // Font size steps
@@ -550,6 +425,7 @@ export function RichTextEditor({
         types: ["heading", "paragraph"],
       }),
       Highlight.configure({ multicolor: true }),
+      TableKit.configure({ table: { resizable: true } }),
       CustomImage.configure({
         allowBase64: true,
       }),
@@ -652,89 +528,6 @@ export function RichTextEditor({
     }
   }, [content, editor]);
 
-  // ----- Image drag handler for free positioning -----
-  useEffect(() => {
-    const wrapper = editorWrapperRef.current;
-    if (!wrapper) return;
-
-    let dragImg: HTMLImageElement | null = null;
-    let offsetX = 0;
-    let offsetY = 0;
-
-    const onMouseDown = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName !== "IMG" || !target.classList.contains("editor-image")) return;
-      // Only activate on direct image click (not resize handles etc.)
-      if (e.button !== 0) return;
-
-      e.preventDefault();
-      dragImg = target as HTMLImageElement;
-      const rect = dragImg.getBoundingClientRect();
-      offsetX = e.clientX - rect.left;
-      offsetY = e.clientY - rect.top;
-
-      // Make image absolutely positioned if not already
-      if (!dragImg.style.position || dragImg.style.position !== "absolute") {
-        const wrapperRect = wrapper.getBoundingClientRect();
-        dragImg.style.position = "absolute";
-        dragImg.style.left = `${rect.left - wrapperRect.left + wrapper.scrollLeft}px`;
-        dragImg.style.top = `${rect.top - wrapperRect.top + wrapper.scrollTop}px`;
-        dragImg.style.zIndex = "20";
-      }
-
-      dragImg.classList.add("dragging");
-    };
-
-    const onMouseMove = (e: MouseEvent) => {
-      if (!dragImg) return;
-      e.preventDefault();
-      const wrapperRect = wrapper.getBoundingClientRect();
-      const newLeft = e.clientX - wrapperRect.left + wrapper.scrollLeft - offsetX;
-      const newTop = e.clientY - wrapperRect.top + wrapper.scrollTop - offsetY;
-      dragImg.style.left = `${Math.max(0, newLeft)}px`;
-      dragImg.style.top = `${Math.max(0, newTop)}px`;
-    };
-
-    const onMouseUp = () => {
-      if (!dragImg) return;
-      dragImg.classList.remove("dragging");
-
-      // Update TipTap node attributes to persist position
-      if (editor) {
-        const pos = dragImg.style.left;
-        const top = dragImg.style.top;
-        // Find the image node in the document and update its style attribute
-        const imgSrc = dragImg.getAttribute("src");
-        editor.state.doc.descendants((node, nodePos) => {
-          if (node.type.name === "image" && node.attrs.src === imgSrc) {
-            const style = `position: absolute; left: ${pos}; top: ${top}; z-index: 20;`;
-            editor.view.dispatch(
-              editor.state.tr.setNodeMarkup(nodePos, undefined, {
-                ...node.attrs,
-                style,
-                "data-float-x": pos,
-                "data-float-y": top,
-              })
-            );
-            return false;
-          }
-        });
-      }
-
-      dragImg = null;
-    };
-
-    wrapper.addEventListener("mousedown", onMouseDown);
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
-
-    return () => {
-      wrapper.removeEventListener("mousedown", onMouseDown);
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
-    };
-  }, [editor]);
-
   // ----- Toolbar handlers -----
 
   const [copied, setCopied] = useState(false);
@@ -811,7 +604,7 @@ export function RichTextEditor({
       {editable && (
         <div
           className={cn(
-            "flex flex-wrap items-center gap-0.5 border-b border-border bg-muted/30 px-2 py-1.5 sticky top-0 z-10"
+            "flex flex-wrap items-center gap-0.5 border-b border-border bg-background px-2 py-1.5 sticky top-0 z-10"
           )}
         >
           {/* Bold */}
@@ -976,6 +769,20 @@ export function RichTextEditor({
           {/* Image */}
           <ToolbarButton onClick={handleInsertImage} title="Insert Image">
             <ImageIcon className="h-4 w-4" />
+          </ToolbarButton>
+
+          {/* Table */}
+          <ToolbarButton
+            onClick={() =>
+              editor
+                .chain()
+                .focus()
+                .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                .run()
+            }
+            title="Insert Table"
+          >
+            <Table2 className="h-4 w-4" />
           </ToolbarButton>
 
           <ToolbarSeparator />

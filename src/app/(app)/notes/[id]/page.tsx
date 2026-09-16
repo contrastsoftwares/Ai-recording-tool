@@ -28,6 +28,7 @@ import {
   PanelRightOpen,
 } from "lucide-react";
 import { cn, formatDate, getLocaleCode } from "@/lib/utils";
+import { markdownToHtml } from "@/lib/markdown";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -228,7 +229,9 @@ export default function NoteWorkspacePage() {
   const handleChatEditNote = useCallback((action: "append" | "replace", content: string) => {
     if (!note) return;
     if (action === "append") {
-      updateNote(noteId, { content: note.content + "\n\n" + content });
+      // note.content is HTML once rendered; convert the appended markdown chunk
+      // to HTML so it doesn't show up as raw markdown text.
+      updateNote(noteId, { content: note.content + "\n" + markdownToHtml(content) });
     } else {
       updateNote(noteId, { content });
     }
@@ -470,12 +473,10 @@ export default function NoteWorkspacePage() {
           {/* Tab content - all rendered but hidden to preserve state/scroll */}
           <div ref={contentRef} className="flex-1 overflow-y-auto scrollbar-thin">
             <div className={activeTab === "notes" ? "" : "hidden"}>
-              <div className="rounded-xl border border-border bg-muted/20 dark:bg-muted/10">
-                <RichTextEditor
-                  content={note.content}
-                  onChange={(html) => updateNote(noteId, { content: html })}
-                />
-              </div>
+              <RichTextEditor
+                content={note.content}
+                onChange={(html) => updateNote(noteId, { content: html })}
+              />
             </div>
 
             {/* Chat tab (full-width, shares same memory as sidebar chat via localStorage) */}

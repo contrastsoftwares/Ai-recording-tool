@@ -69,37 +69,28 @@ Requirements:
 - The summary must add analytical value — synthesize and connect ideas, do not just repeat table contents`,
 
   outline: `## Outline
-Create a detailed hierarchical outline with real depth:
+Create a detailed hierarchical outline using NESTED markdown lists. Use a numbered list for main topics and indent nested bullet lists (2 spaces per level) for subtopics and details:
 
-I. **Main Topic — Brief Description of This Section's Focus**
-   A. Subtopic with clear description and context
-      1. Specific detail, fact, or example with concrete information
-         a. Further elaboration, evidence, or supporting data
-         b. Additional context, connection to other topics, or significance
-      2. Another specific detail with names/dates/figures
-      3. Implication or consequence of this subtopic
-   B. Another subtopic — what it covers and why it matters
-      1. Detail with supporting evidence from the source
-      2. Another detail with specific examples
-      3. How this subtopic connects to the broader theme
-   C. Significance or implications of this entire topic
-      1. Why this matters in the bigger picture
-      2. Key takeaway for this section
-
----
-
-II. **Next Main Topic — Description**
-   (Same depth as above...)
+1. **Main Topic — Brief Description of This Section's Focus**
+   - Subtopic with clear description and context
+     - Specific detail, fact, or example with concrete information
+     - Further elaboration, evidence, or supporting data
+   - Another subtopic — what it covers and why it matters
+     - Detail with supporting evidence from the source
+     - How this subtopic connects to the broader theme
+   - Significance or implications of this entire topic
+2. **Next Main Topic — Description**
+   - (Same depth as above...)
 
 Requirements:
-- At least 6-10 main sections (Roman numerals), more for longer content
-- Each main section must have at least 3-4 subtopics (A, B, C, D...)
-- Each subtopic must have at least 2-3 specific details (1, 2, 3...)
-- Go at least 3-4 levels deep throughout — shallow outlines are unacceptable
-- Use **bold** for main topic names (Roman numeral level) with a brief description after the em dash
+- Use a top-level numbered list (1. 2. 3.) for main topics — at least 6-10, more for longer content
+- Under each main topic, nest a bulleted list of subtopics (indent 2 spaces before the "-")
+- Under each subtopic, nest a further bulleted list of specific details (indent 4 spaces)
+- Go at least 3 levels deep throughout — shallow outlines are unacceptable
+- Use **bold** for main topic names with a brief description after the em dash
 - Cover ALL topics from the entire source material — beginning through end
-- Use --- dividers between main sections (between each Roman numeral group)
-- The last subtopic under each main section should address significance/implications`,
+- The last subtopic under each main topic should address significance/implications
+- IMPORTANT: use proper 2-space indentation for nesting so the hierarchy renders correctly — do NOT use "I./A./a." style labels`,
 
   "key-concepts": `## Key Concepts
 Create a comprehensive glossary of key concepts:
@@ -356,7 +347,7 @@ ${noteLengthGuide}${longContentNote}
 
 ## OUTPUT FORMAT — CRITICAL
 
-You MUST output well-structured Markdown. The rendering engine supports: headings (#, ##, ###), **bold**, *italic*, bullet lists (- item), numbered lists (1. item), > blockquotes, --- horizontal rules, and tables (| col | col |).
+You MUST output well-structured Markdown. The rendering engine supports: headings (#, ##, ###), **bold**, *italic*, bullet lists (- item), numbered lists (1. item), NESTED lists (indent 2 spaces per level), > blockquotes, --- horizontal rules, and GitHub-flavored tables (| col | col | with a |---|---| separator row).
 
 ## DOCUMENT STRUCTURE
 
