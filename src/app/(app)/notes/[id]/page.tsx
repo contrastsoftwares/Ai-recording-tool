@@ -405,7 +405,7 @@ export default function NoteWorkspacePage() {
                   <div className="flex flex-wrap gap-1">
                     {note.formats.map((format) => {
                       const formatLabels: Record<string, string> = {
-                        "ai-decide": t.formatSelector.aiDecide || "AI Decide",
+                        "mix-and-match": t.formatSelector.mixAndMatch || "Mix & Match",
                         "bullet-points": t.formatSelector.bulletPoints,
                         sentences: t.formatSelector.sentences,
                         cornell: t.formatSelector.cornellNotes,

@@ -42,7 +42,7 @@ function NewNoteContent() {
   const [progress, setProgress] = useState(0);
   const [processingMessage, setProcessingMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [selectedFormats, setSelectedFormats] = useState<NoteFormat[]>([]);
+  const [selectedFormats, setSelectedFormats] = useState<NoteFormat[]>(["mix-and-match"]);
   const [selectedLength, setSelectedLength] = useState<NoteLength>("medium");
   const [customTitle, setCustomTitle] = useState("");
   const [customDescription, setCustomDescription] = useState("");

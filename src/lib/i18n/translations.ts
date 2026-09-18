@@ -365,8 +365,8 @@ export interface Translations {
     timelineDesc: string;
     qaFormat: string;
     qaFormatDesc: string;
-    aiDecide: string;
-    aiDecideDesc: string;
+    mixAndMatch: string;
+    mixAndMatchDesc: string;
   };
   // Upload zone
   uploadZone: {
@@ -749,8 +749,8 @@ const en: Translations = {
     timelineDesc: "Chronological sequence of events",
     qaFormat: "Q&A Format",
     qaFormatDesc: "Question and answer style notes",
-    aiDecide: "AI Decide",
-    aiDecideDesc: "Let AI choose the best format for your content",
+    mixAndMatch: "Mix & Match",
+    mixAndMatchDesc: "AI formats each section in the style that fits it best",
   },
   uploadZone: {
     fileUpload: "File Upload",
@@ -1128,8 +1128,8 @@ const es: Translations = {
     timelineDesc: "Secuencia cronológica de eventos",
     qaFormat: "Formato P&R",
     qaFormatDesc: "Notas en estilo pregunta y respuesta",
-    aiDecide: "IA Decide",
-    aiDecideDesc: "Deja que la IA elija el mejor formato",
+    mixAndMatch: "Combinar",
+    mixAndMatchDesc: "La IA formatea cada sección con el estilo que mejor le queda",
   },
   uploadZone: {
     fileUpload: "Subir archivo",
@@ -1507,8 +1507,8 @@ const fr: Translations = {
     timelineDesc: "Séquence chronologique des événements",
     qaFormat: "Format Q&R",
     qaFormatDesc: "Notes en style question-réponse",
-    aiDecide: "IA Décide",
-    aiDecideDesc: "Laissez l'IA choisir le meilleur format",
+    mixAndMatch: "Combiné",
+    mixAndMatchDesc: "L'IA met en forme chaque section selon le style le plus adapté",
   },
   uploadZone: {
     fileUpload: "Télécharger un fichier",
@@ -1886,8 +1886,8 @@ const de: Translations = {
     timelineDesc: "Chronologische Abfolge der Ereignisse",
     qaFormat: "F&A-Format",
     qaFormatDesc: "Notizen im Frage-Antwort-Stil",
-    aiDecide: "KI Entscheidet",
-    aiDecideDesc: "Lassen Sie die KI das beste Format wählen",
+    mixAndMatch: "Kombiniert",
+    mixAndMatchDesc: "Die KI formatiert jeden Abschnitt im passendsten Stil",
   },
   uploadZone: {
     fileUpload: "Datei hochladen",
@@ -2265,8 +2265,8 @@ const zh: Translations = {
     timelineDesc: "事件的时间顺序",
     qaFormat: "问答格式",
     qaFormatDesc: "问答式笔记",
-    aiDecide: "AI 决定",
-    aiDecideDesc: "让AI选择最佳格式",
+    mixAndMatch: "智能混排",
+    mixAndMatchDesc: "AI 为每个部分选择最合适的格式",
   },
   uploadZone: {
     fileUpload: "上传文件",
@@ -2644,8 +2644,8 @@ const ja: Translations = {
     timelineDesc: "出来事の時系列",
     qaFormat: "Q&A形式",
     qaFormatDesc: "質問と回答形式のノート",
-    aiDecide: "AI おまかせ",
-    aiDecideDesc: "AIが最適なフォーマットを選択",
+    mixAndMatch: "ミックス",
+    mixAndMatchDesc: "AIが各セクションに最適な形式を適用",
   },
   uploadZone: {
     fileUpload: "ファイルアップロード",
@@ -3023,8 +3023,8 @@ const ko: Translations = {
     timelineDesc: "사건의 시간순 배열",
     qaFormat: "Q&A 형식",
     qaFormatDesc: "질문과 답변 형식의 노트",
-    aiDecide: "AI 결정",
-    aiDecideDesc: "AI가 최적의 형식을 선택합니다",
+    mixAndMatch: "믹스 앤 매치",
+    mixAndMatchDesc: "AI가 각 섹션에 가장 적합한 형식을 적용합니다",
   },
   uploadZone: {
     fileUpload: "파일 업로드",

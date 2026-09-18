@@ -279,78 +279,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build format instructions — each format gets its own detailed section prompt
-    const isAiDecide = (formats as string[]).includes("ai-decide");
+    // The user selects exactly ONE option: either "mix-and-match" (AI formats
+    // each section in the style that best fits it) or a single specific format.
+    const isMixAndMatch = (formats as string[]).includes("mix-and-match");
+    const selectedFormats = (formats as string[]).filter((f) => f !== "mix-and-match");
+    const singleFormat = selectedFormats[0];
 
-    const formatSections = isAiDecide
-      ? `## AI-Decide Mode — COMPREHENSIVE NOTE GENERATION
+    const formatSections = isMixAndMatch
+      ? `## Mix & Match Mode — PER-SECTION OPTIMAL FORMATTING
 
-You are an expert study-note architect. Your job is to analyze the source material and choose the format(s) that will produce the MOST useful, comprehensive study notes for this specific content.
+You are an expert study-note designer. Produce ONE cohesive, beautiful study-note document. As you work through the source material, break it into logical sections and format EACH section in whichever single style best suits THAT section's content. Different sections will use different formats — that variety is the whole point.
 
-### Step 1: Analyze the Content
-Read the entire source material and identify:
-- The type of content (factual, narrative, procedural, argumentative, mixed)
-- The key topics, themes, and structure
-- What format(s) would best serve a student studying THIS specific material
+### How to choose a format for each section
+- Lists of facts, features, or takeaways → **bullet points** (concise, scannable)
+- Narrative, explanation, or nuanced discussion → **prose paragraphs** (sentences)
+- Comparisons, cause/effect, or cue→detail material → a **table** (e.g. Cornell-style or a comparison table)
+- Anything chronological (events, stages, history) → a **timeline**
+- Sections dense with terms/definitions → a **key-concepts** glossary (Definition / Explanation / Example)
+- Hierarchical or step-by-step material → a nested **outline**
+- Material a student should self-test on → a few **Q&A** pairs
+Pick the ONE best fit per section — do not format the same content two different ways.
 
-### Step 2: Choose the Right Format(s) for the Content
-Pick the format(s) that genuinely FIT the content — not more, not fewer. The number of formats is driven entirely by the content, NOT by the length setting. Length only controls how detailed each point is.
+### CRITICAL: no repetition
+Each fact, topic, and detail must appear EXACTLY ONCE, in the single section/format where it fits best. Do NOT repeat the same information across multiple sections or formats. This is what makes Mix & Match better than picking every format separately.
 
-- A straightforward lecture might only need bullet-points — that's fine, use just 1 format
-- A history documentary might benefit from timeline + key-concepts — use 2
-- A complex scientific paper might call for bullet-points + key-concepts + qa-format — use 3
-- Only add a format if it genuinely adds value for the student, not just to pad the notes
-
-Use these as guidelines for matching content to formats:
-- Factual/encyclopedic content → bullet-points, key-concepts
-- Narrative/historical content → timeline, summary
-- Procedural/how-to content → outline, bullet-points
-- Argumentative/analytical content → sentences, qa-format
-- Content with many terms/definitions → key-concepts
-- Content a student needs to self-test on → qa-format
-- Mix and match as the content demands — trust your judgment
-
-### Step 3: Generate FULL Notes in Each Format
-For EACH format you choose, generate a COMPLETE section that covers ALL the source material. Each format section must independently cover the entire content — do NOT split topics across formats. Every format section should be able to stand alone as a complete set of notes.
+### Structure
+- Give each section a \`## <emoji> <Section Title>\` heading and a \`---\` divider between sections.
+- Choose the format that reads best for that section; a well-made document naturally varies between bullets, prose, tables, timelines, etc.
 
 ## ABSOLUTE RULE: ZERO CONTENT LOSS
-Every single topic, fact, argument, example, name, date, figure, and detail from the source material MUST appear in your notes. The formats you choose control HOW the notes look and feel — they NEVER reduce how much content is included. If the source mentions it, your notes MUST include it. Missing even one topic is unacceptable — a student relying on these notes for an exam must find EVERYTHING from the source material.
+Every topic, fact, argument, example, name, date, and figure from the source MUST appear somewhere in the notes (once). If the source mentions it, your notes must include it.
 
-Start with a brief line stating which format(s) you chose and why, then proceed with the full notes.
+### Format style references (apply the relevant one to each section):
 
-### Available Formats — FULL Descriptions (follow these exactly for each format you use):
+${Object.entries(formatDescriptions).map(([key, val]) => `---\n\n#### Style: ${key}\n${val}`).join("\n\n")}`
+      : (formatDescriptions[singleFormat] || singleFormat);
 
-${Object.entries(formatDescriptions).map(([key, val]) => `---\n\n#### Format: ${key}\n${val}`).join("\n\n")}`
-      : (formats as string[])
-        .map((f) => formatDescriptions[f] || f)
-        .join("\n\n---\n\n");
-
-    // Directive that tells the model how to structure the document based on how
-    // many formats were requested. This is what guarantees every selected format
-    // actually appears (previously the prompt collapsed everything into bullets).
-    const selectedFormats = (formats as string[]).filter((f) => f !== "ai-decide");
+    // With single-select there is always exactly one choice: Mix & Match, or one
+    // specific format applied to the whole note.
     let structureDirective: string;
-    if (isAiDecide) {
+    if (isMixAndMatch) {
       structureDirective =
-        "The user chose AI-Decide. Follow the AI-Decide instructions in the Format Specifications below to pick the fitting format(s) and produce the notes.";
-    } else if (selectedFormats.length === 1) {
-      const meta = formatMeta[selectedFormats[0]];
-      structureDirective = `The user requested ONE format: ${meta?.name || selectedFormats[0]}. Produce the ENTIRE note in that format, following its specification exactly. Do not add other formats.`;
+        "The user chose Mix & Match. Follow the Mix & Match instructions in the Format Specifications below: format EACH section in the single style that best fits its content, vary formats across sections, and never repeat the same content in more than one place.";
     } else {
-      const ordered = selectedFormats
-        .map((f, i) => `${i + 1}. ${formatMeta[f]?.emoji || ""} ${formatMeta[f]?.name || f}`)
-        .join("\n");
-      structureDirective = `The user requested ${selectedFormats.length} DIFFERENT formats. You MUST produce a SEPARATE, clearly-labeled section for EACH ONE — do not merge them, do not skip any, and do not collapse everything into bullet points.
-
-Produce the sections in this exact order:
-${ordered}
-
-Rules for multi-format output:
-- Begin each format's section with a \`## <emoji> <Format Name>\` heading (use the emoji and name shown above), and put a \`---\` divider between sections.
-- Within each section, follow that format's specification EXACTLY (e.g. Cornell Notes MUST be a two-column table, Q&A MUST be Q:/A: pairs, Timeline MUST be chronological, Outline MUST be a nested list, Detailed Notes MUST be prose paragraphs — NOT bullet points).
-- EACH section must independently cover ALL of the source material — every topic, fact, and detail.
-- Because several formats are requested, keep each entry concise enough that ALL requested formats fit in one response while still covering every topic. Breadth across all formats matters more than exhaustive depth in any single one.
-- Do NOT produce only bullet points. Each distinct format must look distinct.`;
+      const meta = formatMeta[singleFormat];
+      structureDirective = `The user requested ONE format: ${meta?.name || singleFormat}. Produce the ENTIRE note in that single format, following its specification exactly. Do not use any other format.`;
     }
 
     const noteLengthGuide =

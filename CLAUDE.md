@@ -35,9 +35,10 @@ A web app that turns recordings, files, and links into comprehensive study notes
 - Stores follow `use<Entity>Store()` pattern
 
 ## Important Design Decisions
-- **AI Decide mode**: When user selects "ai-decide" format, the AI picks formats based on what fits the content — NOT based on the length setting. Length only controls detail level per point.
-- **Note formats**: bullet-points, sentences, cornell, outline, key-concepts, summary, timeline, qa-format
-- **Note lengths**: short, medium, long — controls detail/depth, not format count
+- **Single-select formats**: The user picks exactly ONE format per note (not multiple). Selecting multiple was removed because each format independently re-covered all content, causing heavy cross-format repetition.
+- **Mix & Match mode** (default, replaces the old "AI Decide"): the AI produces ONE cohesive document and formats each section in whichever single style best fits that section's content (bullets, prose, table, timeline, etc.). Each fact appears exactly once — no repetition across formats.
+- **Note formats**: mix-and-match (default), bullet-points, sentences, cornell, outline, key-concepts, summary, timeline, qa-format
+- **Note lengths**: short, medium, long — controls detail/depth per point, never how much content is covered. Tiers are non-overlapping so Short < Medium < Long always holds.
 - **Zero content loss rule**: Generated notes must capture every detail from source material regardless of format or length choices
 
 ## Don't
