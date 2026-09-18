@@ -48,7 +48,7 @@ import { FlashcardDeck } from "@/components/flashcards/flashcard-deck";
 import { TestView } from "@/components/test-generator/test-view";
 
 import { useTranslation, useLanguage } from "@/lib/i18n";
-import { useNotesStore } from "@/stores/notes-store";
+import { useNotesStore, useNotesHydrated } from "@/stores/notes-store";
 import type { UploadType, NoteFormat } from "@/types/note";
 
 const sourceIcons: Record<UploadType, React.ElementType> = {
@@ -93,6 +93,7 @@ export default function NoteWorkspacePage() {
   const updateNote = useNotesStore((s) => s.updateNote);
   const { toggleFavorite, deleteNote, accessNote } = useNotesStore();
   const notes = useNotesStore((s) => s.notes);
+  const hydrated = useNotesHydrated();
 
   const note = notes.find((n) => n.id === noteId);
 
@@ -131,8 +132,12 @@ export default function NoteWorkspacePage() {
   }, [note]);
 
   const handleSaveTitle = useCallback(() => {
+    const trimmed = editedTitle.trim();
+    if (trimmed && note && trimmed !== note.title) {
+      updateNote(noteId, { title: trimmed });
+    }
     setIsEditingTitle(false);
-  }, []);
+  }, [editedTitle, note, noteId, updateNote]);
 
   const handleCancelEditTitle = useCallback(() => {
     setIsEditingTitle(false);
@@ -236,6 +241,16 @@ export default function NoteWorkspacePage() {
       updateNote(noteId, { content });
     }
   }, [note, noteId, updateNote]);
+
+  // While the store is still loading from IndexedDB, show a spinner instead of
+  // a misleading "note not found" screen.
+  if (!note && !hydrated) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+      </div>
+    );
+  }
 
   if (!note) {
     return (
