@@ -47,7 +47,8 @@ Requirements:
 - Include specific examples, evidence, and context — not vague generalities
 - Use --- dividers between sections
 - Use > blockquotes for standout insights, key definitions, or memorable quotes
-- Explain WHY things matter, not just WHAT they are — every section needs a "significance" element`,
+- Explain WHY things matter, not just WHAT they are — every section needs a "significance" element
+- CRITICAL: Do NOT end each section with the same or a near-identical closing sentence. Any closing insight must be UNIQUE to that section's specific content — never reuse a generic boilerplate line (e.g. repeating "The Amazon is a vital ecosystem..." after every section is forbidden).`,
 
   cornell: `## Cornell Notes
 Create a comprehensive Cornell-style notes table:
@@ -217,34 +218,35 @@ Requirements:
 };
 
 const lengthInstructions: Record<string, string> = {
-  short: `**Length: Short (Concise — but cover EVERYTHING)**
-CRITICAL: You MUST cover ALL topics, facts, and information from the source material. Do NOT skip or omit any content. "Short" means each point is brief and concise — NOT that you cover fewer topics.
-- Each bullet/entry: 1-2 sentences max, get straight to the point
-- Sub-bullets: minimal, only when essential for clarity
-- Q&A answers: 2-3 sentences, direct and factual
-- Key concepts: 2-3 sentences per entry
-- Summary paragraphs: short and dense
-- Create as many topic groups, entries, rows, or questions as needed to cover ALL content from the source material
-The goal: a quick-reference guide that touches on EVERYTHING but doesn't elaborate. Cut wordiness and elaboration, never cut topics or facts.`,
-  medium: `**Length: Medium (Substantial and Thorough — cover EVERYTHING)**
-CRITICAL: You MUST cover ALL topics, facts, and information from the source material. Do NOT skip or omit any content. "Medium" means moderate detail per point.
-- Each bullet/entry: 2-4 sentences with supporting details
-- Sub-bullets: include where they add value
-- Q&A answers: 4-5 sentences with specific details and examples
-- Key concepts: 5-7 sentences each (definition, explanation, example)
-- Summary: thorough paragraphs under clear subheadings
-- Create as many topic groups, entries, rows, or questions as needed to cover ALL content from the source material
-Each section should feel complete — a reader who only reads one section should still learn something substantial.`,
-  long: `**Length: Long (Exhaustive and Comprehensive — cover EVERYTHING)**
-CRITICAL: You MUST cover ALL topics, facts, and information from the source material. Do NOT skip or omit any content. "Long" means maximum detail per point.
-- Each bullet/entry: 4-6+ sentences with examples, context, and analysis
-- Sub-bullets: extensive, covering nuances and edge cases
-- Q&A answers: 5-6 sentences covering all angles
-- Key concepts: 6-8 sentences each (Definition, Explanation, Example, Connections)
-- Summary: detailed paragraphs with comprehensive subheadings
-- Create as many topic groups, entries, rows, or questions as needed to cover ALL content from the source material
-Include supporting evidence, edge cases, nuances, counterarguments, and implications. Leave nothing out — every major AND minor topic deserves full coverage.`,
+  short: `**Length: SHORT — the most compact of the three tiers (but still cover EVERYTHING)**
+CRITICAL: You MUST cover ALL topics, facts, and information from the source material. "Short" means each point is brief — NOT fewer topics.
+- Each bullet/entry: exactly 1 concise sentence (or a short phrase). No elaboration.
+- Sub-bullets: avoid unless essential for clarity.
+- Q&A answers: 1-2 sentences, direct and factual.
+- Key concepts: definition + 1 short explanation sentence (2 sentences total).
+- Paragraph formats (Detailed Notes/Summary): 2-3 short sentences per paragraph.
+The goal: a quick-reference guide that touches on EVERYTHING with minimal words. This tier must be clearly SHORTER than Medium.`,
+  medium: `**Length: MEDIUM — moderate detail, clearly between Short and Long (cover EVERYTHING)**
+CRITICAL: You MUST cover ALL topics, facts, and information from the source material. "Medium" means moderate detail per point.
+- Each bullet/entry: 2-3 sentences with a supporting detail or example.
+- Sub-bullets: include where they add value.
+- Q&A answers: 3-4 sentences with specific details.
+- Key concepts: 4-5 sentences (definition, explanation, one example).
+- Paragraph formats (Detailed Notes/Summary): 4-5 sentence paragraphs.
+This tier must be clearly MORE than Short and clearly LESS than Long.`,
+  long: `**Length: LONG — the most detailed of the three tiers (cover EVERYTHING)**
+CRITICAL: You MUST cover ALL topics, facts, and information from the source material. "Long" means maximum detail per point.
+- Each bullet/entry: 5-8 sentences with examples, context, cause/effect, and analysis.
+- Sub-bullets: extensive, covering nuances and edge cases.
+- Q&A answers: 6-8 sentences covering all angles.
+- Key concepts: 7-10 sentences (Definition, Explanation, Example, Connections, implications).
+- Paragraph formats (Detailed Notes/Summary): 6-8 sentence paragraphs with evidence and analysis.
+Include supporting evidence, edge cases, nuances, counterarguments, and implications. This tier must be clearly the LONGEST and most detailed — noticeably longer than Medium.`,
 };
+
+// Guard the length ordering so Long is always the most detailed and Short the
+// least. This prevents the tiers from coming out inverted or too similar.
+const lengthOrderingNote = `\n\nIMPORTANT — LENGTH ORDERING: The three length tiers must always satisfy Short < Medium < Long in total detail and word count. Whatever tier is selected above, honor it precisely so the result is unambiguously that tier's level of detail.`;
 
 // Display name + emoji for each format, used to label multi-format sections.
 const formatMeta: Record<string, { name: string; emoji: string }> = {
@@ -386,7 +388,7 @@ ${structureDirective}
 ${formatSections}
 
 ## Length
-${noteLengthGuide}${longContentNote}
+${noteLengthGuide}${lengthOrderingNote}${longContentNote}
 
 ## OUTPUT FORMAT — CRITICAL
 
@@ -422,6 +424,7 @@ After the opening, produce the format section(s) exactly as described in "HOW TO
 - Do NOT turn every format into bullet points — a Cornell section must be a table, a Q&A section must be Q:/A: pairs, etc.
 - Do NOT skip any requested format.
 - Do NOT produce sparse notes, surface-level lists, or repetitive sentence patterns.
+- Do NOT repeat the same closing/summary sentence across multiple sections — vary the wording and make each unique to its section.
 - Do NOT use generic headings like "Key Points" — be specific.
 - Do NOT skip a table when a format requires one or when comparing items.${languageInstruction}`;
 
