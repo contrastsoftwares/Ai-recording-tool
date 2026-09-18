@@ -246,6 +246,18 @@ CRITICAL: You MUST cover ALL topics, facts, and information from the source mate
 Include supporting evidence, edge cases, nuances, counterarguments, and implications. Leave nothing out — every major AND minor topic deserves full coverage.`,
 };
 
+// Display name + emoji for each format, used to label multi-format sections.
+const formatMeta: Record<string, { name: string; emoji: string }> = {
+  "bullet-points": { name: "Bullet-Point Notes", emoji: "📝" },
+  sentences: { name: "Detailed Notes", emoji: "📄" },
+  cornell: { name: "Cornell Notes", emoji: "📇" },
+  outline: { name: "Outline", emoji: "🗂️" },
+  "key-concepts": { name: "Key Concepts", emoji: "🔑" },
+  summary: { name: "Summary", emoji: "🧾" },
+  timeline: { name: "Timeline", emoji: "⏳" },
+  "qa-format": { name: "Q&A", emoji: "❓" },
+};
+
 export async function POST(request: NextRequest) {
   try {
     const { content, formats, title, length, language } = await request.json();
@@ -311,6 +323,34 @@ ${Object.entries(formatDescriptions).map(([key, val]) => `---\n\n#### Format: ${
         .map((f) => formatDescriptions[f] || f)
         .join("\n\n---\n\n");
 
+    // Directive that tells the model how to structure the document based on how
+    // many formats were requested. This is what guarantees every selected format
+    // actually appears (previously the prompt collapsed everything into bullets).
+    const selectedFormats = (formats as string[]).filter((f) => f !== "ai-decide");
+    let structureDirective: string;
+    if (isAiDecide) {
+      structureDirective =
+        "The user chose AI-Decide. Follow the AI-Decide instructions in the Format Specifications below to pick the fitting format(s) and produce the notes.";
+    } else if (selectedFormats.length === 1) {
+      const meta = formatMeta[selectedFormats[0]];
+      structureDirective = `The user requested ONE format: ${meta?.name || selectedFormats[0]}. Produce the ENTIRE note in that format, following its specification exactly. Do not add other formats.`;
+    } else {
+      const ordered = selectedFormats
+        .map((f, i) => `${i + 1}. ${formatMeta[f]?.emoji || ""} ${formatMeta[f]?.name || f}`)
+        .join("\n");
+      structureDirective = `The user requested ${selectedFormats.length} DIFFERENT formats. You MUST produce a SEPARATE, clearly-labeled section for EACH ONE — do not merge them, do not skip any, and do not collapse everything into bullet points.
+
+Produce the sections in this exact order:
+${ordered}
+
+Rules for multi-format output:
+- Begin each format's section with a \`## <emoji> <Format Name>\` heading (use the emoji and name shown above), and put a \`---\` divider between sections.
+- Within each section, follow that format's specification EXACTLY (e.g. Cornell Notes MUST be a two-column table, Q&A MUST be Q:/A: pairs, Timeline MUST be chronological, Outline MUST be a nested list, Detailed Notes MUST be prose paragraphs — NOT bullet points).
+- EACH section must independently cover ALL of the source material — every topic, fact, and detail.
+- Because several formats are requested, keep each entry concise enough that ALL requested formats fit in one response while still covering every topic. Breadth across all formats matters more than exhaustive depth in any single one.
+- Do NOT produce only bullet points. Each distinct format must look distinct.`;
+    }
+
     const noteLengthGuide =
       lengthInstructions[length as string] || lengthInstructions.medium;
 
@@ -339,7 +379,10 @@ A student will use these notes to study for an exam. If ANY information from the
 
 If the source material discusses 20 topics, your notes must cover all 20 topics. If it mentions 50 facts, all 50 must appear. NOTHING gets left out. Go through the source material from beginning to end and ensure every section is represented in your output.
 
-## Format Instructions
+## HOW TO STRUCTURE THIS NOTE — READ THIS FIRST
+${structureDirective}
+
+## Format Specifications
 ${formatSections}
 
 ## Length
@@ -349,60 +392,38 @@ ${noteLengthGuide}${longContentNote}
 
 You MUST output well-structured Markdown. The rendering engine supports: headings (#, ##, ###), **bold**, *italic*, bullet lists (- item), numbered lists (1. item), NESTED lists (indent 2 spaces per level), > blockquotes, --- horizontal rules, and GitHub-flavored tables (| col | col | with a |---|---| separator row).
 
-## DOCUMENT STRUCTURE
+## DOCUMENT OPENING (write this once, at the very top — before any format section)
 
-1. **Title**: Start with a single # heading. Add a relevant emoji before the title text. Make it compelling and specific.
+1. **Title**: A single # heading with a relevant emoji. Make it compelling and specific.
    Example: \`# 🌍 The Amazon Rainforest: Earth's Green Heart\`
+2. **Brief Overview**: Immediately after the title, a 2-3 sentence overview paragraph (NOT a heading) summarizing the topic, scope, and key themes. **Bold** the most important terms.
 
-2. **Brief Overview**: Immediately after the title, write a 2-3 sentence overview paragraph (NOT a heading). Summarize the topic, scope, and key themes. **Bold** the most important terms.
+After the opening, produce the format section(s) exactly as described in "HOW TO STRUCTURE THIS NOTE" above.
 
-3. **Major Sections with Emoji**: Use ## headings with a relevant emoji at the start for each major topic.
-   Examples: \`## 🌳 Biodiversity & Ecosystems\`, \`## 💧 Water Cycle & Climate\`, \`## ⚠️ Threats & Conservation\`
+## VISUAL POLISH (apply WITHIN each format — never change a format's required structure)
 
-4. **Granular Subsections**: Use ### headings for individual subtopics — one specific concept per ###.
-   Examples: \`### Jaguar Population\`, \`### Carbon Sequestration Process\`, \`### Deforestation Statistics\`
-
-5. **Section Dividers**: Use --- between every ## section for clean visual separation.
-
-## FORMATTING RULES — TurboAI STYLE
-
-- **Emoji Section Headings**: EVERY ## heading MUST start with a relevant emoji. Choose emojis that match the topic (🔬 for science, 📊 for data, 🏛️ for history, 💡 for insights, ⚡ for energy, 🌊 for water, etc.)
-- **Bold Key Terms Pattern**: In bullets, always use the pattern: \`- **Key Term:** concise 1-2 line explanation\`. The bolded term acts as a scannable anchor.
-- **Concise Bullets**: Each bullet should be 1-2 lines MAXIMUM. Pack information density — no fluff, no filler words. Be direct and factual.
-- **Comparison Tables**: Whenever 2+ items, concepts, or entities are being compared, USE A TABLE. Tables are visually powerful.
-  Example:
-  | Feature | Amazon | Congo |
-  |---------|--------|-------|
-  | **Size** | 5.5M km² | 2M km² |
-  | **Species** | 10% of all species | 11,000 plant species |
-- **Blockquotes for Key Insights**: Use > sparingly (1-2 per ## section) for the most important takeaways, definitions, or "big picture" insights. Make them punchy and memorable.
-  Example: \`> 💡 The Amazon produces 20% of the world's oxygen — it literally keeps the planet breathing.\`
-- **No filler**: Remove ALL transcript artifacts (um, uh, like, you know, basically). Write in polished, professional prose.
-- **No meta-commentary**: Never write "The speaker discusses...", "This section covers...". State information directly.
-- **No LaTeX**: Write equations in plain text if needed.
+- **Emoji headings**: Start each major \`##\` section heading with a relevant emoji.
+- **Bold key terms**: Bold names, dates, figures, and key terms so they are scannable at a glance.
+- **Bullet pattern**: In bullet-style content, use \`- **Key Term:** concise explanation\`. This applies ONLY to bullet-based formats — do NOT turn tables, Q&A, timelines, outlines, or prose (Detailed Notes) into bullet lists.
+- **Real tables**: When a format requires a table (e.g. Cornell Notes) or when comparing 2+ items, output a GitHub-flavored table with a \`|---|---|\` separator row.
+- **Blockquotes**: Use \`>\` sparingly for standout insights or key takeaways.
+- **Clean prose**: Remove all transcript artifacts (um, uh, like, you know). No meta-commentary ("This section covers..."). No LaTeX — plain text equations.
 
 ## CONTENT QUALITY
 
-- Every bullet must contain SPECIFIC information — names, dates, numbers, places, examples. Never write vague generalities.
-- Sub-bullets must add NEW information — never rephrase the parent.
-- Each ### subsection should focus on ONE specific concept, entity, or idea — keep them granular.
+- Every point must contain SPECIFIC information — names, dates, numbers, places, examples. Never vague generalities.
+- Sub-points must add NEW information — never rephrase the parent.
 - Cover ALL major topics from the ENTIRE source — beginning, middle, and end — with roughly equal depth.
 - Stay faithful to the source. Do not invent information.
 - Write in a clear, educational tone — like a well-crafted modern textbook.
 
 ## WHAT NOT TO DO
-- Do NOT produce sparse notes with only 1-2 bullets per section
-- Do NOT use repetitive sentence patterns
-- Do NOT write surface-level notes that list topics without substance
-- Do NOT start every bullet with the same word
-- Do NOT use generic headings like "Key Points" — be specific
-- Do NOT write long paragraph-style bullets. Keep them to 1-2 lines.
-- Do NOT forget emoji on ## headings — this is CRITICAL for visual quality
-- Do NOT skip tables when items are being compared
-- If multiple formats requested, include ONE summary total, not one per format
-
-## MULTI-FORMAT
-When multiple formats are requested, create a cohesive single document with clear ## headings separating each format section. Each format section must cover ALL the source material — do not split content across formats or skip topics in one format because they appear in another. Every format section should be independently complete. Use --- dividers between format sections.${languageInstruction}`;
+- Do NOT merge separately-requested formats into one blended document — each requested format MUST appear as its own section in its own distinct structure.
+- Do NOT turn every format into bullet points — a Cornell section must be a table, a Q&A section must be Q:/A: pairs, etc.
+- Do NOT skip any requested format.
+- Do NOT produce sparse notes, surface-level lists, or repetitive sentence patterns.
+- Do NOT use generic headings like "Key Points" — be specific.
+- Do NOT skip a table when a format requires one or when comparing items.${languageInstruction}`;
 
     // Always use maximum output tokens — GPT-4o caps at ~16K
     // The prompt controls how detailed/concise notes are, not the token limit
