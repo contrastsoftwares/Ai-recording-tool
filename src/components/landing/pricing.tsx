@@ -7,7 +7,7 @@ const tiers = [
     name: "Free",
     price: "$0",
     period: "forever",
-    description: "Perfect for trying out Contrast AI.",
+    description: "Perfect for trying out Study Ghost.",
     features: [
       "5 recordings per month",
       "Basic AI-generated notes",

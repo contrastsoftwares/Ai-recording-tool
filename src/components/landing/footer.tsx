@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Sparkles, Twitter, Github, Send } from "lucide-react";
+import { Twitter, Github, Send } from "lucide-react";
+import { GhostLogo } from "@/components/brand/ghost-logo";
 
 const footerColumns = [
   {
@@ -57,9 +58,9 @@ export function Footer() {
           {/* Brand + newsletter column */}
           <div className="col-span-2">
             <Link href="/" className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
+              <GhostLogo size={28} title="Study Ghost" />
               <span className="text-lg font-bold text-foreground">
-                Contrast AI
+                Study Ghost
               </span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
@@ -113,7 +114,7 @@ export function Footer() {
         {/* Bottom section */}
         <div className="mt-8 flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p className="text-sm text-muted-foreground">
-            &copy; 2026 Contrast AI. All rights reserved.
+            &copy; 2026 Study Ghost. All rights reserved.
           </p>
 
           {/* Social Links */}

@@ -54,6 +54,8 @@ export const useNotesStore = create<NotesState>()(
         })),
     }),
     {
+      // Kept as-is despite the Study Ghost rebrand: this is the storage key for
+      // users' existing saved notes — renaming it would orphan their data.
       name: "contrast-ai-notes",
       storage: createJSONStorage(() => idbStorage),
       partialize: (state) => ({ notes: state.notes }),

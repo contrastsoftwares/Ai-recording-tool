@@ -24,11 +24,11 @@ const sourceConfig: Record<
   UploadType,
   { label: string; icon: React.ElementType; color: string }
 > = {
-  video: { label: "Video", icon: Video, color: "text-blue-500 bg-blue-500/10" },
+  video: { label: "Video", icon: Video, color: "text-primary bg-primary/10" },
   pdf: { label: "PDF", icon: FileText, color: "text-red-500 bg-red-500/10" },
   link: { label: "Link", icon: Link2, color: "text-emerald-500 bg-emerald-500/10" },
   audio: { label: "Audio", icon: Headphones, color: "text-amber-500 bg-amber-500/10" },
-  image: { label: "Image", icon: Image, color: "text-violet-500 bg-violet-500/10" },
+  image: { label: "Image", icon: Image, color: "text-foreground bg-foreground/10" },
   document: { label: "Document", icon: File, color: "text-slate-500 bg-slate-500/10" },
 };
 

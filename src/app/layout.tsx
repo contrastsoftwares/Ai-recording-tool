@@ -4,9 +4,9 @@ import { LanguageSync } from "@/components/layout/language-sync";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Contrast AI - Your AI Study Companion",
+  title: "Study Ghost — Your AI Study Companion",
   description:
-    "AI-powered note-taking, lecture recording, and study tool for students and professionals. Record, transcribe, summarize, and generate study materials with AI.",
+    "Study Ghost turns your recordings, files, and links into clean, exam-ready study notes, flashcards, and quizzes with AI. Record, transcribe, summarize, and study smarter.",
 };
 
 export default function RootLayout({

@@ -14,14 +14,14 @@ export function CTA() {
               Ready to Transform How You Study?
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-lg text-white/80">
-              Join thousands of students and professionals using Contrast AI to
+              Join thousands of students and professionals using Study Ghost to
               save time and learn more effectively.
             </p>
 
             <div className="mt-10 flex flex-col items-center gap-4">
               <Link
                 href="/dashboard"
-                className="inline-flex h-13 items-center justify-center rounded-lg bg-white px-10 text-base font-semibold text-primary shadow-lg transition-all hover:bg-white/90 hover:-translate-y-0.5 hover:shadow-xl"
+                className="inline-flex h-12 items-center justify-center rounded-lg bg-white px-10 text-base font-semibold text-primary shadow-lg transition-all hover:bg-white/90 hover:-translate-y-0.5 hover:shadow-xl"
               >
                 Get Started Free
               </Link>

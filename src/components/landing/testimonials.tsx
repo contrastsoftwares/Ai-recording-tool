@@ -8,7 +8,7 @@ const testimonials = [
     role: "CS Student at MIT",
     initials: "SC",
     quote:
-      "Contrast AI completely changed how I study. I record my lectures and have perfect notes ready in minutes. My grades went up a full letter grade.",
+      "Study Ghost completely changed how I study. I record my lectures and have perfect notes ready in minutes. My grades went up a full letter grade.",
     rating: 5,
     color: "bg-primary/10 text-primary",
   },
@@ -60,7 +60,7 @@ export function Testimonials() {
             What Students Are Saying
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Hear from real students who use Contrast AI every day.
+            Hear from real students who use Study Ghost every day.
           </p>
         </div>
 

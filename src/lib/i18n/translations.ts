@@ -417,7 +417,7 @@ const en: Translations = {
     screen: "Screen",
   },
   sidebar: {
-    brand: "Contrast AI",
+    brand: "Study Ghost",
     subtitle: "AI Study Companion",
     collapse: "Collapse",
     expandSidebar: "Expand sidebar",
@@ -796,7 +796,7 @@ const es: Translations = {
     screen: "Pantalla",
   },
   sidebar: {
-    brand: "Contrast AI",
+    brand: "Study Ghost",
     subtitle: "Compañero de Estudio IA",
     collapse: "Colapsar",
     expandSidebar: "Expandir barra lateral",
@@ -1175,7 +1175,7 @@ const fr: Translations = {
     screen: "Écran",
   },
   sidebar: {
-    brand: "Contrast AI",
+    brand: "Study Ghost",
     subtitle: "Compagnon d'Étude IA",
     collapse: "Réduire",
     expandSidebar: "Développer la barre latérale",
@@ -1554,7 +1554,7 @@ const de: Translations = {
     screen: "Bildschirm",
   },
   sidebar: {
-    brand: "Contrast AI",
+    brand: "Study Ghost",
     subtitle: "KI-Lernbegleiter",
     collapse: "Einklappen",
     expandSidebar: "Seitenleiste erweitern",
@@ -1933,7 +1933,7 @@ const zh: Translations = {
     screen: "录屏",
   },
   sidebar: {
-    brand: "Contrast AI",
+    brand: "Study Ghost",
     subtitle: "AI学习伙伴",
     collapse: "收起",
     expandSidebar: "展开侧边栏",
@@ -2312,7 +2312,7 @@ const ja: Translations = {
     screen: "画面",
   },
   sidebar: {
-    brand: "Contrast AI",
+    brand: "Study Ghost",
     subtitle: "AI学習パートナー",
     collapse: "折りたたむ",
     expandSidebar: "サイドバーを展開",
@@ -2691,7 +2691,7 @@ const ko: Translations = {
     screen: "화면",
   },
   sidebar: {
-    brand: "Contrast AI",
+    brand: "Study Ghost",
     subtitle: "AI 학습 도우미",
     collapse: "접기",
     expandSidebar: "사이드바 펼치기",

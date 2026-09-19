@@ -1,4 +1,4 @@
-# Contrast AI — AI-Powered Study Note Generator
+# Study Ghost — AI-Powered Study Note Generator
 
 ## What This App Does
 A web app that turns recordings, files, and links into comprehensive study notes. Users upload audio, video, PDFs, images, or paste URLs (YouTube, articles) — the AI transcribes, extracts, and generates formatted study notes. Also includes flashcards, practice tests, AI chat, and a photo problem solver.

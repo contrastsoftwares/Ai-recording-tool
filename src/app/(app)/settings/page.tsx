@@ -285,7 +285,7 @@ export default function SettingsPage() {
           </div>
           <Separator />
           <p className="text-xs text-muted-foreground">
-            Contrast AI v1.0.0
+            Study Ghost v1.0.0
           </p>
         </CardContent>
       </Card>

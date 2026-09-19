@@ -114,7 +114,7 @@ export function SocialProof() {
             Students
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Students and professionals around the world rely on Contrast AI to
+            Students and professionals around the world rely on Study Ghost to
             study smarter.
           </p>
         </div>

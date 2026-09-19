@@ -61,11 +61,11 @@ const sourceIcons: Record<UploadType, React.ElementType> = {
 };
 
 const sourceColors: Record<UploadType, string> = {
-  video: "text-blue-500 bg-blue-500/10",
+  video: "text-primary bg-primary/10",
   audio: "text-amber-500 bg-amber-500/10",
   pdf: "text-red-500 bg-red-500/10",
   link: "text-emerald-500 bg-emerald-500/10",
-  image: "text-violet-500 bg-violet-500/10",
+  image: "text-foreground bg-foreground/10",
   document: "text-slate-500 bg-slate-500/10",
 };
 
@@ -176,11 +176,11 @@ export default function NoteWorkspacePage() {
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; line-height: 1.6; color: #1a1a1a; }
     h1 { border-bottom: 2px solid #e5e5e5; padding-bottom: 0.5rem; }
-    h2 { color: #2563eb; margin-top: 2rem; }
+    h2 { color: #111827; margin-top: 2rem; }
     h3 { color: #4b5563; }
     ul, ol { padding-left: 1.5rem; }
     li { margin-bottom: 0.25rem; }
-    blockquote { border-left: 4px solid #3b82f6; margin: 1rem 0; padding: 0.5rem 1rem; background: #eff6ff; }
+    blockquote { border-left: 4px solid #d4a017; margin: 1rem 0; padding: 0.5rem 1rem; background: #fffbea; }
     table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
     th, td { border: 1px solid #d1d5db; padding: 0.5rem; text-align: left; }
     th { background: #f3f4f6; font-weight: 600; }
@@ -198,7 +198,7 @@ export default function NoteWorkspacePage() {
       // Open HTML in new window for browser Print > Save as PDF
       const htmlContent = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>${note.title}</title>
-<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;max-width:800px;margin:0 auto;padding:2rem;line-height:1.6;color:#1a1a1a;}h1{border-bottom:2px solid #e5e5e5;padding-bottom:.5rem;}h2{color:#2563eb;margin-top:2rem;}h3{color:#4b5563;}ul,ol{padding-left:1.5rem;}li{margin-bottom:.25rem;}blockquote{border-left:4px solid #3b82f6;margin:1rem 0;padding:.5rem 1rem;background:#eff6ff;}table{border-collapse:collapse;width:100%;margin:1rem 0;}th,td{border:1px solid #d1d5db;padding:.5rem;text-align:left;}th{background:#f3f4f6;font-weight:600;}</style>
+<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;max-width:800px;margin:0 auto;padding:2rem;line-height:1.6;color:#1a1a1a;}h1{border-bottom:2px solid #e5e5e5;padding-bottom:.5rem;}h2{color:#111827;margin-top:2rem;}h3{color:#4b5563;}ul,ol{padding-left:1.5rem;}li{margin-bottom:.25rem;}blockquote{border-left:4px solid #d4a017;margin:1rem 0;padding:.5rem 1rem;background:#fffbea;}table{border-collapse:collapse;width:100%;margin:1rem 0;}th,td{border:1px solid #d1d5db;padding:.5rem;text-align:left;}th{background:#f3f4f6;font-weight:600;}</style>
 </head><body><h1>${note.title}</h1>${note.content}
 <script>window.onload=function(){window.print();}</script></body></html>`;
       const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });

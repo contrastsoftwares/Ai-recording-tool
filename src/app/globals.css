@@ -1,62 +1,66 @@
 @import "tailwindcss";
 
 :root {
+  /* Study Ghost — black + gold + white. Light mode uses neutral grays + gold. */
   --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  --foreground: 0 0% 9%;
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card-foreground: 0 0% 9%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 221.2 83.2% 53.3%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
+  --popover-foreground: 0 0% 9%;
+  --primary: 43 96% 46%;
+  --primary-foreground: 0 0% 7%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 12%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 40%;
+  --accent: 0 0% 96%;
+  --accent-foreground: 0 0% 12%;
   --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
-  --radius: 0.625rem;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 90%;
+  --input: 0 0% 90%;
+  --ring: 43 96% 46%;
+  --radius: 0.75rem;
   --sidebar-width: 280px;
   --sidebar-width-collapsed: 68px;
-  --violet: 263.4 70% 50.4%;
-  --violet-foreground: 210 40% 98%;
-  --success: 142.1 76.2% 36.3%;
-  --success-foreground: 355.7 100% 97.3%;
+  --violet: 38 92% 48%;
+  --violet-foreground: 0 0% 7%;
+  --success: 142.1 71% 40%;
+  --success-foreground: 0 0% 100%;
   --warning: 32.1 94.6% 43.7%;
-  --warning-foreground: 355.7 100% 97.3%;
+  --warning-foreground: 0 0% 100%;
+  --sidebar: 0 0% 98%;
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 224.3 76.3% 48%;
-  --violet: 263.4 70% 50.4%;
-  --violet-foreground: 210 40% 98%;
+  /* Study Ghost dark (primary experience) — near-black surfaces, vivid gold. */
+  --background: 0 0% 4%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 8%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 48 96% 53%;
+  --primary-foreground: 0 0% 7%;
+  --secondary: 0 0% 14%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 14%;
+  --muted-foreground: 0 0% 64%;
+  --accent: 0 0% 16%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 45%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 18%;
+  --input: 0 0% 18%;
+  --ring: 48 96% 53%;
+  --violet: 40 95% 55%;
+  --violet-foreground: 0 0% 7%;
   --success: 142.1 70.6% 45.3%;
-  --success-foreground: 144.9 80.4% 10%;
-  --warning: 32.1 94.6% 43.7%;
-  --warning-foreground: 26 83.3% 14.1%;
+  --success-foreground: 0 0% 100%;
+  --warning: 40 95% 55%;
+  --warning-foreground: 0 0% 7%;
+  --sidebar: 0 0% 7%;
 }
 
 @theme inline {
@@ -90,7 +94,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", "Noto Sans JP", "Noto Sans KR", "Microsoft YaHei", "PingFang SC", "Hiragino Sans", "Meiryo", "Malgun Gothic", sans-serif;
-  --color-sidebar: hsl(var(--card));
+  --color-sidebar: hsl(var(--sidebar));
   --color-sidebar-foreground: hsl(var(--card-foreground));
   --color-sidebar-border: hsl(var(--border));
 }
@@ -118,6 +122,75 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: hsl(var(--muted-foreground) / 0.3);
     border-radius: 3px;
+  }
+
+  /* Ambilight glow — real light bleeding outward from behind a card's border,
+     like LED bias lighting behind a TV. Put on a positioned element. Use
+     sparingly (hero, CTA, featured cards) for a premium, branded feel. */
+  .glow-card {
+    position: relative;
+    isolation: isolate;
+    border: 1px solid hsl(var(--primary) / 0.55);
+  }
+  .glow-card::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    z-index: -1;
+    box-shadow:
+      0 0 20px 1px hsl(var(--primary) / 0.35),
+      0 0 50px 8px hsl(var(--primary) / 0.22),
+      0 0 110px 24px hsl(var(--primary) / 0.12);
+    animation: glow-breathe 5s ease-in-out infinite;
+  }
+  .glow-card::after {
+    content: "";
+    position: absolute;
+    inset: -28px;
+    border-radius: inherit;
+    z-index: -2;
+    background: radial-gradient(
+      ellipse at 50% 0%,
+      hsl(var(--primary) / 0.32),
+      transparent 68%
+    );
+    filter: blur(34px);
+    pointer-events: none;
+    animation: glow-breathe 5s ease-in-out infinite;
+  }
+  /* Stronger variant for the hero / marquee moment. */
+  .glow-card-lg::before {
+    box-shadow:
+      0 0 28px 2px hsl(var(--primary) / 0.45),
+      0 0 70px 12px hsl(var(--primary) / 0.28),
+      0 0 150px 36px hsl(var(--primary) / 0.16);
+  }
+  .glow-card-lg::after {
+    inset: -44px;
+    background: radial-gradient(
+      ellipse at 50% 0%,
+      hsl(var(--primary) / 0.4),
+      transparent 70%
+    );
+    filter: blur(48px);
+  }
+}
+
+@keyframes glow-breathe {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-card::before,
+  .glow-card::after {
+    animation: none;
   }
 }
 

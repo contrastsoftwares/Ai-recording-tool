@@ -175,7 +175,7 @@ export function AppHeader() {
           className="flex items-center justify-center h-9 w-9 rounded-full bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity"
           aria-label={t.header.userMenu}
         >
-          CA
+          SG
         </button>
       </div>
     </header>

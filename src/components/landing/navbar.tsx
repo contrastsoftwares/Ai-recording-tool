@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Sparkles, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GhostLogo } from "@/components/brand/ghost-logo";
 
 const navLinks = [
   { href: "#features", label: "Features" },
@@ -48,9 +49,9 @@ export function Navbar() {
         <div className="flex h-16 items-center justify-between">
           {/* Brand */}
           <Link href="/" className="flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-primary" />
+            <GhostLogo size={30} title="Study Ghost" />
             <span className="text-lg font-bold text-foreground">
-              Contrast AI
+              Study Ghost
             </span>
           </Link>
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Play, FileText, MessageSquare, Sparkles, Layers, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GhostLogo } from "@/components/brand/ghost-logo";
 
 const sidebarItems = [
   { icon: FileText, label: "My Notes" },
@@ -113,11 +114,10 @@ export function Hero() {
             </button>
           </div>
 
-          {/* App Preview Mockup */}
+          {/* App Preview Mockup — with signature ambilight glow */}
           <div className="relative mt-16 w-full max-w-5xl sm:mt-20 opacity-0 animate-fade-in-up animation-delay-400">
-            {/* Gradient border effect */}
-            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-primary via-violet to-primary opacity-20 blur-sm" />
-            <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+            <div className="glow-card glow-card-lg rounded-2xl">
+            <div className="relative overflow-hidden rounded-2xl bg-card shadow-2xl">
               {/* Fake title bar */}
               <div className="flex items-center gap-2 border-b border-border bg-muted/50 px-4 py-3">
                 <div className="flex gap-1.5">
@@ -135,8 +135,8 @@ export function Hero() {
                 {/* Sidebar */}
                 <div className="hidden w-56 border-r border-border bg-muted/30 p-4 sm:block">
                   <div className="mb-6 flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                    <span className="font-semibold text-foreground">Contrast AI</span>
+                    <GhostLogo size={22} />
+                    <span className="font-semibold text-foreground">Study Ghost</span>
                   </div>
                   <div className="space-y-2">
                     {sidebarItems.map((item, i) => (
@@ -191,6 +191,7 @@ export function Hero() {
                   </div>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </div>

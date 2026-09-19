@@ -19,25 +19,25 @@ export function StatsOverview() {
       label: t.dashboard.totalNotes,
       value: totalNotes,
       icon: FileText,
-      color: "text-blue-500 bg-blue-500/10",
+      color: "text-primary bg-primary/10",
     },
     {
       label: t.dashboard.favorites,
       value: favorites,
       icon: Star,
-      color: "text-amber-500 bg-amber-500/10",
+      color: "text-warning bg-warning/10",
     },
     {
       label: t.dashboard.withFlashcards,
       value: withFlashcards,
       icon: Layers,
-      color: "text-violet-500 bg-violet-500/10",
+      color: "text-foreground bg-foreground/10",
     },
     {
       label: t.dashboard.withTests,
       value: withTests,
       icon: ClipboardCheck,
-      color: "text-emerald-500 bg-emerald-500/10",
+      color: "text-success bg-success/10",
     },
   ];
 
@@ -50,7 +50,7 @@ export function StatsOverview() {
             key={stat.label}
             className={cn(
               "flex items-center gap-3 rounded-xl border border-border bg-card p-4",
-              "transition-colors"
+              "transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10"
             )}
           >
             <div

@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     if (url) {
       try {
         const res = await fetch(url, {
-          headers: { "User-Agent": "Mozilla/5.0 (compatible; ContrastAI/1.0)" },
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; StudyGhost/1.0)" },
         });
         const html = await res.text();
 

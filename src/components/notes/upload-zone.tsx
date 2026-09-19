@@ -25,11 +25,11 @@ import { Input } from "@/components/ui/input";
 type InputMethod = "file" | "url" | "record";
 
 const fileTypeBadges = [
-  { label: "MP4", icon: FileVideo, color: "text-blue-500 bg-blue-500/10" },
+  { label: "MP4", icon: FileVideo, color: "text-primary bg-primary/10" },
   { label: "PDF", icon: FileText, color: "text-red-500 bg-red-500/10" },
   { label: "MP3", icon: Music, color: "text-amber-500 bg-amber-500/10" },
-  { label: "DOCX", icon: FileSpreadsheet, color: "text-indigo-500 bg-indigo-500/10" },
-  { label: "JPG", icon: Image, color: "text-violet-500 bg-violet-500/10" },
+  { label: "DOCX", icon: FileSpreadsheet, color: "text-foreground bg-foreground/10" },
+  { label: "JPG", icon: Image, color: "text-foreground bg-foreground/10" },
   { label: "URL", icon: Globe, color: "text-emerald-500 bg-emerald-500/10" },
 ];
 

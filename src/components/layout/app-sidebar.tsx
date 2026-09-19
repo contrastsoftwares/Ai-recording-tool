@@ -4,7 +4,6 @@ import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Sparkles,
   LayoutDashboard,
   FileText,
   Camera,
@@ -17,6 +16,7 @@ import {
   Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GhostMark } from "@/components/brand/ghost-logo";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useTranslation, useLanguage } from "@/lib/i18n";
 import type { Language } from "@/lib/i18n";
@@ -129,9 +129,7 @@ export function AppSidebar() {
           collapsed ? "justify-center px-0" : "px-5 gap-3"
         )}
       >
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Sparkles className="h-5 w-5" />
-        </div>
+        <GhostMark size={38} className="shrink-0" />
         {!collapsed && (
           <div className="flex flex-col overflow-hidden">
             <span className="text-base font-bold tracking-tight truncate">
@@ -162,7 +160,7 @@ export function AppSidebar() {
                     "flex items-center rounded-lg text-sm font-medium",
                     "transition-colors duration-150",
                     isActive
-                      ? "bg-primary/10 text-primary"
+                      ? "bg-primary/10 text-primary font-semibold ring-1 ring-inset ring-primary/20"
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                     collapsed
                       ? "justify-center h-10 w-10 mx-auto p-0"

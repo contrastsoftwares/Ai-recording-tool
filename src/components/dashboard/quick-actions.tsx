@@ -14,9 +14,9 @@ export function QuickActions() {
       description: t.dashboard.uploadAndGenerateDesc,
       icon: Upload,
       href: "/notes/new",
-      color: "text-blue-500",
-      bgColor: "bg-blue-500/10",
-      hoverBorder: "hover:border-blue-500/40",
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+      hoverBorder: "hover:border-primary/40",
       span: true,
     },
     {
@@ -24,9 +24,9 @@ export function QuickActions() {
       description: t.dashboard.photoSolverDesc,
       icon: Camera,
       href: "/photo-solver",
-      color: "text-violet-500",
-      bgColor: "bg-violet-500/10",
-      hoverBorder: "hover:border-violet-500/40",
+      color: "text-foreground",
+      bgColor: "bg-foreground/10",
+      hoverBorder: "hover:border-primary/40",
       span: false,
     },
     {
@@ -34,9 +34,9 @@ export function QuickActions() {
       description: t.dashboard.recordScreenDesc,
       icon: Monitor,
       href: "/recorder?mode=screen",
-      color: "text-emerald-500",
-      bgColor: "bg-emerald-500/10",
-      hoverBorder: "hover:border-emerald-500/40",
+      color: "text-success",
+      bgColor: "bg-success/10",
+      hoverBorder: "hover:border-success/40",
       span: false,
     },
     {
@@ -44,9 +44,9 @@ export function QuickActions() {
       description: t.dashboard.recordAudioDesc,
       icon: Mic,
       href: "/recorder?mode=audio",
-      color: "text-amber-500",
-      bgColor: "bg-amber-500/10",
-      hoverBorder: "hover:border-amber-500/40",
+      color: "text-warning",
+      bgColor: "bg-warning/10",
+      hoverBorder: "hover:border-warning/40",
       span: false,
     },
   ];
@@ -62,7 +62,7 @@ export function QuickActions() {
             className={cn(
               "group flex items-start gap-4 rounded-xl border border-border bg-card p-5",
               "transition-all duration-200",
-              "hover:scale-[1.02] hover:shadow-lg",
+              "hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10",
               action.hoverBorder,
               action.span && "md:col-span-2"
             )}

@@ -16,7 +16,7 @@ const faqs = [
       "Our AI is highly accurate and continuously improving. It captures key concepts, definitions, and important details from your lectures. You can always edit and refine the generated notes to match your needs.",
   },
   {
-    question: "Can I use Contrast AI for free?",
+    question: "Can I use Study Ghost for free?",
     answer:
       "Yes! Our Free plan includes 5 recordings per month, basic AI-generated notes, and 10 flashcard decks. It's a great way to try out the platform before upgrading.",
   },
@@ -79,7 +79,7 @@ function FAQItem({
       </button>
       <div
         className="accordion-content"
-        style={{ maxHeight: isOpen ? "200px" : "0px" }}
+        style={{ maxHeight: isOpen ? "500px" : "0px" }}
       >
         <p className="px-5 pb-5 text-sm leading-relaxed text-muted-foreground">
           {answer}
@@ -102,7 +102,7 @@ export function FAQ() {
             Frequently Asked Questions
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Everything you need to know about Contrast AI.
+            Everything you need to know about Study Ghost.
           </p>
         </div>
 

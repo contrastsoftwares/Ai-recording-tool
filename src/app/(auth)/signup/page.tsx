@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import { GhostLogo } from "@/components/brand/ghost-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -21,10 +21,8 @@ export default function SignupPage() {
       <CardHeader className="space-y-4 text-center">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-            <Sparkles className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <span className="text-xl font-bold text-foreground">Contrast AI</span>
+          <GhostLogo size={40} title="Study Ghost" />
+          <span className="text-xl font-bold text-foreground">Study Ghost</span>
         </div>
 
         {/* Heading */}
