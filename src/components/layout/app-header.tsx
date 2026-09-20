@@ -104,8 +104,9 @@ export function AppHeader() {
               "w-full h-9 rounded-lg bg-muted/50 pl-9 pr-8 text-sm",
               "placeholder:text-muted-foreground/60",
               "border border-transparent",
-              "focus:outline-none focus:border-primary/30 focus:bg-background",
-              "transition-colors duration-150"
+              "focus:outline-none focus:border-primary/40 focus:bg-background",
+              "focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.12)]",
+              "transition-all duration-150"
             )}
           />
           {searchQuery && (

@@ -65,11 +65,12 @@ export function NoteCard({ note }: NoteCardProps) {
       <Link
         href={`/notes/${note.id}`}
         className={cn(
-          "group relative flex flex-col rounded-xl border border-border bg-card p-4",
-          "transition-all duration-200",
-          "hover:scale-[1.02] hover:shadow-lg hover:border-primary/30"
+          "card-lit group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card p-4"
         )}
       >
+        {/* Top accent hairline — glows on hover */}
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-40 transition-opacity duration-200 group-hover:opacity-100" />
+
         {/* Source badge & favorite */}
         <div className="flex items-center justify-between mb-3">
           <div
@@ -95,7 +96,7 @@ export function NoteCard({ note }: NoteCardProps) {
               className={cn(
                 "h-4 w-4 transition-colors",
                 note.isFavorite
-                  ? "fill-amber-400 text-amber-400"
+                  ? "fill-primary text-primary"
                   : "text-muted-foreground"
               )}
             />

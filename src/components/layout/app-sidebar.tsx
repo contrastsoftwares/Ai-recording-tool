@@ -157,10 +157,10 @@ export function AppSidebar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center rounded-lg text-sm font-medium",
+                    "relative flex items-center rounded-lg text-sm font-medium",
                     "transition-colors duration-150",
                     isActive
-                      ? "bg-primary/10 text-primary font-semibold ring-1 ring-inset ring-primary/20"
+                      ? "bg-primary/10 text-primary font-semibold shadow-[0_0_20px_-6px_hsl(var(--primary)/0.5)]"
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                     collapsed
                       ? "justify-center h-10 w-10 mx-auto p-0"
@@ -168,6 +168,9 @@ export function AppSidebar() {
                   )}
                   title={collapsed ? label : undefined}
                 >
+                  {isActive && !collapsed && (
+                    <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.8)]" />
+                  )}
                   <Icon className="h-5 w-5 shrink-0" />
                   {!collapsed && <span className="truncate">{label}</span>}
                 </Link>

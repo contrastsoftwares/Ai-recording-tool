@@ -49,8 +49,7 @@ export function StatsOverview() {
           <div
             key={stat.label}
             className={cn(
-              "flex items-center gap-3 rounded-xl border border-border bg-card p-4",
-              "transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10"
+              "card-lit flex items-center gap-3 rounded-xl border border-border bg-card p-4"
             )}
           >
             <div

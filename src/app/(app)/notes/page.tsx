@@ -20,8 +20,8 @@ import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { NoteCard } from "@/components/notes/note-card";
+import { GhostLogo } from "@/components/brand/ghost-logo";
 import { useNotesStore } from "@/stores/notes-store";
 import type { UploadType } from "@/types/note";
 
@@ -127,13 +127,14 @@ export default function NotesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{t.notesPage.title}</h1>
+          <div className="accent-bar mb-3" />
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">{t.notesPage.title}</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {notes.length} {notes.length === 1 ? t.notesPage.noteCount : t.notesPage.notesCount} total
           </p>
         </div>
         <Link href="/notes/new">
-          <Button className="gap-2">
+          <Button className="gap-2 shadow-lg shadow-primary/25 hover:shadow-primary/40">
             <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">{t.notesPage.createNew}</span>
           </Button>
@@ -188,7 +189,7 @@ export default function NotesPage() {
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors",
               showFavoritesOnly
-                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                ? "bg-primary/10 text-primary"
                 : "bg-muted text-muted-foreground hover:text-foreground"
             )}
           >
@@ -240,9 +241,10 @@ export default function NotesPage() {
 
       {/* Notes grid */}
       {filteredAndSortedNotes.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 px-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
-            <FolderOpen className="h-8 w-8 text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center py-20 px-4">
+          <div className="relative mb-6">
+            <div className="absolute inset-0 -z-10 rounded-full bg-primary/20 blur-2xl" />
+            <GhostLogo size={96} className="text-primary/70" />
           </div>
           <h3 className="text-lg font-semibold text-foreground mb-1">{t.notesPage.noNotesFound}</h3>
           <p className="text-sm text-muted-foreground text-center max-w-sm">

@@ -187,9 +187,60 @@
   }
 }
 
+@layer utilities {
+  /* Fine film-grain overlay for premium texture over the flat black. */
+  .grain-overlay {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Lit card: subtle top-light sheen + a gold ambilight glow on hover. */
+  .card-lit {
+    position: relative;
+    background-image: linear-gradient(
+      to bottom,
+      hsl(var(--foreground) / 0.05),
+      transparent 45%
+    );
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .card-lit:hover {
+    transform: translateY(-2px);
+    border-color: hsl(var(--primary) / 0.45);
+    box-shadow:
+      0 8px 24px -12px hsl(0 0% 0% / 0.6),
+      0 0 30px -6px hsl(var(--primary) / 0.4);
+  }
+
+  /* Short gold gradient hairline used as an eyebrow above section titles. */
+  .accent-bar {
+    height: 3px;
+    width: 34px;
+    border-radius: 9999px;
+    background: linear-gradient(
+      to right,
+      hsl(var(--primary)),
+      hsl(var(--primary) / 0.15)
+    );
+  }
+
+  /* Gold gradient text for hero headings/greetings. */
+  .text-gold-gradient {
+    background: linear-gradient(
+      to right,
+      hsl(var(--primary)),
+      hsl(var(--warning)) 60%,
+      hsl(var(--primary))
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .glow-card::before,
-  .glow-card::after {
+  .glow-card::after,
+  .animate-float {
     animation: none;
   }
 }

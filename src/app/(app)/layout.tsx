@@ -18,13 +18,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="relative flex h-screen overflow-hidden bg-background">
+      {/* Ambient light — fixed gold blooms behind every app page */}
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <div className="absolute inset-x-0 top-0 h-[420px] bg-gradient-to-b from-primary/[0.06] via-primary/[0.015] to-transparent" />
+        <div className="absolute -left-40 -top-40 h-[520px] w-[520px] rounded-full bg-primary/[0.06] blur-[130px] animate-float" />
+        <div className="absolute -right-32 -top-48 h-[560px] w-[560px] rounded-full bg-primary/[0.05] blur-[140px] animate-float animation-delay-300" />
+        <div className="grain-overlay absolute inset-0 opacity-[0.025] mix-blend-soft-light" />
+      </div>
+
       {/* Desktop sidebar */}
       <AppSidebar />
 
       {/* Main content area - offset for sidebar on desktop */}
       <div
-        className="flex flex-1 flex-col min-w-0"
+        className="relative z-10 flex flex-1 flex-col min-w-0"
         style={{
           marginLeft: isLg
             ? sidebarCollapsed

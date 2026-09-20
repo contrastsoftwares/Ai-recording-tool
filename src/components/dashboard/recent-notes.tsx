@@ -2,9 +2,9 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { FileText } from "lucide-react";
 import { useNotesStore } from "@/stores/notes-store";
 import { NoteCard } from "@/components/notes/note-card";
+import { GhostLogo } from "@/components/brand/ghost-logo";
 import { useTranslation } from "@/lib/i18n";
 
 export function RecentNotes() {
@@ -24,9 +24,10 @@ export function RecentNotes() {
 
   if (recentNotes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 px-4">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted mb-4">
-          <FileText className="h-7 w-7 text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-16 px-4">
+        <div className="relative mb-5">
+          <div className="absolute inset-0 -z-10 rounded-full bg-primary/20 blur-2xl" />
+          <GhostLogo size={80} className="text-primary/70" />
         </div>
         <h3 className="text-lg font-semibold text-foreground mb-1">
           {t.dashboard.noNotesYet}
@@ -41,7 +42,10 @@ export function RecentNotes() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-foreground">{t.dashboard.recentNotes}</h2>
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+          <span className="h-4 w-1 rounded-full bg-primary" />
+          {t.dashboard.recentNotes}
+        </h2>
         <Link
           href="/notes"
           className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
