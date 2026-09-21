@@ -20,24 +20,28 @@ export function StatsOverview() {
       value: totalNotes,
       icon: FileText,
       color: "text-primary bg-primary/10",
+      bar: "bg-primary",
     },
     {
       label: t.dashboard.favorites,
       value: favorites,
       icon: Star,
       color: "text-warning bg-warning/10",
+      bar: "bg-warning",
     },
     {
       label: t.dashboard.withFlashcards,
       value: withFlashcards,
       icon: Layers,
       color: "text-foreground bg-foreground/10",
+      bar: "bg-foreground/50",
     },
     {
       label: t.dashboard.withTests,
       value: withTests,
       icon: ClipboardCheck,
       color: "text-success bg-success/10",
+      bar: "bg-success",
     },
   ];
 
@@ -49,9 +53,12 @@ export function StatsOverview() {
           <div
             key={stat.label}
             className={cn(
-              "card-lit flex items-center gap-3 rounded-xl border border-border bg-card p-4"
+              "relative flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-card p-4",
+              "transition-colors hover:border-primary/25"
             )}
           >
+            {/* Colored left accent — differentiates each stat */}
+            <span className={cn("absolute left-0 top-0 h-full w-1", stat.bar)} />
             <div
               className={cn(
                 "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",

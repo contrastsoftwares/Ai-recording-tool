@@ -60,8 +60,8 @@ export function QuickActions() {
             key={action.title}
             href={action.href}
             className={cn(
-              "card-lit group flex items-start gap-4 rounded-xl border border-border bg-card p-5",
-              action.span && "md:col-span-2"
+              "group flex items-start gap-4 rounded-xl bg-card p-5",
+              action.span ? "glow-soft md:col-span-2" : "card-lit border border-border"
             )}
           >
             <div

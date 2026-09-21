@@ -20,20 +20,22 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Welcome hero band */}
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card/60 px-6 py-7">
-        <div className="pointer-events-none absolute -right-10 -top-12 h-52 w-52 rounded-full bg-primary/15 blur-3xl" />
-        <div className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 opacity-[0.08] sm:block">
-          <GhostLogo size={130} />
-        </div>
-        <div className="relative">
-          <div className="accent-bar mb-3" />
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            {greeting}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1.5">
-            {t.dashboard.subtitle}
-          </p>
+      {/* Welcome hero band — the page's featured gold-glow moment */}
+      <div className="glow-card rounded-2xl">
+        <div className="relative overflow-hidden rounded-2xl bg-card/60 px-6 py-7">
+          <div className="pointer-events-none absolute -right-10 -top-12 h-52 w-52 rounded-full bg-primary/15 blur-3xl" />
+          <div className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 opacity-[0.08] sm:block">
+            <GhostLogo size={130} />
+          </div>
+          <div className="relative">
+            <div className="accent-bar mb-3" />
+            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              {greeting}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1.5">
+              {t.dashboard.subtitle}
+            </p>
+          </div>
         </div>
       </div>
 

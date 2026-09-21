@@ -211,6 +211,23 @@
       0 0 30px -6px hsl(var(--primary) / 0.4);
   }
 
+  /* Contained gold-border glow for FEATURED items — safe inside grids (no big
+     bleed onto neighbors, unlike .glow-card). Reserve for one focal item. */
+  .glow-soft {
+    border: 1px solid hsl(var(--primary) / 0.5);
+    box-shadow:
+      0 0 22px -6px hsl(var(--primary) / 0.45),
+      inset 0 0 26px -16px hsl(var(--primary) / 0.55);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .glow-soft:hover {
+    transform: translateY(-2px);
+    border-color: hsl(var(--primary) / 0.7);
+    box-shadow:
+      0 0 34px -4px hsl(var(--primary) / 0.6),
+      inset 0 0 26px -14px hsl(var(--primary) / 0.6);
+  }
+
   /* Short gold gradient hairline used as an eyebrow above section titles. */
   .accent-bar {
     height: 3px;

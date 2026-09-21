@@ -22,14 +22,14 @@ import type { Note, UploadType } from "@/types/note";
 
 const sourceConfig: Record<
   UploadType,
-  { label: string; icon: React.ElementType; color: string }
+  { label: string; icon: React.ElementType; color: string; accent: string }
 > = {
-  video: { label: "Video", icon: Video, color: "text-primary bg-primary/10" },
-  pdf: { label: "PDF", icon: FileText, color: "text-red-500 bg-red-500/10" },
-  link: { label: "Link", icon: Link2, color: "text-emerald-500 bg-emerald-500/10" },
-  audio: { label: "Audio", icon: Headphones, color: "text-amber-500 bg-amber-500/10" },
-  image: { label: "Image", icon: Image, color: "text-foreground bg-foreground/10" },
-  document: { label: "Document", icon: File, color: "text-slate-500 bg-slate-500/10" },
+  video: { label: "Video", icon: Video, color: "text-primary bg-primary/10", accent: "via-primary/70" },
+  pdf: { label: "PDF", icon: FileText, color: "text-red-500 bg-red-500/10", accent: "via-red-500/70" },
+  link: { label: "Link", icon: Link2, color: "text-emerald-500 bg-emerald-500/10", accent: "via-emerald-500/70" },
+  audio: { label: "Audio", icon: Headphones, color: "text-amber-500 bg-amber-500/10", accent: "via-amber-500/70" },
+  image: { label: "Image", icon: Image, color: "text-foreground bg-foreground/10", accent: "via-foreground/60" },
+  document: { label: "Document", icon: File, color: "text-slate-500 bg-slate-500/10", accent: "via-slate-500/70" },
 };
 
 interface NoteCardProps {
@@ -65,11 +65,17 @@ export function NoteCard({ note }: NoteCardProps) {
       <Link
         href={`/notes/${note.id}`}
         className={cn(
-          "card-lit group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card p-4"
+          "group relative flex flex-col overflow-hidden rounded-xl bg-card p-4",
+          note.isFavorite ? "glow-soft" : "card-lit border border-border"
         )}
       >
-        {/* Top accent hairline — glows on hover */}
-        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-40 transition-opacity duration-200 group-hover:opacity-100" />
+        {/* Top accent hairline — tinted by source type, glows on hover */}
+        <span
+          className={cn(
+            "pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent opacity-50 transition-opacity duration-200 group-hover:opacity-100",
+            source.accent
+          )}
+        />
 
         {/* Source badge & favorite */}
         <div className="flex items-center justify-between mb-3">
